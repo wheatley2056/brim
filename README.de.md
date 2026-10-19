@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/hero.png" alt="Brim — Everything at the edge." width="820">
+  <img src="docs/assets/header.png" alt="Brim — Everything at the edge." width="820">
 </p>
 
 <p align="center">
