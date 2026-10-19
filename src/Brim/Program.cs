@@ -22,7 +22,7 @@ public static class Program
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
         // Nur eine Instanz: eine zweite meldet sich bei der ersten und beendet sich.
-        var instance = AppInstance.FindOrRegisterForKey("Brim.Main");
+        var instance = AppInstance.FindOrRegisterForKey(App.IsDemo ? "Brim.Demo" : "Brim.Main");
         if (!instance.IsCurrent)
         {
             instance.RedirectActivationToAsync(AppInstance.GetCurrent().GetActivatedEventArgs()).AsTask().Wait();

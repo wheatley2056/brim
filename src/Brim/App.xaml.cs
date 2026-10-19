@@ -11,7 +11,12 @@ namespace Brim;
 
 public partial class App : Application
 {
-    public static string DataDirectory { get; } =
+    /// <summary>Vorführmodus für README-Bilder: eigener Datenordner, Beispieltitel, kein Netz, keine Updates.</summary>
+    public static string? DemoDirectory { get; } = Environment.GetEnvironmentVariable("BRIM_DEMO") is { Length: > 0 } d ? Path.GetFullPath(d) : null;
+
+    public static bool IsDemo => DemoDirectory is not null;
+
+    public static string DataDirectory { get; } = DemoDirectory ??
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Brim");
 
     private readonly ActivityHub _hub = new();
@@ -54,6 +59,10 @@ public partial class App : Application
 
         var shelf = new ShelfStore(DataDirectory, ShelfStore.DefaultTemporaryRoots());
         shelf.Load();
+        if (IsDemo && shelf.Items.Count == 0 && Directory.Exists(Path.Combine(DataDirectory, "files")))
+        {
+            shelf.Add(Directory.EnumerateFileSystemEntries(Path.Combine(DataDirectory, "files")).Order(), ShelfStorage.Reference);
+        }
 
         _nearby = new NearbyService(shelf);
         var nearbyModule = new NearbyModule(_nearby, () => _settings.Current.Share);
@@ -102,8 +111,12 @@ public partial class App : Application
         Log.Info($"Brim {_updater.CurrentVersion ?? "Entwicklungsfassung"}");
 
         await _modules.StartAsync(
-            [new ClockModule(), new MediaModule(), new AudioModule(_audio), nearbyModule, new UpdateModule(DataDirectory, _updater.CurrentVersion)],
+            [.. CreateModules(nearbyModule)],
             settings);
+        if (IsDemo)
+        {
+            return;
+        }
         _updater.Start();
 
         // Teilen im LAN: Identität, Empfang und Suche (Plan 4.4a). Fehler hier dürfen die Notch nicht stören.
@@ -115,6 +128,24 @@ public partial class App : Application
         {
             Log.Error("Teilen im Netz nicht verfügbar", ex);
         }
+    }
+
+    private IEnumerable<IBrimModule> CreateModules(NearbyModule nearbyModule)
+    {
+        yield return new ClockModule();
+        if (!IsDemo)
+        {
+            yield return new MediaModule();
+        }
+        else if (File.Exists(Path.Combine(DataDirectory, "cover.png")))
+        {
+            // Vorführmodus: Beispieltitel nur, wenn ein Cover bereitliegt; sonst Leerlauf mit Uhr.
+            yield return new MediaModule(new DemoTrack("Midnight Signal", "Neon Harbor", "Spotify",
+                TimeSpan.FromSeconds(83), TimeSpan.FromSeconds(214), Path.Combine(DataDirectory, "cover.png")));
+        }
+        yield return new AudioModule(_audio);
+        yield return nearbyModule;
+        yield return new UpdateModule(DataDirectory, IsDemo ? null : _updater!.CurrentVersion);
     }
 
     private async void ExitApp()

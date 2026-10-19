@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/hero.png" alt="Brim — Everything at the edge." width="820">
+  <img src="docs/assets/hero.png" alt="Brim aufgeklappt am oberen Bildschirmrand: Musik mit Cover, Fortschritt und Steuerung" width="760">
 </p>
 
 <p align="center">
@@ -29,10 +29,7 @@
 
 Brim setzt eine lebendige Notch an den oberen Bildschirmrand – so, wie sich die Dynamic Island auf dem Handy anfühlt, aber nativ für Windows und nur mit offiziellen Schnittstellen. Sie bleibt klein, solange nichts passiert, wächst, wenn etwas passiert, und macht Platz, sobald ein Fenster ihn braucht.
 
-<p align="center">
-  <img src="docs/assets/now-playing.png" alt="Brim aufgeklappt: Musik mit Cover, Fortschritt und Steuerung" width="820"><br>
-  <sub>Die Bilder in dieser README stammen aus Brims Design-Boards.</sub>
-</p>
+<p align="center"><sub>Bildschirmfotos der echten App mit Beispielinhalten.</sub></p>
 
 ## Funktionen
 
@@ -43,15 +40,15 @@ Cover, Titel, Fortschritt und Steuerung für alles, was die Windows-Mediensteuer
 Jeder Zustand – Uhr, Musik, Lautstärke, Timer, Hinweise – ist dieselbe Form, die sich mit echter Federphysik verwandelt (Response und Dämpfung wie in SwiftUI), gezeichnet vom Compositor mit der Bildwiederholrate deines Monitors: 60, 144 oder 240 Hz. Mit der Maus darauf schwillt sie an, bleibst du, öffnet sie sich aus dieser Bewegung heraus. Die Uhr gleitet in die Kopfzeile, statt zu springen.
 
 <p align="center">
-  <img src="docs/assets/states.png" alt="Neun Zustände der Notch" width="820">
+  <img src="docs/assets/states.png" alt="Drei kompakte Zustände: Uhr im Leerlauf, Musik und ein Update-Hinweis, neben dem die Musik als Perle sitzt" width="820"><br>
+  <sub>Leerlauf · Musik · zwei Aktivitäten – die zweite löst sich als Perle ab.</sub>
 </p>
 
 ### 📁 Ablage
 Dateien oder Ordner auf die Notch ziehen – sie bleiben, bis du sie entfernst, auch nach einem Neustart. Herausziehen in den Explorer, in Mails, Discord oder einen Browser-Upload. Dateien aus flüchtigen Orten (Downloads, Anhänge) werden kopiert, damit sie nicht verschwinden; fehlende werden markiert statt versteckt.
 
 <p align="center">
-  <img src="docs/assets/shelf-system.png" alt="Ablage mit Dateien und der kommende System-Tab" width="820"><br>
-  <sub>Design-Vorschau – die Ablage gibt es schon, der System-Tab steht auf der Roadmap.</sub>
+  <img src="docs/assets/shelf.png" alt="Tab Ablage mit fünf Dateien und Ordnern sowie den Knöpfen Empfangen, Teilen und Leeren" width="760">
 </p>
 
 ### 📡 Teilen – in der Nähe und überall
@@ -62,13 +59,12 @@ Dateien oder Ordner auf die Notch ziehen – sie bleiben, bis du sie entfernst, 
 ### 🫥 Macht Platz
 Liegt ein Fenster unter der Notch – maximiert, im Vollbild oder einfach hochgeschoben –, schmilzt Brim in die Kante. Auch beim Ziehen eines Fensters zur Snap-Leiste zieht sie sich zurück. Maus an die Oberkante, und sie kommt wieder herunter.
 
-<p align="center">
-  <img src="docs/assets/settings.png" alt="Einstellungen: Ausblenden, Spielmodus und Bewegung" width="820"><br>
-  <sub>Design-Vorschau des Einstellungsfensters – die Optionen stehen bisher in <code>settings.json</code>; der Spielmodus steht auf der Roadmap.</sub>
-</p>
-
 ### 🔄 Updates, die du nicht merkst
 Brim aktualisiert sich im Hintergrund aus den GitHub-Releases, lädt nur, was sich geändert hat, und startet erst neu, wenn du ein paar Minuten nicht am Rechner bist. Danach erzählt die Notch, was neu ist.
+
+<p align="center">
+  <img src="docs/assets/update.png" alt="Changelog in der Notch nach einem Update, mit dem Knopf Verstanden" width="760">
+</p>
 
 ### ♿ Für alle gebaut
 Namen für die Windows-Bedienungshilfen überall, Ansagen der Sprachausgabe für HUDs, Tastatur mit <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> und sanftes Überblenden statt Bewegung, wenn die Animationseffekte von Windows aus sind.
@@ -118,6 +114,8 @@ dotnet test Brim.slnx
 ```
 
 Netz- und Kompatibilitätstests gegen das Original-Magic-Wormhole laufen, wenn `BRIM_WORMHOLE_CLI` auf eine `wormhole.exe` zeigt (`pip install magic-wormhole`).
+
+**Bildschirmfotos:** `pwsh build/screenshots/make.ps1` erzeugt die Bilder in `docs/assets` neu aus der echten App im Vorführmodus (`BRIM_DEMO`: Beispiel-Song und -Dateien, eigener Datenordner, kein Netz).
 
 **Release:** In [`CHANGELOG.md`](CHANGELOG.md) einen Abschnitt `## <Version>` anlegen, dann einen Tag `v<Version>` pushen. GitHub Actions baut, packt mit [Velopack](https://velopack.io) (inklusive Delta-Updates) und veröffentlicht; installierte Brims holen sich das Update selbst.
 

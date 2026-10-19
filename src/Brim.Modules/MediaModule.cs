@@ -9,6 +9,9 @@ using Windows.System;
 
 namespace Brim.Modules;
 
+/// <summary>Beispieltitel für den Vorführmodus.</summary>
+public sealed record DemoTrack(string Title, string Artist, string Source, TimeSpan Position, TimeSpan Duration, string? CoverPath);
+
 /// <summary>
 /// Medien mit Cover und Steuerung (A3) über
 /// <see cref="GlobalSystemMediaTransportControlsSessionManager"/>.
@@ -39,16 +42,44 @@ public sealed class MediaModule : IBrimModule
     private DateTimeOffset _positionUpdated;
     private DateTimeOffset _pausedSince = DateTimeOffset.MinValue;
 
+    private readonly DemoTrack? _demo;
+
+    public MediaModule(DemoTrack? demo = null) => _demo = demo;
+
     public string Id => ModuleId;
     public string DisplayName => "Medien";
 
     public async Task StartAsync(ModuleContext context, CancellationToken cancellationToken)
     {
         _context = context;
+        if (_demo is not null)
+        {
+            await StartDemoAsync(_demo);
+            return;
+        }
         _manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
         _manager.CurrentSessionChanged += OnCurrentSessionChanged;
         Attach(_manager.GetCurrentSession());
         _ticker = context.Time.CreateTimer(_ => Tick(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    /// <summary>Vorführmodus (BRIM_DEMO): fester Titel statt der echten Wiedergabe, für Bilder ohne Privates.</summary>
+    private async Task StartDemoAsync(DemoTrack demo)
+    {
+        _title = demo.Title;
+        _artist = demo.Artist;
+        _source = demo.Source;
+        _isPlaying = true;
+        _duration = demo.Duration;
+        _position = demo.Position;
+        _positionUpdated = _context!.Time.GetUtcNow();
+        if (demo.CoverPath is { } path && File.Exists(path))
+        {
+            var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(path);
+            (_cover, _accent) = await ReadCoverAsync(RandomAccessStreamReference.CreateFromFile(file));
+        }
+        Publish();
+        _ticker = _context.Time.CreateTimer(_ => Publish(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
     private void OnCurrentSessionChanged(GlobalSystemMediaTransportControlsSessionManager sender, CurrentSessionChangedEventArgs args) =>

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/hero.png" alt="Brim — Everything at the edge." width="820">
+  <img src="docs/assets/hero.png" alt="Brim expanded at the top of the screen: now playing with cover, progress and controls" width="760">
 </p>
 
 <p align="center">
@@ -29,10 +29,7 @@
 
 Brim puts a living notch at the top of your screen — the way the Dynamic Island feels on a phone, built natively for Windows with official APIs only. It stays tiny while nothing happens, grows when something does, and gets out of the way the moment a window needs the space.
 
-<p align="center">
-  <img src="docs/assets/now-playing.png" alt="Brim expanded: now playing with cover, progress and controls" width="820"><br>
-  <sub>Images in this README are from Brim's design boards.</sub>
-</p>
+<p align="center"><sub>Screenshots of the real app with demo content. The interface is German for now.</sub></p>
 
 ## Features
 
@@ -43,15 +40,15 @@ Cover, title, progress and controls for anything that talks to Windows media con
 Every state — idle clock, music, volume, timer, alerts — is the same shape morphing with real spring physics (SwiftUI-style response and damping), rendered by the compositor at your monitor's refresh rate: 60, 144 or 240 Hz. Hover and it swells; linger and it opens from that motion. The clock glides into the header instead of jumping.
 
 <p align="center">
-  <img src="docs/assets/states.png" alt="Nine states of the notch: idle, now playing, volume, charging, shelf drop, timer, two activities, game mode, retract" width="820">
+  <img src="docs/assets/states.png" alt="Three compact states: idle clock, now playing, and an update notice with the music split off as a bead" width="820"><br>
+  <sub>Idle · now playing · two activities — the second one splits off as a bead.</sub>
 </p>
 
 ### 📁 Shelf
 Drag files or folders onto the notch and they stay there until you remove them — even after a restart. Drag them out into Explorer, mail, Discord or a browser upload. Files from temporary places (downloads, attachments) are copied so they don't vanish; missing ones are marked, not hidden.
 
 <p align="center">
-  <img src="docs/assets/shelf-system.png" alt="Shelf with files and the upcoming System tab" width="820"><br>
-  <sub>Design preview — the shelf ships today, the System tab is on the roadmap.</sub>
+  <img src="docs/assets/shelf.png" alt="Shelf tab with five files and folders, plus receive, share and clear buttons" width="760">
 </p>
 
 ### 📡 Share — nearby and anywhere
@@ -62,13 +59,12 @@ Drag files or folders onto the notch and they stay there until you remove them �
 ### 🫥 Gets out of the way
 When a window sits under the notch — maximized, fullscreen, or just pushed up — Brim melts into the edge. Dragging a window toward the top for Snap Layouts hides it too. Rest your mouse at the top edge and it drops back down.
 
-<p align="center">
-  <img src="docs/assets/settings.png" alt="Settings: auto-hide rules, game mode and motion" width="820"><br>
-  <sub>Design preview of the settings window — today these options live in <code>settings.json</code>; game mode is on the roadmap.</sub>
-</p>
-
 ### 🔄 Updates you won't notice
 Brim updates itself from GitHub releases in the background, downloads only what changed, and restarts only when you're away for a few minutes. Afterwards the notch tells you what's new.
+
+<p align="center">
+  <img src="docs/assets/update.png" alt="Changelog in the notch after an update, with a Got it button" width="760">
+</p>
 
 ### ♿ Built for everyone
 UI Automation names for everything, screen reader announcements for HUDs, keyboard access with <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd>, and a gentle fade instead of motion when Windows animations are turned off.
@@ -118,6 +114,8 @@ dotnet test Brim.slnx
 ```
 
 Network and interoperability tests against the original Magic Wormhole run when `BRIM_WORMHOLE_CLI` points to a `wormhole.exe` (`pip install magic-wormhole`).
+
+**Screenshots:** `pwsh build/screenshots/make.ps1` rebuilds the images in `docs/assets` from the real app in demo mode (`BRIM_DEMO`: sample song and files, separate data folder, no network).
 
 **Releasing:** add a `## <version>` section to [`CHANGELOG.md`](CHANGELOG.md), then push a tag `v<version>`. GitHub Actions builds, packs with [Velopack](https://velopack.io) (including delta updates) and publishes the release; installed Brims pick it up on their own.
 
