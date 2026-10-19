@@ -53,17 +53,37 @@ public sealed partial class NotchView : UserControl
             visual.CenterPoint = new Vector3((float)layer.Width / 2, 0, 0);
         }
 
+        // Der Inhalt jeder Perle folgt ihrer Form im Compositor (Lage, Größe, Deckkraft). Sonst bliebe
+        // das Cover beim Aufklappen stehen, während die Form mit dem Ohr nach außen wandert.
+        var beadSlots = NotchGeometry.Beads(NotchGeometry.Compact, _beadPresenters.Length);
         for (var i = 0; i < _beadPresenters.Length; i++)
         {
-            _beadPresenters[i] = new ContentPresenter
+            var presenter = new ContentPresenter
             {
                 Width = NotchGeometry.BeadSize,
                 Height = NotchGeometry.BeadSize,
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
-                Opacity = 0,
             };
-            BeadHost.Children.Add(_beadPresenters[i]);
+            var left = width / 2 + beadSlots[i].Left;
+            Canvas.SetLeft(presenter, left);
+            Canvas.SetTop(presenter, 0);
+            BeadHost.Children.Add(presenter);
+            _beadPresenters[i] = presenter;
+
+            ElementCompositionPreview.SetIsTranslationEnabled(presenter, true);
+            var visual = ElementCompositionPreview.GetElementVisual(presenter);
+            foreach (var (property, expression) in new[]
+            {
+                ("Translation", $"Vector3(b.Offset.X - {left.ToString(System.Globalization.CultureInfo.InvariantCulture)}, 0, 0)"),
+                ("Scale", "b.Scale"),
+                ("Opacity", "b.Opacity"),
+            })
+            {
+                var animation = compositor.CreateExpressionAnimation(expression);
+                animation.SetReferenceParameter("b", _surface.Bead(i));
+                visual.StartAnimation(property, animation);
+            }
         }
 
         CanvasRoot.PointerEntered += (_, _) => HoverChanged?.Invoke(true);
@@ -360,24 +380,13 @@ public sealed partial class NotchView : UserControl
         return ExpandedLayer;
     }
 
+    /// <summary>Inhalt der Perlen; Ein- und Ausblenden kommt von ihrer Form (siehe Konstruktor).</summary>
     private void UpdateBeads(NotchPresentation p, int count)
     {
-        var center = NotchGeometry.Canvas.Width / 2;
-        var beads = NotchGeometry.Beads(NotchGeometry.Compact, count);
-        for (var i = 0; i < _beadPresenters.Length; i++)
+        for (var i = 0; i < count; i++)
         {
-            var presenter = _beadPresenters[i];
-            var visible = i < count;
-            if (visible)
-            {
-                var bead = p.Beads[i];
-                Render("bead" + i, presenter, bead, bead.Activity.Bead ?? bead.Activity.Leading);
-                Canvas.SetLeft(presenter, center + beads[i].Left);
-                Canvas.SetTop(presenter, 0);
-            }
-            AnimationBuilder.Create()
-                .Opacity(visible ? 1 : 0, duration: TimeSpan.FromMilliseconds(visible ? 200 : 100), delay: TimeSpan.FromMilliseconds(visible ? 160 + 90 * i : 0))
-                .Start(presenter);
+            var bead = p.Beads[i];
+            Render("bead" + i, _beadPresenters[i], bead, bead.Activity.Bead ?? bead.Activity.Leading);
         }
     }
 

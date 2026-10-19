@@ -119,6 +119,9 @@ internal sealed class NotchSurface : IDisposable
 
     public NotchShape Target => _target;
 
+    /// <summary>Form der Perle <paramref name="index"/>; ihr Inhalt hängt sich an Lage, Größe und Deckkraft.</summary>
+    public Visual Bead(int index) => _beads[index];
+
     /// <summary>Clip für den XAML-Inhalt, folgt der Form des Körpers.</summary>
     public CompositionClip CreateContentClip() => _compositor.CreateGeometricClip(CreateBodyGeometry());
 
@@ -225,14 +228,15 @@ internal sealed class NotchSurface : IDisposable
             }
             else
             {
-                var spring = new Spring(settings.ExpandMs / 1000.0 * 0.8, visible ? settings.Damping : 1);
-                var scale = CreateScaleCurve(_compositor, spring, bead.Scale.X, visible ? 1 : 0.2, 0);
+                // Ausblenden schnell und ohne Nachfedern: Die Perle schrumpft in das Ohr, während die Notch aufgeht.
+                var spring = new Spring(settings.ExpandMs / 1000.0 * (visible ? 0.8 : 0.35), visible ? settings.Damping : 1);
+                var scale = CreateScaleCurve(_compositor, spring, bead.Scale.X, visible ? 1 : 0, 0);
                 scale.DelayTime = delay;
                 bead.StartAnimation("Scale", scale);
             }
             var opacity = _compositor.CreateScalarKeyFrameAnimation();
             opacity.InsertKeyFrame(1, visible ? 1 : 0);
-            opacity.Duration = TimeSpan.FromMilliseconds(visible ? 160 : 100);
+            opacity.Duration = TimeSpan.FromMilliseconds(visible ? 160 : 90);
             opacity.DelayTime = delay;
             bead.StartAnimation("Opacity", opacity);
         }
