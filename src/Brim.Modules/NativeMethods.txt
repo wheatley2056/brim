@@ -1,0 +1,6 @@
+DnsServiceConstructInstance
+DnsServiceRegister
+DnsServiceDeRegister
+DnsServiceFreeInstance
+DNS_SERVICE_REGISTER_REQUEST
+DNS_QUERY_OPTIONS

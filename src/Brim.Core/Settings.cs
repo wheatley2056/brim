@@ -52,8 +52,70 @@ public sealed class ClockSettings
     public bool ShowSeconds { get; set; }
 }
 
+public enum ShelfStorage
+{
+    /// <summary>Nur den Pfad merken, nichts verschieben (Standard).</summary>
+    Reference,
+    /// <summary>Immer nach %LocalAppData%\Brim\Shelf kopieren.</summary>
+    Copy,
+}
+
+public sealed class ShelfSettings
+{
+    public ShelfStorage Storage { get; set; } = ShelfStorage.Reference;
+
+    /// <summary>Eintrag entfernen, nachdem er erfolgreich herausgezogen wurde.</summary>
+    public bool RemoveAfterDragOut { get; set; }
+}
+
+public sealed class AutoHideSettings
+{
+    /// <summary>Zurückziehen, wenn ein App-Fenster im Bereich der Notch liegt (auch maximiert/Vollbild).</summary>
+    public bool WhenOverlapped { get; set; } = true;
+
+    /// <summary>Zurückziehen, während ein Fenster Richtung Oberkante gezogen wird (Snap-Leiste).</summary>
+    public bool WhileDraggingWindows { get; set; } = true;
+
+    /// <summary>Abstand zur Oberkante in DIP, ab dem das Ziehen eines Fensters die Notch versteckt.</summary>
+    public int DragZone { get; set; } = 200;
+
+    /// <summary>Maus an die Oberkante holt die versteckte Notch zurück.</summary>
+    public bool PeekFromTopEdge { get; set; } = true;
+
+    /// <summary>Verweilzeit an der Oberkante (Plan 4.9: 300 ms).</summary>
+    public int PeekDelayMs { get; set; } = 300;
+}
+
+public enum ProxyMode
+{
+    /// <summary>Proxy aus den Windows-Einstellungen (Standard).</summary>
+    System,
+    /// <summary>Immer direkt verbinden.</summary>
+    None,
+    /// <summary>Eigener Proxy aus <see cref="ShareSettings.ProxyUrl"/>.</summary>
+    Manual,
+}
+
+/// <summary>Teilen übers Internet per Code (Magic Wormhole, Plan 4.4a Stufe 2).</summary>
+public sealed class ShareSettings
+{
+    /// <summary>Vermittlungsserver (Mailbox). Standard: öffentlicher Server des Magic-Wormhole-Projekts.</summary>
+    public string MailboxUrl { get; set; } = "ws://relay.magic-wormhole.io:4000/v1";
+
+    /// <summary>Weiterleitung, wenn keine direkte Verbindung möglich ist (<c>tcp:host:port</c>).</summary>
+    public string TransitRelay { get; set; } = "tcp:transit.magic-wormhole.io:4001";
+
+    public ProxyMode Proxy { get; set; } = ProxyMode.System;
+
+    /// <summary>Bei <see cref="ProxyMode.Manual"/>: <c>http://host:port</c> oder <c>socks5://host:port</c>, optional mit Benutzer:Passwort.</summary>
+    public string? ProxyUrl { get; set; }
+}
+
 public sealed class BrimSettings
 {
+    public ShareSettings Share { get; set; } = new();
+    public AutoHideSettings AutoHide { get; set; } = new();
+    public ShelfSettings Shelf { get; set; } = new();
     public MonitorMode Monitors { get; set; } = MonitorMode.Primary;
     public AnimationSettings Animation { get; set; } = new();
     public InteractionSettings Interaction { get; set; } = new();

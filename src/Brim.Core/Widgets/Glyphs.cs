@@ -24,6 +24,9 @@ public static class Glyphs
     public static readonly string CheckMark = G(0xE73E);
     public static readonly string Headphones = G(0xE7F6);
     public static readonly string Mixer = G(0xE9E9);
+    public static readonly string Download = G(0xE896);
+    public static readonly string Computer = G(0xE7F4);
+    public static readonly string Link = G(0xE71B);
 
     private static string G(int codePoint) => char.ConvertFromUtf32(codePoint);
 }

@@ -1,4 +1,5 @@
 using Brim.Core;
+using Brim.Modules;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Windows.Graphics;
@@ -12,7 +13,7 @@ namespace Brim.Shell;
 /// Ein Notch-Fenster pro Monitor (Plan 4.1). Rahmenlos, transparent, immer oben,
 /// nie aktiviert per Klick. Nur die Fläche der Notch nimmt Eingaben an (Fensterregion).
 /// </summary>
-internal sealed class NotchWindow : WindowEx
+internal sealed partial class NotchWindow : WindowEx
 {
     private readonly ActivityHub _hub;
     private readonly SettingsStore _settings;
@@ -27,19 +28,22 @@ internal sealed class NotchWindow : WindowEx
     private bool _pinned;
     private bool _hidden;
     private bool _inside;
+    private bool _dropTarget;
+    private bool _draggingOut;
+    private bool _popupOpen;
     private NotchTab _tab = NotchTab.Now;
     private (double X, double Y, double Width, double Height) _region;
     private (double X, double Y, double Width, double Height) _regionTarget;
     private double _scale = 1;
 
-    public NotchWindow(DisplayArea display, ActivityHub hub, SettingsStore settings)
+    public NotchWindow(DisplayArea display, ActivityHub hub, SettingsStore settings, ShelfStore shelf, NearbyModule nearby)
     {
         Display = display;
         _hub = hub;
         _settings = settings;
 
         Title = "Brim";
-        View = new NotchView(hub);
+        View = new NotchView(hub, shelf, settings, nearby, () => Handle);
         Content = View;
         SystemBackdrop = new TransparentTintBackdrop { TintColor = Microsoft.UI.Colors.Transparent };
 
@@ -70,10 +74,13 @@ internal sealed class NotchWindow : WindowEx
 
         var queue = DispatcherQueue;
         _hoverTimer = CreateTimer(queue, () => SetExpanded(true, pinned: false));
-        _collapseTimer = CreateTimer(queue, () => SetExpanded(false, pinned: false));
+        _collapseTimer = CreateTimer(queue, CollapseIfIdle);
         _expiryTimer = CreateTimer(queue, Refresh);
         _regionTimer = CreateTimer(queue, ShrinkRegion);
         _hoverPoll = CreateTimer(queue, PollHover);
+        _peekPoll = CreateTimer(queue, PollPeek);
+        _peekPoll.IsRepeating = true;
+        _peekPoll.Interval = TimeSpan.FromMilliseconds(33);
         _hoverPoll.IsRepeating = true;
         _hoverPoll.Interval = TimeSpan.FromMilliseconds(50);
 
@@ -84,6 +91,28 @@ internal sealed class NotchWindow : WindowEx
         {
             _tab = tab;
             Refresh();
+        };
+        View.DropTargetChanged += OnDropTargetChanged;
+        View.Dropped += OnDropped;
+        View.PopupChanged += open =>
+        {
+            _popupOpen = open;
+            // Menü zu und Maus woanders: jetzt zuklappen.
+            if (!open && !CursorInside())
+            {
+                SetInside(false);
+                StartCollapse();
+            }
+        };
+        View.DraggingOut += active =>
+        {
+            _draggingOut = active;
+            // Nach dem Herausziehen zuklappen, wenn die Maus nicht mehr über der Notch ist.
+            if (!active && !CursorInside())
+            {
+                SetInside(false);
+                StartCollapse();
+            }
         };
         View.Loaded += (_, _) =>
         {
@@ -137,6 +166,7 @@ internal sealed class NotchWindow : WindowEx
             AppWindow.MoveAndResize(new RectInt32(x, top, width, height));
         }
         ApplyRegion(_region == default ? CurrentHitArea() : _region);
+        _top = top;
 
         // Der Compositor taktet die Animationen mit dieser Rate; protokolliert zur Kontrolle.
         RefreshRate = Win32.GetRefreshRate(Handle);
@@ -146,26 +176,11 @@ internal sealed class NotchWindow : WindowEx
     /// <summary>Neu bewerten, was gezeigt wird, und die Ansicht aktualisieren.</summary>
     public void Refresh()
     {
-        var presentation = NotchStateMachine.Resolve(_hub.Snapshot(), new NotchInput(_expanded, _hidden, _tab));
+        var presentation = NotchStateMachine.Resolve(_hub.Snapshot(), new NotchInput(_expanded, _hidden, _tab, _dropTarget));
         var animation = _settings.Current.Animation.Clamped();
         View.Present(presentation, animation, reducedMotion: !_uiSettings.AnimationsEnabled);
         UpdateRegion(animation);
         ScheduleExpiry();
-    }
-
-    /// <summary>Zurückziehen bzw. wieder zeigen (Ausblende-Regeln, Phase 3).</summary>
-    public void SetHidden(bool hidden)
-    {
-        if (_hidden == hidden)
-        {
-            return;
-        }
-        _hidden = hidden;
-        if (hidden)
-        {
-            _expanded = false;
-        }
-        Refresh();
     }
 
     /// <summary>Per Tastenkürzel oder zweiter Instanz auf- und zuklappen.</summary>
@@ -197,6 +212,11 @@ internal sealed class NotchWindow : WindowEx
             _tab = NotchTab.Now;
         }
         Refresh();
+        if (!expanded)
+        {
+            // Lag inzwischen ein Fenster unter der Notch, zieht sie sich jetzt zurück.
+            ApplyAutoHide();
+        }
     }
 
     /// <summary>
@@ -258,9 +278,81 @@ internal sealed class NotchWindow : WindowEx
             {
                 // Per Tastatur geöffnet: erst schließen, wenn die Maus einmal drin war und wieder geht.
                 _pinned = false;
-                _collapseTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(0, interaction.HoverCollapseDelayMs));
-                _collapseTimer.Start();
+                StartCollapse();
             }
+            else
+            {
+                ApplyAutoHide();
+            }
+        }
+    }
+
+    private void StartCollapse()
+    {
+        if (!_expanded)
+        {
+            return;
+        }
+        _collapseTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(0, _settings.Current.Interaction.HoverCollapseDelayMs));
+        _collapseTimer.Start();
+    }
+
+    /// <summary>Zuklappen – außer während Dateien herausgezogen werden, sonst verschwände die Quelle mitten im Ziehen.</summary>
+    private void CollapseIfIdle()
+    {
+        if (_draggingOut || _dropTarget || _popupOpen)
+        {
+            return;
+        }
+        SetExpanded(false, pinned: false);
+    }
+
+    // ───────── Ablage ─────────
+
+    private void OnDropTargetChanged(bool over)
+    {
+        if (over)
+        {
+            _collapseTimer.Stop();
+            _hoverTimer.Stop();
+            _dropTarget = true;
+            if (_expanded)
+            {
+                _tab = NotchTab.Shelf;
+            }
+            Refresh();
+            return;
+        }
+        // DragLeave kommt auch beim Wechsel zwischen inneren Elementen; zählt nur, wenn die Maus wirklich draußen ist.
+        if (!CursorInside())
+        {
+            _dropTarget = false;
+            Refresh();
+            if (_expanded)
+            {
+                StartCollapse();
+            }
+        }
+    }
+
+    /// <summary>Nach dem Ablegen klappt die Notch auf und zeigt die Ablage mit dem neuen Eintrag.</summary>
+    private void OnDropped()
+    {
+        _dropTarget = false;
+        _tab = NotchTab.Shelf;
+        if (_expanded)
+        {
+            Refresh();
+        }
+        else
+        {
+            SetExpanded(true, pinned: false);
+        }
+        // Während des Ziehens gab es keine Zeigerereignisse; Hover-Zustand nachziehen.
+        SetInside(CursorInside());
+        if (!_inside)
+        {
+            StartCollapse();
         }
     }
 

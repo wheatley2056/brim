@@ -5,11 +5,19 @@
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <RootNamespace>Brim.Modules</RootNamespace>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- DNS-SD-Strukturen sind architekturabhängig; x64 und ARM64 haben dasselbe 64-Bit-Layout. -->
+    <CsWin32PlatformTarget>x64</CsWin32PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NAudio.Wasapi" />
+    <PackageReference Include="libsodium" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Brim.Core\Brim.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Brim.Modules.Tests" />
   </ItemGroup>
 </Project>

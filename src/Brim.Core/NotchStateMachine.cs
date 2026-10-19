@@ -14,6 +14,8 @@ public enum NotchMode
     Alert,
     /// <summary>Erweitert mit Tabs.</summary>
     Expanded,
+    /// <summary>Etwas wird über die Notch gezogen: Ablagefläche zum Loslassen.</summary>
+    Drop,
 }
 
 public enum NotchTab { Now, Shelf, System, Plugins }
@@ -30,7 +32,7 @@ public sealed record NotchPresentation(
 }
 
 /// <summary>Eingaben der Shell, die nicht aus Aktivitäten stammen.</summary>
-public readonly record struct NotchInput(bool IsExpanded, bool IsHidden, NotchTab Tab);
+public readonly record struct NotchInput(bool IsExpanded, bool IsHidden, NotchTab Tab, bool IsDropTarget = false);
 
 /// <summary>
 /// Entscheidet aus allen Aktivitäten und dem Zustand der Shell, was gezeigt wird.
@@ -62,14 +64,21 @@ public static class NotchStateMachine
                 : new NotchPresentation(NotchMode.Hidden, null, [], idle, input.Tab);
         }
 
-        if (input.IsExpanded)
+        // Wird etwas herangezogen, öffnet sich die Ablagefläche; ist die Notch schon offen, bleibt sie offen.
+        if (input.IsDropTarget && !input.IsExpanded)
         {
-            return new NotchPresentation(NotchMode.Expanded, critical ?? topOngoing, [], idle, input.Tab);
+            return new NotchPresentation(NotchMode.Drop, null, [], idle, NotchTab.Shelf);
         }
 
+        // Kritische Hinweise (z. B. „Annehmen?“) gehen auch im aufgeklappten Zustand vor; danach geht es dort weiter.
         if (critical is not null)
         {
             return new NotchPresentation(NotchMode.Alert, critical, [], idle, input.Tab);
+        }
+
+        if (input.IsExpanded)
+        {
+            return new NotchPresentation(NotchMode.Expanded, topOngoing, [], idle, input.Tab);
         }
 
         if (transient is not null)

@@ -18,7 +18,7 @@ public static class NotchGeometry
 {
     public static readonly NotchShape Idle = new(180, 30, 15, 10);
     public static readonly NotchShape Compact = new(300, 34, 17, 10);
-    public static readonly NotchShape Alert = new(400, 88, 28, 12);
+    public static readonly NotchShape Alert = new(480, 88, 28, 12);
     public static readonly NotchShape Expanded = new(620, 248, 38, 12);
     public static readonly NotchShape ShelfDrop = new(352, 88, 28, 12);
 
@@ -54,6 +54,7 @@ public static class NotchGeometry
         NotchMode.Compact or NotchMode.Hud => Compact,
         NotchMode.Alert => Alert,
         NotchMode.Expanded => Expanded,
+        NotchMode.Drop => ShelfDrop,
         _ => Idle,
     };
 

@@ -1,6 +1,7 @@
 using Brim.Core;
 using Brim.Modules;
 using Brim.Modules.Audio;
+using Brim.Modules.Nearby;
 using Brim.Shell;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -19,6 +20,7 @@ public partial class App : Application
     private ModuleHost? _modules;
     private NotchWindowManager? _windows;
     private TrayIcon? _tray;
+    private NearbyService? _nearby;
 
     public App()
     {
@@ -49,8 +51,34 @@ public partial class App : Application
             _settings.Save(settings);
         }
 
+        var shelf = new ShelfStore(DataDirectory, ShelfStore.DefaultTemporaryRoots());
+        shelf.Load();
+
+        _nearby = new NearbyService(shelf);
+        var nearbyModule = new NearbyModule(_nearby, () => _settings.Current.Share);
+
         var dispatcher = DispatcherQueue.GetForCurrentThread();
-        _windows = new NotchWindowManager(_hub, _settings, dispatcher);
+        nearbyModule.CopyToClipboard = text =>
+        {
+            var done = new TaskCompletionSource();
+            dispatcher.TryEnqueue(() =>
+            {
+                try
+                {
+                    var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+                    package.SetText(text);
+                    Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+                    Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
+                }
+                catch (Exception ex)
+                {
+                    Log.Warn("Zwischenablage nicht verfügbar", ex);
+                }
+                done.TrySetResult();
+            });
+            return done.Task;
+        };
+        _windows = new NotchWindowManager(_hub, _settings, shelf, nearbyModule, dispatcher);
         _windows.Build();
 
         _tray = new TrayIcon(_settings, ExitApp, () => _windows.ToggleExpanded());
@@ -67,7 +95,17 @@ public partial class App : Application
             Log.Error("Audio nicht verfügbar", ex);
         }
         _modules = new ModuleHost(_hub);
-        await _modules.StartAsync([new ClockModule(), new MediaModule(), new AudioModule(_audio)], settings);
+        await _modules.StartAsync([new ClockModule(), new MediaModule(), new AudioModule(_audio), nearbyModule], settings);
+
+        // Teilen im LAN: Identität, Empfang und Suche (Plan 4.4a). Fehler hier dürfen die Notch nicht stören.
+        try
+        {
+            await _nearby.StartAsync(DataDirectory);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Teilen im Netz nicht verfügbar", ex);
+        }
     }
 
     private async void ExitApp()
@@ -80,6 +118,10 @@ public partial class App : Application
             await _modules.DisposeAsync();
         }
         _audio.Dispose();
+        if (_nearby is not null)
+        {
+            await _nearby.DisposeAsync();
+        }
         Exit();
     }
 }

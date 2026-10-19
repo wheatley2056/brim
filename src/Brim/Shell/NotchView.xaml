@@ -34,10 +34,23 @@
             </Grid>
 
             <!-- Kritischer Hinweis -->
-            <Grid x:Name="AlertLayer" Width="400" Height="88" Padding="24,12,24,16"
+            <Grid x:Name="AlertLayer" Width="480" Height="88" Padding="22,10,18,14"
                   HorizontalAlignment="Center" VerticalAlignment="Top"
                   Visibility="Collapsed">
                 <ContentPresenter x:Name="AlertPresenter" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" />
+            </Grid>
+
+            <!-- Ablegen: erscheint, während etwas über die Notch gezogen wird -->
+            <Grid x:Name="DropLayer" Width="352" Height="88" Padding="14,10,14,14"
+                  HorizontalAlignment="Center" VerticalAlignment="Top"
+                  Visibility="Collapsed">
+                <Rectangle x:Name="DropOutline" RadiusX="16" RadiusY="16"
+                           Stroke="#FF5A5D66" StrokeThickness="1.5" StrokeDashArray="4,3" />
+                <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <FontIcon x:Name="DropIcon" FontFamily="{StaticResource NotchIconFont}" FontSize="16" Foreground="{StaticResource FogBrush}" />
+                    <TextBlock x:Name="DropText" Text="Loslassen, um es in der Ablage zu behalten"
+                               FontSize="14" Foreground="{StaticResource FogBrush}" VerticalAlignment="Center" />
+                </StackPanel>
             </Grid>
 
             <!-- Erweitert: Tabs und Inhalt -->
@@ -67,6 +80,7 @@
 
                 <Grid Grid.Row="1">
                     <ContentPresenter x:Name="NowPresenter" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+                    <ContentPresenter x:Name="ShelfPresenter" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Visibility="Collapsed" />
                     <StackPanel x:Name="PlaceholderPanel" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6">
                         <FontIcon x:Name="PlaceholderIcon" FontFamily="{StaticResource NotchIconFont}" FontSize="22" Foreground="{StaticResource SlateBrush}" />
                         <TextBlock x:Name="PlaceholderTitle" HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource FogBrush}" />

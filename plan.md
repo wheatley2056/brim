@@ -19,6 +19,7 @@ Eine Notch für Windows, die sich anfühlt wie ein Teil des Systems: Sie nutzt a
 | A7 | Ressourcen | Werte wie im Task-Manager: CPU, RAM, GPU, Datenträger, Netzwerk |
 | A8 | FPS und Latenz in Spielen | Bildrate, Frametime, Latenz |
 | A9 | Automatisches Ausblenden | Einstellbare Regeln, morphende, flüssige Animationen |
+| A10 | Teilen zwischen Brims | Dateien aus der Ablage an andere Brim-Nutzer: im LAN ohne Backend, übers Internet per Code (mit Proxy) |
 
 ## 3. Architektur
 
@@ -159,6 +160,25 @@ Fehlt eine verwiesene Datei später, wird der Eintrag ausgegraut mit „Nicht me
 
 **Technisches Risiko:** Ziehen über ein Fenster mit `WS_EX_NOACTIVATE` und Fensterregion muss früh getestet werden (siehe Risiken).
 
+### 4.4a Teilen zwischen Brims (A10)
+
+Ergänzt am 19.10.2026. Der Knopf „Teilen“ in der Ablage öffnet ein Menü: Brims in der Nähe · „Per Code senden …“ · „Windows-Teilen …“ (bisheriger Dialog für Mail, Teams usw.).
+
+**Stufe 1 – lokales Netz, ganz ohne Backend**
+
+| Teil | Umsetzung |
+|---|---|
+| Identität | Pro Installation ein selbstsigniertes Zertifikat (ECDSA P-256), mit DPAPI geschützt in `%LocalAppData%\Brim\identity.bin`; Gerätename „Brim von *Nutzer*“ |
+| Finden | DNS-SD/mDNS, Dienst `_brim._tcp.local`: Anmelden über `DnsServiceRegister` (Win32), Suchen über `DeviceWatcher` (WinRT). TXT-Einträge: Kennung, Name, Fingerabdruck des Zertifikats |
+| Übertragen | Direkte TCP-Verbindung mit gegenseitigem TLS. Der Fingerabdruck muss zum Eintrag aus der Suche passen (kein Mithören, kein Unterschieben im LAN) |
+| Ablauf | Angebot (Namen, Größen) → Annahme-Frage in der Notch beim Empfänger (kritischer Hinweis, 60 s) → Dateien → landen in der Ablage des Empfängers. Fortschritt auf beiden Seiten als Aktivität |
+| Sicherheit | Nichts wird ohne Zustimmung angenommen; Pfade aus dem Angebot werden bereinigt (kein `..`, keine absoluten Pfade); Grenzen für Anzahl und Kopfgröße |
+| Firewall | Beim ersten Empfang fragt Windows einmal nach (privates Netz) |
+
+**Stufe 2 – Internet per Code (Magic Wormhole)**
+
+Ein ganz backendloser Weg übers Internet ist wegen NAT nicht möglich; statt eines eigenen Servers nutzt Brim das offene Magic-Wormhole-Protokoll mit den öffentlichen Community-Servern (Mailbox und Transit-Relay). Der Absender bekommt einen Code wie `7-kaktus-orbit`, der Empfänger tippt ihn ein. Ende-zu-Ende-verschlüsselt (SPAKE2), Verbindung über WebSocket/HTTPS, dadurch mit System-Proxy und eingestelltem HTTP-/SOCKS-Proxy nutzbar. Das Protokoll wird in C# umgesetzt (keine ausgereifte .NET-Bibliothek vorhanden).
+
 ### 4.5 Uhrzeit (A5)
 
 - Ruhezustand zeigt `HH:mm`, optional Sekunden, Datum oder zweite Zeitzone.
@@ -284,6 +304,7 @@ Kerbe.sln
 |---|---|---|
 | 0 · Fundament | Prototyp lauffähig machen, Composition-Morph, Zustandsmaschine mit Prioritäten, Multi-Monitor | stabile Notch mit Uhr, Medien, Lautstärke |
 | 1 · Ablage | Shelf komplett inkl. Persistenz und Herausziehen | A4 fertig |
+| 1b · Teilen | Brim-zu-Brim im LAN, danach per Code übers Internet | A10 fertig |
 | 2 · System | Akku, Ressourcen, Helligkeit, Kamera/Mikro | A5–A7 fertig |
 | 3 · Ausblenden | Regelwerk, App-Ausnahmen, Animationseinstellungen, Rand-Reveal | A9 fertig |
 | 4 · Plugins | Protokoll, Host, SDK, zwei Beispiel-Plugins | A2 fertig |

@@ -21,3 +21,12 @@ GetMonitorInfo
 MONITORINFOEXW
 EnumDisplaySettings
 GetCursorPos
+SetWinEventHook
+UnhookWinEvent
+EnumWindows
+IsWindowVisible
+IsIconic
+GetClassName
+GetWindowThreadProcessId
+GetAncestor
+DwmGetWindowAttribute

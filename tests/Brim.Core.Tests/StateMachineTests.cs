@@ -96,6 +96,18 @@ public class StateMachineTests
     }
 
     [Fact]
+    public void Critical_interrupts_expanded_and_returns_afterwards()
+    {
+        _hub.Post(Make("media", ActivityPriority.Ongoing));
+        _hub.Post(Make("ask", ActivityPriority.Critical));
+
+        Assert.Equal(NotchMode.Alert, Resolve(expanded: true).Mode);
+
+        _hub.End("test", "ask");
+        Assert.Equal(NotchMode.Expanded, Resolve(expanded: true).Mode);
+    }
+
+    [Fact]
     public void Hidden_stays_hidden_except_for_critical()
     {
         _hub.Post(Make("media", ActivityPriority.Ongoing));
@@ -116,6 +128,19 @@ public class StateMachineTests
 
         Assert.Equal(NotchMode.Idle, Resolve().Mode);
         Assert.Equal("test/media", Resolve(expanded: true).Primary?.Key);
+    }
+
+    [Fact]
+    public void Dragging_over_opens_the_drop_zone_unless_already_expanded()
+    {
+        _hub.Post(Make("media", ActivityPriority.Ongoing));
+
+        var drop = NotchStateMachine.Resolve(_hub.Snapshot(), new NotchInput(false, false, NotchTab.Now, IsDropTarget: true));
+        Assert.Equal(NotchMode.Drop, drop.Mode);
+        Assert.Equal(NotchGeometry.ShelfDrop, NotchGeometry.For(drop.Mode));
+
+        var open = NotchStateMachine.Resolve(_hub.Snapshot(), new NotchInput(true, false, NotchTab.Shelf, IsDropTarget: true));
+        Assert.Equal(NotchMode.Expanded, open.Mode);
     }
 
     [Fact]

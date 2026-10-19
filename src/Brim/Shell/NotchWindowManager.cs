@@ -1,4 +1,5 @@
 using Brim.Core;
+using Brim.Modules;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using WinUIEx.Messaging;
@@ -13,17 +14,22 @@ internal sealed class NotchWindowManager : IDisposable
 
     private readonly ActivityHub _hub;
     private readonly SettingsStore _settings;
+    private readonly ShelfStore _shelf;
+    private readonly NearbyModule _nearby;
     private readonly DispatcherQueue _dispatcher;
     private readonly List<NotchWindow> _windows = [];
     private readonly DispatcherQueueTimer _rebuildTimer;
     private DisplayAreaWatcher? _watcher;
+    private readonly WindowWatcher _windowWatcher;
     private WindowMessageMonitor? _messages;
     private nint _hotkeyWindow;
     private int _refreshQueued;
 
-    public NotchWindowManager(ActivityHub hub, SettingsStore settings, DispatcherQueue dispatcher)
+    public NotchWindowManager(ActivityHub hub, SettingsStore settings, ShelfStore shelf, NearbyModule nearby, DispatcherQueue dispatcher)
     {
         _hub = hub;
+        _shelf = shelf;
+        _nearby = nearby;
         _settings = settings;
         _dispatcher = dispatcher;
         _rebuildTimer = dispatcher.CreateTimer();
@@ -39,6 +45,20 @@ internal sealed class NotchWindowManager : IDisposable
         _watcher.Removed += (_, _) => QueueRebuild();
         _watcher.Updated += (_, _) => QueueRebuild();
         _watcher.Start();
+
+        // Andere Fenster beobachten: Überlappen und Ziehen Richtung Oberkante blenden die Notch aus.
+        _windowWatcher = new WindowWatcher(dispatcher);
+        _windowWatcher.Changed += EvaluateAutoHide;
+        _windowWatcher.DraggingChanged += _ => EvaluateAutoHide();
+        _windowWatcher.DragMoved += EvaluateAutoHide;
+    }
+
+    private void EvaluateAutoHide()
+    {
+        foreach (var window in _windows)
+        {
+            window.EvaluateAutoHide(_windowWatcher);
+        }
     }
 
     /// <summary>Fenster passend zu den Monitoren und Einstellungen anlegen, verschieben oder schließen.</summary>
@@ -57,7 +77,7 @@ internal sealed class NotchWindowManager : IDisposable
             }
             else
             {
-                keep.Add(new NotchWindow(display, _hub, _settings));
+                keep.Add(new NotchWindow(display, _hub, _settings, _shelf, _nearby));
             }
         }
         foreach (var gone in _windows.Except(keep).ToList())
@@ -68,6 +88,7 @@ internal sealed class NotchWindowManager : IDisposable
         _windows.AddRange(keep);
         Log.Info($"Notch auf {_windows.Count} Monitor(en)");
         RegisterHotkey();
+        EvaluateAutoHide();
     }
 
     public void ToggleExpanded()
@@ -155,6 +176,7 @@ internal sealed class NotchWindowManager : IDisposable
     {
         _hub.Changed -= QueueRefresh;
         _watcher?.Stop();
+        _windowWatcher.Dispose();
         _watcher = null;
         UnregisterHotkey();
         foreach (var window in _windows)

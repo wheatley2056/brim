@@ -14,5 +14,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Brim.Core.Tests/Brim.Core.Tests.csproj" />
+    <Project Path="tests/Brim.Modules.Tests/Brim.Modules.Tests.csproj" />
   </Folder>
 </Solution>

@@ -1,5 +1,6 @@
 using System.Numerics;
 using Brim.Core;
+using Brim.Modules;
 using Brim.Core.Widgets;
 using Activity = Brim.Core.Activity;
 using CommunityToolkit.WinUI.Animations;
@@ -27,7 +28,7 @@ public sealed partial class NotchView : UserControl
     private FrameworkElement? _activeLayer;
     private string? _lastAnnouncement;
 
-    internal NotchView(ActivityHub hub)
+    internal NotchView(ActivityHub hub, ShelfStore shelf, SettingsStore settings, NearbyModule nearby, Func<nint> window)
     {
         _hub = hub;
         InitializeComponent();
@@ -45,7 +46,7 @@ public sealed partial class NotchView : UserControl
         InitializeTabs(compositor);
         InitializeClock();
 
-        _layers = [IdleLayer, CompactLayer, HudLayer, AlertLayer, ExpandedLayer];
+        _layers = [IdleLayer, CompactLayer, HudLayer, AlertLayer, DropLayer, ExpandedLayer];
         foreach (var layer in _layers)
         {
             var visual = ElementCompositionPreview.GetElementVisual(layer);
@@ -68,6 +69,8 @@ public sealed partial class NotchView : UserControl
         CanvasRoot.PointerEntered += (_, _) => HoverChanged?.Invoke(true);
         CanvasRoot.PointerExited += (_, _) => HoverChanged?.Invoke(false);
         ContentHost.Tapped += OnContentTapped;
+
+        InitializeShelf(shelf, settings, nearby, window);
         KeyDown += OnKeyDown;
     }
 
@@ -104,7 +107,11 @@ public sealed partial class NotchView : UserControl
         var shape = ShapeFor(p.Mode);
         if (modeChanged || shape != _surface.Target)
         {
-            LastMorphDuration = _surface.MorphTo(shape, animation, reducedMotion);
+            // Aus dem Versteck kommt sie mit sichtbarem Federn herunter („Blop“), wie die Dynamic Island.
+            Spring? reveal = previous?.Mode == NotchMode.Hidden && p.Mode != NotchMode.Hidden
+                ? new Spring(animation.ExpandMs / 1000.0, Math.Min(animation.Damping, 0.6))
+                : null;
+            LastMorphDuration = _surface.MorphTo(shape, animation, reducedMotion, reveal);
         }
         var beadCount = p.Mode == NotchMode.Compact ? p.Beads.Count : 0;
         if (beadCount != (previous?.Mode == NotchMode.Compact ? previous.Beads.Count : 0))
@@ -130,6 +137,7 @@ public sealed partial class NotchView : UserControl
             NotchMode.Hud => UpdateHud(p),
             NotchMode.Alert => UpdateAlert(p),
             NotchMode.Expanded => UpdateExpanded(p),
+            NotchMode.Drop => DropLayerFor(),
             _ => null,
         };
         UpdateBeads(p, beadCount);
@@ -304,7 +312,19 @@ public sealed partial class NotchView : UserControl
         // Die Uhr der Kopfzeile ist die gemeinsame Uhr (NotchView.Clock.cs).
         UpdateTabs(p.Tab);
 
-        if (p.Tab == NotchTab.Now)
+        // Beim Öffnen des Tabs neu prüfen, ob Dateien inzwischen fehlen (markiert, nicht versteckt).
+        var shelfShown = p.Tab == NotchTab.Shelf;
+        if (shelfShown && (ShelfPresenter.Visibility != Visibility.Visible || _activeLayer != ExpandedLayer))
+        {
+            _shelfView?.Refresh();
+        }
+        ShelfPresenter.Visibility = shelfShown ? Visibility.Visible : Visibility.Collapsed;
+        if (p.Tab == NotchTab.Shelf)
+        {
+            NowPresenter.Visibility = Visibility.Collapsed;
+            PlaceholderPanel.Visibility = Visibility.Collapsed;
+        }
+        else if (p.Tab == NotchTab.Now)
         {
             var source = p.Primary ?? p.Idle;
             Render("now", NowPresenter, source, source?.Activity.Expanded);
@@ -333,7 +353,6 @@ public sealed partial class NotchView : UserControl
             PlaceholderPanel.Visibility = Visibility.Visible;
             (PlaceholderIcon.Glyph, PlaceholderTitle.Text, PlaceholderText.Text) = p.Tab switch
             {
-                NotchTab.Shelf => (Glyphs.Folder, "Ablage", "Dateien hierher ziehen und behalten – kommt in Phase 1."),
                 NotchTab.System => (Glyphs.Settings, "System", "Akku, CPU, RAM, GPU, Netzwerk – kommt in Phase 2."),
                 _ => (Glyphs.Puzzle, "Plugins", "Eigene Inhalte über die Plugin-API – kommt in Phase 4."),
             };
@@ -448,7 +467,7 @@ public sealed partial class NotchView : UserControl
             }
             else
             {
-                parts.Add((PlaceholderPanel, new Vector3(0, -14, 0)));
+                parts.Add((ShelfPresenter.Visibility == Visibility.Visible ? ShelfPresenter : PlaceholderPanel, new Vector3(0, -14, 0)));
             }
         }
         else if (layer == CompactLayer)
