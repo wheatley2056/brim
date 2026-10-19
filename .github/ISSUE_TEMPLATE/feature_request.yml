@@ -1,0 +1,22 @@
+name: Feature idea
+description: Something Brim should be able to do
+labels: ["idea"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Brim to do?
+      description: Describe the moment where you'd use it. German is fine too.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why does it belong in the notch?
+      description: Brim stays small on purpose. What makes this worth a place at the edge of the screen?
+  - type: checkboxes
+    id: roadmap
+    attributes:
+      label: Roadmap
+      options:
+        - label: I checked the roadmap in the README and this isn't already planned.

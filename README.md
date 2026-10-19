@@ -1,57 +1,155 @@
-# Brim
+<p align="center">
+  <img src="docs/assets/hero.png" alt="Brim — Everything at the edge." width="820">
+</p>
 
-Eine Notch für Windows. Plan: [plan.md](plan.md), Design: [design/boards](design/boards) (aus `Brim – Notch für Windows.html` entpackt).
+<p align="center">
+  <b>A notch for Windows.</b> Media, files, sharing and system at a glance —<br>
+  and gone the moment a window needs the space.
+</p>
 
-## Bauen und starten
+<p align="center">
+  <a href="https://github.com/wheatley2056/brim/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/wheatley2056/brim?style=flat-square&color=FF8A66&label=release"></a>
+  <a href="https://github.com/wheatley2056/brim/actions/workflows/release.yml"><img alt="Release build" src="https://img.shields.io/github/actions/workflow/status/wheatley2056/brim/release.yml?style=flat-square&label=build"></a>
+  <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-1C1D21?style=flat-square&logo=windows">
+  <img alt=".NET 10 · WinUI 3" src="https://img.shields.io/badge/.NET%2010-WinUI%203-8C7BFF?style=flat-square">
+  <a href="LICENSE"><img alt="License GPL-3.0" src="https://img.shields.io/github/license/wheatley2056/brim?style=flat-square&color=5BD98A"></a>
+</p>
 
-Voraussetzung: .NET 10 SDK. Visual Studio ist nicht nötig.
+<p align="center">
+  <a href="https://github.com/wheatley2056/brim/releases/latest/download/BrimNotch-win-Setup.exe"><b>⬇ Download for Windows</b></a>
+  &nbsp;·&nbsp;
+  <a href="#features">Features</a>
+  &nbsp;·&nbsp;
+  <a href="#build-from-source">Build</a>
+  &nbsp;·&nbsp;
+  <a href="README.de.md">Deutsch</a>
+</p>
+
+---
+
+Brim puts a living notch at the top of your screen — the way the Dynamic Island feels on a phone, built natively for Windows with official APIs only. It stays tiny while nothing happens, grows when something does, and gets out of the way the moment a window needs the space.
+
+<p align="center">
+  <img src="docs/assets/now-playing.png" alt="Brim expanded: now playing with cover, progress and controls" width="820"><br>
+  <sub>Images in this README are from Brim's design boards.</sub>
+</p>
+
+## Features
+
+### 🎵 Now playing
+Cover, title, progress and controls for anything that talks to Windows media controls — Spotify, browsers, Media Player, games. The notch borrows its glow from the cover. Seek by dragging, switch the audio output, or change the volume of every app right inside the notch.
+
+### ✨ One body, many shapes
+Every state — idle clock, music, volume, timer, alerts — is the same shape morphing with real spring physics (SwiftUI-style response and damping), rendered by the compositor at your monitor's refresh rate: 60, 144 or 240 Hz. Hover and it swells; linger and it opens from that motion. The clock glides into the header instead of jumping.
+
+<p align="center">
+  <img src="docs/assets/states.png" alt="Nine states of the notch: idle, now playing, volume, charging, shelf drop, timer, two activities, game mode, retract" width="820">
+</p>
+
+### 📁 Shelf
+Drag files or folders onto the notch and they stay there until you remove them — even after a restart. Drag them out into Explorer, mail, Discord or a browser upload. Files from temporary places (downloads, attachments) are copied so they don't vanish; missing ones are marked, not hidden.
+
+<p align="center">
+  <img src="docs/assets/shelf-system.png" alt="Shelf with files and the upcoming System tab" width="820"><br>
+  <sub>Design preview — the shelf ships today, the System tab is on the roadmap.</sub>
+</p>
+
+### 📡 Share — nearby and anywhere
+- **Nearby:** other Brims on your network appear automatically (DNS-SD). Files go directly, encrypted with mutual TLS and verified certificate fingerprints. Nothing is received without your OK.
+- **Anywhere, by code:** send to anyone with a short code like `7-guitarist-revenge`. Brim speaks the open [Magic Wormhole](https://magic-wormhole.readthedocs.io) protocol, so the other side can be Brim — or `wormhole receive`, Warp, Winden and friends. End-to-end encrypted (SPAKE2), works behind NAT via relay and through HTTP or SOCKS5 proxies.
+- **Windows share** is still one click away for mail, Teams and other apps.
+
+### 🫥 Gets out of the way
+When a window sits under the notch — maximized, fullscreen, or just pushed up — Brim melts into the edge. Dragging a window toward the top for Snap Layouts hides it too. Rest your mouse at the top edge and it drops back down.
+
+<p align="center">
+  <img src="docs/assets/settings.png" alt="Settings: auto-hide rules, game mode and motion" width="820"><br>
+  <sub>Design preview of the settings window — today these options live in <code>settings.json</code>; game mode is on the roadmap.</sub>
+</p>
+
+### 🔄 Updates you won't notice
+Brim updates itself from GitHub releases in the background, downloads only what changed, and restarts only when you're away for a few minutes. Afterwards the notch tells you what's new.
+
+### ♿ Built for everyone
+UI Automation names for everything, screen reader announcements for HUDs, keyboard access with <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd>, and a gentle fade instead of motion when Windows animations are turned off.
+
+## Install
+
+1. Download **[BrimNotch-win-Setup.exe](https://github.com/wheatley2056/brim/releases/latest/download/BrimNotch-win-Setup.exe)** from the latest release.
+2. Run it. Brim installs for your user only (no admin rights), starts right away and with Windows.
+
+> [!NOTE]
+> The installer isn't code-signed yet, so Windows SmartScreen may say *"Windows protected your PC"*. Click **More info → Run anyway**. Signing is on the roadmap.
+
+**Requirements:** Windows 10 22H2 or Windows 11, x64. Everything else is included.
+
+**Getting around**
+
+| | |
+|---|---|
+| Hover the notch | It swells, then opens |
+| <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> | Open/close from the keyboard |
+| Drag a file onto it | Keep it on the shelf |
+| Mouse to the top edge | Bring a hidden notch back |
+| Tray icon | Settings file, logs, quit |
+
+Settings live in `%LocalAppData%\Brim\settings.json` (animation, auto-hide rules, proxy, updates). The interface is German for now; English is planned.
+
+## Privacy & security
+
+- **No telemetry, no accounts, no Brim servers.** Brim talks to the internet only to check GitHub for updates and — when you send or receive by code — to the public Magic Wormhole servers, which only ever see encrypted data.
+- **Nearby sharing** uses mutual TLS with per-install certificates; the fingerprint announced on the network must match the connection.
+- **Incoming files** always need your confirmation; paths are sanitized and archives are checked against path traversal and zip bombs.
+- One deliberate exception to "official APIs only": switching the default audio device uses the undocumented `IPolicyConfig` interface (as EarTrumpet and SoundSwitch do), because Windows offers no public API for it.
+
+## Build from source
+
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download). No Visual Studio needed.
 
 ```bash
+git clone https://github.com/wheatley2056/brim.git
+cd brim
 dotnet build Brim.slnx
-dotnet test tests/Brim.Core.Tests
 dotnet run --project src/Brim
 ```
 
-Einstellungen: `%LocalAppData%\Brim\settings.json`, Protokoll: `%LocalAppData%\Brim\logs\brim.log`.
+```bash
+dotnet test Brim.slnx
+```
 
-Netz- und Kompatibilitätstests (öffentliche Magic-Wormhole-Server, Original-Programm) laufen nur mit
-gesetztem `BRIM_WORMHOLE_CLI` (Pfad zu `wormhole.exe`, z. B. aus `pip install magic-wormhole`).
+Network and interoperability tests against the original Magic Wormhole run when `BRIM_WORMHOLE_CLI` points to a `wormhole.exe` (`pip install magic-wormhole`).
 
-## Teilen
+**Releasing:** add a `## <version>` section to [`CHANGELOG.md`](CHANGELOG.md), then push a tag `v<version>`. GitHub Actions builds, packs with [Velopack](https://velopack.io) (including delta updates) and publishes the release; installed Brims pick it up on their own.
 
-- **Im LAN:** Brims finden sich per DNS-SD und senden direkt über TLS; der Empfänger bestätigt in der Notch.
-- **Per Code:** kompatibel mit Magic Wormhole (`wormhole send/receive`, Warp u. a.) über die öffentlichen
-  Server; Proxy aus Windows oder eigener HTTP-/SOCKS5-Proxy (`Share` in `settings.json`).
-Bedienung: Maus auf die Notch → klappt auf; Klick klappt sofort auf; `Win+Alt+N` per Tastatur; Tray-Symbol → Menü.
+<details>
+<summary><b>Architecture</b></summary>
 
-## Aufbau
-
-| Projekt | Inhalt |
+| Project | What's inside |
 |---|---|
-| `src/Brim.Core` | Aktivitäten und `ActivityHub`, Zustandsmaschine, deklarative Widgets, Geometrie der Formen, Einstellungen, Modul-Schnittstelle. Ohne Windows-Abhängigkeit, vollständig getestet. |
-| `src/Brim.Modules` | Eingebaute Module: Uhr, Medien (`GlobalSystemMediaTransportControlsSessionManager`), Audio (Lautstärke-HUD, Menüs für Ausgabegerät und Mixer pro App; Core Audio über NAudio, Gerätewechsel über `IPolicyConfig` als dokumentierte Ausnahme). Liefern nur Widgets, kein WinUI. |
-| `src/Brim` | WinUI-3-Shell: ein Fenster pro Monitor, Morph-Engine im Compositor (`NotchSurface`), Widget-Renderer, Tray. |
-| `tests/Brim.Core.Tests` | Zustandsmaschine, Ablaufzeiten, Geometrie, Akzentfarbe, Einstellungen. |
+| `src/Brim.Core` | Activities and the activity hub, the notch state machine, declarative widgets, shape geometry, spring physics, shelf store, settings. No Windows dependencies, fully unit-tested. |
+| `src/Brim.Modules` | Built-in modules — clock, media, audio, sharing (LAN and Magic Wormhole), updates. They describe their UI as widgets; no WinUI. |
+| `src/Brim` | The WinUI 3 shell: one window per monitor, the compositor-driven morph engine, widget renderer, shelf, auto-hide, tray and updater. |
+| `tests/` | State machine, springs, geometry, shelf, sharing protocol, SPAKE2 test vectors from the reference implementation, live interop with the original Magic Wormhole. |
 
-Eingebaute Funktionen sind Module und sprechen dieselbe Sprache wie spätere Plugins: Sie melden `Activity`-Objekte mit Priorität und beschreiben ihre Oberfläche als Widgets.
+Built-in features are modules that use the same interface plugins will: they post activities with a priority and describe their UI as data — the shell decides what to show. See [`plan.md`](plan.md) (German) for the full design.
+</details>
 
-## Bibliotheken
+## Roadmap
 
-| Paket | Wofür |
-|---|---|
-| Microsoft.WindowsAppSDK 2.5 | WinUI 3, Composition (Federn, Formen) |
-| CommunityToolkit.WinUI.Animations | Ein- und Ausblenden der Perlen |
-| Microsoft.Graphics.Win2D | Unschärfe beim Inhaltswechsel (GaussianBlur über BackdropBrush) |
-| CommunityToolkit.Mvvm | Befehle im Tray-Menü |
-| WinUIEx | Transparentes Fenster, Fensternachrichten |
-| H.NotifyIcon.WinUI | Tray-Symbol |
-| NAudio.Wasapi | Lautstärke-Ereignisse |
-| libsodium | Teilen per Code: NaCl SecretBox und Ed25519 für SPAKE2 (Magic-Wormhole-Protokoll) |
-| Microsoft.Windows.CsWin32 | Übrige Win32-Aufrufe (Region, Stile, Hotkey, Taskleiste) |
+- [x] **Foundation** — notch, clock, media, volume, spring morph, multi-monitor
+- [x] **Shelf** — drag in, keep, drag out
+- [x] **Sharing** — nearby (LAN) and by code (Magic Wormhole), proxy support
+- [x] **Silent updates** with in-notch changelog
+- [ ] **Auto-hide** — per-app rules, screen-sharing detection *(window overlap and top-edge peek are done)*
+- [ ] **System** — battery, CPU, RAM, GPU, network, brightness, camera/mic indicators
+- [ ] **Plugins** — open protocol and SDK for your own notch content
+- [ ] **Games** — FPS and latency in a mini pill
+- [ ] **More** — timer, calendar, notifications, Bluetooth battery, settings window, code signing, winget
 
-## Stand
+## Credits
 
-Phase 0 (Fundament) läuft: Uhr, Medien kompakt und erweitert, Lautstärke-HUD, Zustandsmaschine mit Prioritäten und Perlen, Feder-Morph im Compositor, Fenster pro Monitor, Taskleiste oben, Sprachausgabe für HUDs, „Animationseffekte aus“ → Überblenden.
+Built on [Windows App SDK / WinUI 3](https://github.com/microsoft/WindowsAppSDK), [Windows Community Toolkit](https://github.com/CommunityToolkit/Windows), [WinUIEx](https://github.com/dotMorten/WinUIEx), [H.NotifyIcon](https://github.com/HavenDV/H.NotifyIcon), [NAudio](https://github.com/naudio/NAudio), [Win2D](https://github.com/microsoft/Win2D), [libsodium](https://libsodium.org), [CsWin32](https://github.com/microsoft/CsWin32) and [Velopack](https://velopack.io). Sharing by code implements the [Magic Wormhole](https://github.com/magic-wormhole/magic-wormhole) protocol by Brian Warner and contributors.
 
-Noch offen in Phase 0: Messung verlorener Frames (Debug-Overlay), Leerlauf-RAM (Debug-Build ~100 MB privat, Ziel < 80 MB).
-Die Tabs Ablage, System und Plugins zeigen Platzhalter bis zu ihren Phasen.
+## License
+
+Brim is free software under the [GNU General Public License v3.0](LICENSE).

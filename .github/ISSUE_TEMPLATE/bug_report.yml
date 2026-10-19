@@ -1,0 +1,41 @@
+name: Bug report
+description: Something in Brim doesn't work as it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time! The more concrete, the faster it gets fixed. German is fine too.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Play music in Spotify
+        2. Hover the notch
+        3. …
+  - type: input
+    id: version
+    attributes:
+      label: Brim version
+      description: Shown in the log (`%LocalAppData%\Brim\logs\brim.log`, line "Brim x.y.z") or in the release you installed.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2, 2560×1440 @ 144 Hz, 125 % scaling
+  - type: textarea
+    id: log
+    attributes:
+      label: Log excerpt
+      description: The last lines of `%LocalAppData%\Brim\logs\brim.log`. Please check it for anything private before posting.
+      render: text
