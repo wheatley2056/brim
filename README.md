@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/hero.png" alt="Brim expanded at the top of the screen: now playing with cover, progress and controls" width="760">
+  <img src="docs/assets/hero.png" alt="Brim — Everything at the edge." width="820">
 </p>
 
 <p align="center">
@@ -29,7 +29,10 @@
 
 Brim puts a living notch at the top of your screen — the way the Dynamic Island feels on a phone, built natively for Windows with official APIs only. It stays tiny while nothing happens, grows when something does, and gets out of the way the moment a window needs the space.
 
-<p align="center"><sub>Screenshots of the real app with demo content. The interface is German for now.</sub></p>
+<p align="center">
+  <img src="docs/assets/player.png" alt="Brim expanded at the top of the screen: now playing with cover, progress and controls" width="760"><br>
+  <sub>Screenshots of the real app with demo content. The interface is German for now.</sub>
+</p>
 
 ## Features
 

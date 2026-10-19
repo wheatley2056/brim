@@ -7,7 +7,7 @@ function Crop($n, $x, $y, $w, $h, $file) {
   $src = Load $n; $dst = $src.Clone((Rect $x $y $w $h), $src.PixelFormat)
   $dst.Save("$Out\$file", [System.Drawing.Imaging.ImageFormat]::Png); $src.Dispose(); $dst.Dispose()
 }
-Crop 'media-expanded' 330 0 940 300 'hero.png'
+Crop 'media-expanded' 330 0 940 300 'player.png'
 Crop 'shelf'          330 0 940 300 'shelf.png'
 Crop 'notes-expanded' 330 0 940 300 'update.png'
 

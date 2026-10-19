@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/hero.png" alt="Brim aufgeklappt am oberen Bildschirmrand: Musik mit Cover, Fortschritt und Steuerung" width="760">
+  <img src="docs/assets/hero.png" alt="Brim — Everything at the edge." width="820">
 </p>
 
 <p align="center">
@@ -29,7 +29,10 @@
 
 Brim setzt eine lebendige Notch an den oberen Bildschirmrand – so, wie sich die Dynamic Island auf dem Handy anfühlt, aber nativ für Windows und nur mit offiziellen Schnittstellen. Sie bleibt klein, solange nichts passiert, wächst, wenn etwas passiert, und macht Platz, sobald ein Fenster ihn braucht.
 
-<p align="center"><sub>Bildschirmfotos der echten App mit Beispielinhalten.</sub></p>
+<p align="center">
+  <img src="docs/assets/player.png" alt="Brim aufgeklappt am oberen Bildschirmrand: Musik mit Cover, Fortschritt und Steuerung" width="760"><br>
+  <sub>Bildschirmfotos der echten App mit Beispielinhalten.</sub>
+</p>
 
 ## Funktionen
 
