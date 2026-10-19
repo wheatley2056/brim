@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Brim identity</title>
+<script src="d8c572d9-de14-40fa-85af-e257ce728d83"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("c2507c21-1572-425c-b1d4-5ad71ef49d16") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("c2507c21-1572-425c-b1d4-5ad71ef49d16") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("c2507c21-1572-425c-b1d4-5ad71ef49d16") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("c2507c21-1572-425c-b1d4-5ad71ef49d16") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("c2507c21-1572-425c-b1d4-5ad71ef49d16") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrodmgPn.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrMdmgPn.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* symbols2 */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFg08vz7ehw.woff2) format('woff2');
+  unicode-range: U+2000-2001, U+2004-2008, U+200A, U+23B8-23BD, U+2500-259F;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrgdmgPn.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrkdmgPn.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("3b129b99-3ad4-42db-8e81-8348bf465160") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrodmgPn.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrMdmgPn.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* symbols2 */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFg08vz7ehw.woff2) format('woff2');
+  unicode-range: U+2000-2001, U+2004-2008, U+200A, U+23B8-23BD, U+2500-259F;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrgdmgPn.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrkdmgPn.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("3b129b99-3ad4-42db-8e81-8348bf465160") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+body{margin:0}
+a{color:#F2F3F5}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #0E0F12; color: #F2F3F5; font-family: 'Geist', 'Segoe UI Variable', sans-serif; padding: 64px 72px; display: grid; grid-template-columns: 760px minmax(0, 1fr); column-gap: 72px; position: relative; overflow: hidden">
+
+  <!-- Linke Spalte: Marke -->
+  <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%">
+    <div style="display: flex; align-items: center; gap: 12px; font-family: 'Geist Mono', monospace; font-size: 13px; letter-spacing: 0.14em; color: #9A9EA8">
+      <span>BRIM</span><span style="width: 24px; height: 1px; background: #3A3C42"></span><span>IDENTITY · v0.2</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 36px">
+      <!-- Wortmarke mit Kerbe auf dem i -->
+      <div style="position: relative; height: 230px">
+        <div style="position: absolute; left: 0; top: 0; width: 760px; height: 1px; background: #2A2C31"></div>
+        <div style="position: absolute; left: 258px; top: 0; width: 196px; height: 46px; background: #000000; border-radius: 0 0 23px 23px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; box-sizing: border-box; box-shadow: 0 0 0 1px #24262B">
+          <div style="width: 22px; height: 22px; border-radius: 6px; background: #FF8A66"></div>
+          <div style="display: flex; gap: 3px; align-items: center; height: 18px">
+            <div style="width: 3px; height: 8px; border-radius: 2px; background: #FF8A66"></div>
+            <div style="width: 3px; height: 16px; border-radius: 2px; background: #FF8A66"></div>
+            <div style="width: 3px; height: 11px; border-radius: 2px; background: #FF8A66"></div>
+            <div style="width: 3px; height: 18px; border-radius: 2px; background: #FF8A66"></div>
+            <div style="width: 3px; height: 6px; border-radius: 2px; background: #FF8A66"></div>
+          </div>
+        </div>
+        <div style="position: absolute; left: 246px; top: 0; width: 12px; height: 12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, #000000 12px)"></div>
+        <div style="position: absolute; left: 454px; top: 0; width: 12px; height: 12px; background: radial-gradient(circle at 100% 100%, transparent 11.5px, #000000 12px)"></div>
+        <h1 style="position: absolute; left: -8px; bottom: -28px; margin: 0; font-size: 228px; font-weight: 600; letter-spacing: -0.055em; line-height: 1; color: #F2F3F5">Brim</h1>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 24px">
+        <p style="margin: 0; font-size: 34px; font-weight: 500; letter-spacing: -0.02em; color: #F2F3F5">Everything at the edge.</p>
+        <p style="margin: 0; font-size: 17px; line-height: 1.5; color: #9A9EA8; max-width: 560px">A notch for Windows. Media, files, battery and system at a glance — and gone the moment you go fullscreen.</p>
+      </div>
+    </div>
+
+    <!-- App-Icon und Varianten -->
+    <div style="display: flex; align-items: flex-end; gap: 28px">
+      <div style="width: 112px; height: 112px; border-radius: 26px; background: #17181C; box-shadow: inset 0 0 0 1px #2A2C31; position: relative; overflow: hidden" role="img" aria-label="Brim app icon">
+        <div style="position: absolute; left: 22px; top: 0; width: 68px; height: 30px; background: #000000; border-radius: 0 0 15px 15px; display: flex; align-items: center; justify-content: center">
+          <div style="width: 26px; height: 6px; border-radius: 3px; background: #FF8A66"></div>
+        </div>
+      </div>
+      <div style="width: 64px; height: 64px; border-radius: 15px; background: #F2F3F5; position: relative; overflow: hidden" role="img" aria-label="Brim app icon, light variant">
+        <div style="position: absolute; left: 13px; top: 0; width: 38px; height: 17px; background: #000000; border-radius: 0 0 9px 9px"></div>
+      </div>
+      <div style="width: 40px; height: 40px; border-radius: 10px; background: #17181C; box-shadow: inset 0 0 0 1px #2A2C31; position: relative; overflow: hidden" role="img" aria-label="Brim app icon, small">
+        <div style="position: absolute; left: 8px; top: 0; width: 24px; height: 11px; background: #000000; border-radius: 0 0 6px 6px"></div>
+      </div>
+      <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #9A9EA8; letter-spacing: 0.06em; padding-bottom: 4px">APP ICON · 112 / 64 / 40</div>
+    </div>
+  </div>
+
+  <!-- Rechte Spalte: System -->
+  <div style="display: flex; flex-direction: column; gap: 40px; padding-top: 4px">
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.14em; color: #9A9EA8">COLOR</div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="height: 72px; border-radius: 12px; background: #000000; box-shadow: inset 0 0 0 1px #2A2C31"></div>
+          <div style="font-size: 14px; font-weight: 500">Obsidian</div>
+          <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #9A9EA8">#000000 · body</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="height: 72px; border-radius: 12px; background: #1C1D21; box-shadow: inset 0 0 0 1px #2A2C31"></div>
+          <div style="font-size: 14px; font-weight: 500">Graphite</div>
+          <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #9A9EA8">#1C1D21 · fills</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="height: 72px; border-radius: 12px; background: #F2F3F5"></div>
+          <div style="font-size: 14px; font-weight: 500">Fog</div>
+          <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #9A9EA8">#F2F3F5 · text</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="height: 72px; border-radius: 12px; background: #9A9EA8"></div>
+          <div style="font-size: 14px; font-weight: 500">Slate</div>
+          <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #9A9EA8">#9A9EA8 · 7.8:1</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="height: 72px; border-radius: 12px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden">
+            <div style="background: #FF8A66"></div><div style="background: #8C7BFF"></div><div style="background: #4FC3E8"></div><div style="background: #E8D26A"></div>
+          </div>
+          <div style="font-size: 14px; font-weight: 500">Borrowed</div>
+          <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #9A9EA8">from the playing cover</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="height: 72px; border-radius: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden">
+            <div style="background: #5BD98A"></div><div style="background: #FFB547"></div>
+          </div>
+          <div style="font-size: 14px; font-weight: 500">Signal</div>
+          <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #9A9EA8">charge · warning</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.14em; color: #9A9EA8">TYPE</div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; border-top: 1px solid #24262B; padding-top: 14px">
+        <span style="font-size: 30px; font-weight: 600; letter-spacing: -0.02em">Midnight Signal</span>
+        <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #9A9EA8">Title · 17 / 600</span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; border-top: 1px solid #24262B; padding-top: 14px">
+        <span style="font-size: 17px; color: #9A9EA8">Glass Harbor</span>
+        <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #9A9EA8">Secondary · 13 / 400</span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; border-top: 1px solid #24262B; padding-top: 14px">
+        <span style="font-family: 'Geist Mono', monospace; font-size: 22px">144 fps · 1:24</span>
+        <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #9A9EA8">Numbers · mono</span>
+      </div>
+      <div style="font-size: 13px; color: #9A9EA8; line-height: 1.5">In the app: Segoe UI Variable and Cascadia Mono — the system's own faces.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.14em; color: #9A9EA8">MOTION</div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="border-radius: 14px; background: #16171B; box-shadow: inset 0 0 0 1px #24262B; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+          <div style="font-family: 'Geist Mono', monospace; font-size: 26px">380<span style="font-size: 14px; color: #9A9EA8"> ms</span></div>
+          <div style="font-size: 13px; color: #9A9EA8">Expand · spring</div>
+        </div>
+        <div style="border-radius: 14px; background: #16171B; box-shadow: inset 0 0 0 1px #24262B; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+          <div style="font-family: 'Geist Mono', monospace; font-size: 26px">320<span style="font-size: 14px; color: #9A9EA8"> ms</span></div>
+          <div style="font-size: 13px; color: #9A9EA8">Retract · faster</div>
+        </div>
+        <div style="border-radius: 14px; background: #16171B; box-shadow: inset 0 0 0 1px #24262B; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+          <div style="font-family: 'Geist Mono', monospace; font-size: 26px">150<span style="font-size: 14px; color: #9A9EA8"> ms</span></div>
+          <div style="font-size: 13px; color: #9A9EA8">Reduced motion · fade</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+
+
+</body></html>

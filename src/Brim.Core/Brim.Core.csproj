@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Plattformunabhängiger Kern: Aktivitäten, Zustandsmaschine, Widgets, Geometrie, Einstellungen. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Brim.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Brim.Core.Tests" />
+  </ItemGroup>
+</Project>

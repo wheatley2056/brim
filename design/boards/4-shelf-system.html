@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Brim shelf and system</title>
+<script src="d8bface5-9266-453f-9f2d-9714c33c5db0"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("a461d3b7-bf81-477a-9ea1-461c0b41b3c8") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("a461d3b7-bf81-477a-9ea1-461c0b41b3c8") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("a461d3b7-bf81-477a-9ea1-461c0b41b3c8") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("a461d3b7-bf81-477a-9ea1-461c0b41b3c8") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwRGFWfOw.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwYGFWfOw.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwTGFWfOw.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwSGFWfOw.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("a461d3b7-bf81-477a-9ea1-461c0b41b3c8") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrodmgPn.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrMdmgPn.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* symbols2 */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFg08vz7ehw.woff2) format('woff2');
+  unicode-range: U+2000-2001, U+2004-2008, U+200A, U+23B8-23BD, U+2500-259F;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrgdmgPn.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrkdmgPn.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("317293f6-f62e-4fda-803e-21f9fd71aab4") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrodmgPn.woff2) format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrMdmgPn.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* symbols2 */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFg08vz7ehw.woff2) format('woff2');
+  unicode-range: U+2000-2001, U+2004-2008, U+200A, U+23B8-23BD, U+2500-259F;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrgdmgPn.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/geistmono/v6/or3nQ6H-1_WfwkMZI_qYFrkdmgPn.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("317293f6-f62e-4fda-803e-21f9fd71aab4") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+body{margin:0}
+a{color:#F2F3F5}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #0E0F12; color: #F2F3F5; font-family: 'Geist', 'Segoe UI Variable', sans-serif; padding: 48px; display: flex; flex-direction: column; gap: 28px">
+
+  <div style="display: flex; align-items: baseline; justify-content: space-between">
+    <h1 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.02em">Shelf &amp; System</h1>
+    <span style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #9A9EA8">EXPANDED · 620 × 300</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; flex: 1">
+
+    <!-- ───────── Shelf ───────── -->
+    <div style="position: relative; border-radius: 22px; background: #15161A; overflow: hidden">
+      <div aria-hidden="true" style="position: absolute; left: 24px; right: 24px; top: 56px; height: 1px; background: #2E3036"></div>
+      <div style="position: absolute; left: 50%; top: 56px; transform: translateX(-50%); width: 644px; height: 300px">
+        <div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 12px; height: 12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, #000 12px)"></div>
+        <div aria-hidden="true" style="position: absolute; right: 0; top: 0; width: 12px; height: 12px; background: radial-gradient(circle at 100% 100%, transparent 11.5px, #000 12px)"></div>
+        <div style="position: absolute; left: 12px; top: 0; width: 620px; height: 300px; background: #000; border-radius: 0 0 38px 38px; box-sizing: border-box; padding: 14px 24px 22px; display: flex; flex-direction: column; gap: 16px">
+
+          <div style="display: flex; align-items: center; justify-content: space-between">
+            <nav aria-label="Brim sections" style="display: flex; gap: 2px; background: #121316; border-radius: 999px; padding: 3px">
+              <button style="border: 0; background: transparent; color: #9A9EA8; font: 500 12px 'Geist', sans-serif; padding: 6px 14px; border-radius: 999px">Now</button>
+              <button style="border: 0; background: #2A2B30; color: #F2F3F5; font: 500 12px 'Geist', sans-serif; padding: 6px 14px; border-radius: 999px">Shelf</button>
+              <button style="border: 0; background: transparent; color: #9A9EA8; font: 500 12px 'Geist', sans-serif; padding: 6px 14px; border-radius: 999px">System</button>
+              <button style="border: 0; background: transparent; color: #9A9EA8; font: 500 12px 'Geist', sans-serif; padding: 6px 14px; border-radius: 999px">Plugins</button>
+            </nav>
+            <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #F2F3F5">14:32</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 4px; border-radius: 14px; background: #1C1D21">
+              <svg width="48" height="40" sc-camel-view-box="0 0 48 40" aria-hidden="true"><path d="M2 8a4 4 0 0 1 4-4h12l4 5h20a4 4 0 0 1 4 4v21a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z" fill="#E8C66A"></path><path d="M2 14h44v20a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z" fill="#F2D88A"></path></svg>
+              <div style="font-size: 12px; font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Screenshots</div>
+              <div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #9A9EA8">18 items</div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 4px; border-radius: 14px; background: #1C1D21">
+              <div aria-hidden="true" style="width: 34px; height: 40px; border-radius: 5px; background: #E9EAEE; position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; box-sizing: border-box"><span style="font: 700 9px 'Geist', sans-serif; color: #C9372C">PDF</span></div>
+              <div style="font-size: 12px; font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Brief_Q4.pdf</div>
+              <div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #9A9EA8">2.4 MB</div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 4px; border-radius: 14px; background: #1C1D21; box-shadow: inset 0 0 0 1.5px #F2F3F5">
+              <div aria-hidden="true" style="width: 34px; height: 40px; border-radius: 5px; background: #8C7BFF; display: flex; align-items: center; justify-content: center; gap: 2px">
+                <div style="width: 2px; height: 8px; border-radius: 1px; background: #FFFFFF"></div><div style="width: 2px; height: 16px; border-radius: 1px; background: #FFFFFF"></div><div style="width: 2px; height: 11px; border-radius: 1px; background: #FFFFFF"></div><div style="width: 2px; height: 6px; border-radius: 1px; background: #FFFFFF"></div>
+              </div>
+              <div style="font-size: 12px; font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">mix_v3.wav</div>
+              <div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #9A9EA8">48 MB</div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 4px; border-radius: 14px; background: #1C1D21">
+              <div aria-hidden="true" style="width: 34px; height: 40px; border-radius: 5px; background: #3B3E47; display: flex; align-items: center; justify-content: center"><div style="width: 16px; height: 16px; border-radius: 8px; box-shadow: inset 0 0 0 2px #F2F3F5"></div></div>
+              <div style="font-size: 12px; font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">logo.svg</div>
+              <div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #9A9EA8">12 KB</div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 4px; border-radius: 14px; background: #121316">
+              <div aria-hidden="true" style="width: 34px; height: 40px; border-radius: 5px; border: 1.5px dashed #5A5D66; box-sizing: border-box"></div>
+              <div style="font-size: 12px; font-weight: 500; color: #9A9EA8; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">notes.txt</div>
+              <div style="font-size: 11px; color: #FFB547">Not found</div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: auto">
+            <span style="font-size: 13px; color: #9A9EA8">5 items · kept until you remove them · drag out to use</span>
+            <div style="display: flex; gap: 8px">
+              <button style="height: 32px; padding: 0 14px; border: 0; border-radius: 16px; background: #2A2B30; color: #F2F3F5; font: 500 13px 'Geist', sans-serif">Share</button>
+              <button style="height: 32px; padding: 0 14px; border: 0; border-radius: 16px; background: transparent; color: #9A9EA8; font: 500 13px 'Geist', sans-serif; box-shadow: inset 0 0 0 1px #2E3036">Clear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" style="position: absolute; left: 62%; top: 330px; transform: rotate(5deg); display: flex; align-items: center; gap: 8px; padding: 7px 12px 7px 8px; border-radius: 10px; background: #2A2B30; box-shadow: 0 10px 24px rgba(0,0,0,0.5); font-size: 12px">
+        <div style="width: 20px; height: 24px; border-radius: 4px; background: #8C7BFF"></div>mix_v3.wav
+      </div>
+      <div style="position: absolute; left: 28px; right: 28px; bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end">
+        <div><div style="font-size: 16px; font-weight: 600">Shelf</div><div style="font-size: 13px; color: #9A9EA8; margin-top: 3px">Files and folders stay until removed · missing ones are marked, not hidden</div></div>
+      </div>
+    </div>
+
+    <!-- ───────── System ───────── -->
+    <div style="position: relative; border-radius: 22px; background: #15161A; overflow: hidden">
+      <div aria-hidden="true" style="position: absolute; left: 24px; right: 24px; top: 56px; height: 1px; background: #2E3036"></div>
+      <div style="position: absolute; left: 50%; top: 56px; transform: translateX(-50%); width: 644px; height: 300px">
+        <div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 12px; height: 12px; background: radial-gradient(circle at 0 100%, transparent 11.5px, #000 12px)"></div>
+        <div aria-hidden="true" style="position: absolute; right: 0; top: 0; width: 12px; height: 12px; background: radial-gradient(circle at 100% 100%, transparent 11.5px, #000 12px)"></div>
+        <div style="position: absolute; left: 12px; top: 0; width: 620px; height: 300px; background: #000; border-radius: 0 0 38px 38px; box-sizing: border-box; padding: 14px 24px 22px; display: flex; flex-direction: column; gap: 16px">
+
+          <div style="display: flex; align-items: center; justify-content: space-between">
+            <nav aria-label="Brim sections" style="display: flex; gap: 2px; background: #121316; border-radius: 999px; padding: 3px">
+              <button style="border: 0; background: transparent; color: #9A9EA8; font: 500 12px 'Geist', sans-serif; padding: 6px 14px; border-radius: 999px">Now</button>
+              <button style="border: 0; background: transparent; color: #9A9EA8; font: 500 12px 'Geist', sans-serif; padding: 6px 14px; border-radius: 999px">Shelf</button>
+              <button style="border: 0; background: #2A2B30; color: #F2F3F5; font: 500 12px 'Geist', sans-serif; padding: 6px 14px; border-radius: 999px">System</button>
+              <button style="border: 0; background: transparent; color: #9A9EA8; font: 500 12px 'Geist', sans-serif; padding: 6px 14px; border-radius: 999px">Plugins</button>
+            </nav>
+            <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #F2F3F5">14:32</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 328px minmax(0, 1fr); gap: 16px; flex: 1; min-height: 0">
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 10px">
+              <div style="border-radius: 14px; background: #1C1D21; padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9A9EA8"><span>CPU</span><span style="font-family: 'Geist Mono', monospace; color: #F2F3F5">23%</span></div>
+                <svg width="100%" height="34" sc-camel-view-box="0 0 140 34" sc-camel-preserve-aspect-ratio="none" aria-hidden="true"><polyline points="0,26 14,24 28,27 42,20 56,22 70,14 84,19 98,16 112,22 126,18 140,20" fill="none" stroke="#4FC3E8" stroke-width="1.8" stroke-linejoin="round"></polyline></svg>
+              </div>
+              <div style="border-radius: 14px; background: #1C1D21; padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9A9EA8"><span>Memory</span><span style="font-family: 'Geist Mono', monospace; color: #F2F3F5">11.2 / 32</span></div>
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <div style="position: relative; height: 6px; border-radius: 3px; background: #2A2B30"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 35%; border-radius: 3px; background: #8C7BFF"></div></div>
+                  <span style="font-size: 11px; color: #9A9EA8">GB in use</span>
+                </div>
+              </div>
+              <div style="border-radius: 14px; background: #1C1D21; padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9A9EA8"><span>GPU</span><span style="font-family: 'Geist Mono', monospace; color: #F2F3F5">41%</span></div>
+                <svg width="100%" height="34" sc-camel-view-box="0 0 140 34" sc-camel-preserve-aspect-ratio="none" aria-hidden="true"><polyline points="0,22 14,20 28,16 42,18 56,10 70,12 84,8 98,14 112,12 126,16 140,13" fill="none" stroke="#5BD98A" stroke-width="1.8" stroke-linejoin="round"></polyline></svg>
+              </div>
+              <div style="border-radius: 14px; background: #1C1D21; padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between">
+                <div style="font-size: 12px; color: #9A9EA8">Network</div>
+                <div style="display: flex; flex-direction: column; gap: 2px; font-family: 'Geist Mono', monospace; font-size: 12px">
+                  <span>↓ 12.4 MB/s</span><span style="color: #9A9EA8">↑ 1.1 MB/s</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px">
+              <div style="border-radius: 14px; background: #1C1D21; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between">
+                <span style="display: flex; align-items: center; gap: 8px; font-size: 13px">
+                  <svg width="22" height="12" sc-camel-view-box="0 0 22 12" aria-hidden="true"><rect x="0.75" y="0.75" width="18" height="10.5" rx="3" fill="none" stroke="#9A9EA8" stroke-width="1.5"></rect><rect x="3" y="3" width="11.5" height="6" rx="1.5" fill="#F2F3F5"></rect><rect x="20" y="4" width="1.5" height="4" rx="0.75" fill="#9A9EA8"></rect></svg>
+                  82%
+                </span>
+                <span style="font-size: 12px; color: #9A9EA8">3 h 10 min left</span>
+              </div>
+              <div style="border-radius: 14px; background: #1C1D21; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1">
+                <div style="font-size: 12px; color: #9A9EA8">Top processes</div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px"><span>Chrome</span><span style="font-family: 'Geist Mono', monospace; color: #9A9EA8">8%</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px"><span>Discord</span><span style="font-family: 'Geist Mono', monospace; color: #9A9EA8">3%</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px"><span>Brim</span><span style="font-family: 'Geist Mono', monospace; color: #9A9EA8">0.3%</span></div>
+              </div>
+              <button style="height: 34px; border: 0; border-radius: 17px; background: #2A2B30; color: #F2F3F5; font: 500 13px 'Geist', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px">
+                Open Task Manager
+                <svg width="12" height="12" sc-camel-view-box="0 0 12 12" fill="none" stroke="#F2F3F5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2h6v6M10 2 3 9"></path></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="position: absolute; left: 28px; right: 28px; bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end">
+        <div><div style="font-size: 16px; font-weight: 600">System</div><div style="font-size: 13px; color: #9A9EA8; margin-top: 3px">Same sources as Task Manager · polled only while visible</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+
+
+</body></html>

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Eingebaute Module. Nutzen Windows-Schnittstellen, aber kein WinUI: Oberfläche nur über Brim.Core.Widgets. -->
+  <PropertyGroup>
+    <TargetFramework>$(BrimWindowsTfm)</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>Brim.Modules</RootNamespace>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NAudio.Wasapi" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Brim.Core\Brim.Core.csproj" />
+  </ItemGroup>
+</Project>
