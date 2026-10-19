@@ -16,6 +16,7 @@
     <!-- Module -->
     <PackageVersion Include="NAudio.Wasapi" Version="3.2.0" />
     <PackageVersion Include="libsodium" Version="1.0.22" />
+    <PackageVersion Include="Velopack" Version="1.2.161" />
 
     <!-- Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />

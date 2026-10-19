@@ -111,8 +111,21 @@ public sealed class ShareSettings
     public string? ProxyUrl { get; set; }
 }
 
+public sealed class UpdateSettings
+{
+    /// <summary>Automatisch aktualisieren (nur in der installierten Fassung).</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Wie oft nach Updates gesehen wird.</summary>
+    public int CheckHours { get; set; } = 4;
+
+    /// <summary>So lange ohne Eingabe, bevor Brim für ein Update neu startet.</summary>
+    public int IdleMinutes { get; set; } = 3;
+}
+
 public sealed class BrimSettings
 {
+    public UpdateSettings Updates { get; set; } = new();
     public ShareSettings Share { get; set; } = new();
     public AutoHideSettings AutoHide { get; set; } = new();
     public ShelfSettings Shelf { get; set; } = new();

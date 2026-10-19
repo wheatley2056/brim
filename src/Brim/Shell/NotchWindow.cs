@@ -135,6 +135,9 @@ internal sealed partial class NotchWindow : WindowEx
     public nint Handle { get; }
     public bool IsExpanded => _expanded;
 
+    /// <summary>Arbeitet gerade jemand mit dieser Notch? Dann kein Neustart für Updates.</summary>
+    public bool IsBusy => _expanded || _inside || _dropTarget || _draggingOut || _popupOpen;
+
     /// <summary>Bildwiederholrate des Monitors in Hz (0 = unbekannt).</summary>
     public int RefreshRate { get; private set; }
 

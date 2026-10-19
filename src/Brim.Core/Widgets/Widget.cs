@@ -43,6 +43,9 @@ public sealed record TextWidget(string Text) : Widget
     public string? Color { get; init; }
     public double? FontSize { get; init; }
     public bool Ellipsis { get; init; } = true;
+
+    /// <summary>Über mehrere Zeilen umbrechen statt abschneiden (z. B. Changelog).</summary>
+    public bool Wrap { get; init; }
 }
 
 /// <summary>Symbol aus Segoe Fluent Icons (Fallback: Segoe MDL2 Assets).</summary>

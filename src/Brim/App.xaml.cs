@@ -21,6 +21,7 @@ public partial class App : Application
     private NotchWindowManager? _windows;
     private TrayIcon? _tray;
     private NearbyService? _nearby;
+    private AutoUpdater? _updater;
 
     public App()
     {
@@ -95,7 +96,15 @@ public partial class App : Application
             Log.Error("Audio nicht verfügbar", ex);
         }
         _modules = new ModuleHost(_hub);
-        await _modules.StartAsync([new ClockModule(), new MediaModule(), new AudioModule(_audio), nearbyModule], settings);
+        // Unbemerkte Updates (nur installierte Fassung); kein Neustart, solange jemand arbeitet oder überträgt.
+        _updater = new AutoUpdater(_settings, DataDirectory, () =>
+            _windows.IsBusy || _hub.Snapshot().Any(a => a.Activity.ModuleId == NearbyModule.ModuleId && a.Priority >= ActivityPriority.Ongoing));
+        Log.Info($"Brim {_updater.CurrentVersion ?? "Entwicklungsfassung"}");
+
+        await _modules.StartAsync(
+            [new ClockModule(), new MediaModule(), new AudioModule(_audio), nearbyModule, new UpdateModule(DataDirectory, _updater.CurrentVersion)],
+            settings);
+        _updater.Start();
 
         // Teilen im LAN: Identität, Empfang und Suche (Plan 4.4a). Fehler hier dürfen die Notch nicht stören.
         try
@@ -111,6 +120,7 @@ public partial class App : Application
     private async void ExitApp()
     {
         Log.Info("Brim wird beendet");
+        _updater?.Dispose();
         _tray?.Dispose();
         _windows?.Dispose();
         if (_modules is not null)

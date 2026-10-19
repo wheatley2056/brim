@@ -30,3 +30,4 @@ GetClassName
 GetWindowThreadProcessId
 GetAncestor
 DwmGetWindowAttribute
+GetLastInputInfo

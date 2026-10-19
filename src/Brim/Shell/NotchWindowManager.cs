@@ -91,6 +91,8 @@ internal sealed class NotchWindowManager : IDisposable
         EvaluateAutoHide();
     }
 
+    public bool IsBusy => _windows.Any(w => w.IsBusy);
+
     public void ToggleExpanded()
     {
         var window = _windows.FirstOrDefault(w => w.IsExpanded) ?? _windows.FirstOrDefault();

@@ -1,6 +1,8 @@
+using Brim.Shell;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
+using Velopack;
 
 namespace Brim;
 
@@ -9,6 +11,14 @@ public static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        // Velopack zuerst: Installieren, Aktualisieren und Deinstallieren rufen Brim kurz mit eigenen
+        // Argumenten auf; diese Haken laufen ohne Oberfläche und beenden den Prozess selbst.
+        VelopackApp.Build()
+            .OnAfterInstallFastCallback(_ => Autostart.Enable())
+            .OnAfterUpdateFastCallback(_ => Autostart.Enable())
+            .OnBeforeUninstallFastCallback(_ => Autostart.Disable())
+            .Run();
+
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
         // Nur eine Instanz: eine zweite meldet sich bei der ersten und beendet sich.

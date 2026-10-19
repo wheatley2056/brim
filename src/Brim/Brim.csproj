@@ -18,6 +18,8 @@
     <!-- Vorerst unverpackt mit eingebettetem Windows App SDK; MSIX/Sparse Package folgt in Phase 7. -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Ohne das fehlen beim Veröffentlichen Brim.pri und die kompilierten XAML-Dateien (.xbf). -->
+    <EnableMsixTooling>true</EnableMsixTooling>
   </PropertyGroup>
 
   <!-- Ohne Angabe für x64 bauen, damit "dotnet build" ohne Schalter funktioniert. -->
@@ -39,6 +41,7 @@
     <PackageReference Include="WinUIEx" />
     <PackageReference Include="H.NotifyIcon.WinUI" />
     <PackageReference Include="Microsoft.Graphics.Win2D" />
+    <PackageReference Include="Velopack" />
   </ItemGroup>
 
   <ItemGroup>

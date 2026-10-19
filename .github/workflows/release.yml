@@ -1,0 +1,37 @@
+# Release bei einem Tag v<Version>: testen, veröffentlichen, mit Velopack packen, als GitHub-Release
+# hochladen. Installierte Brims finden das Update von selbst und spielen es unbemerkt ein.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Version aus dem Tag
+        id: version
+        shell: pwsh
+        run: echo "value=$('${{ github.ref_name }}'.TrimStart('v'))" >> $env:GITHUB_OUTPUT
+
+      - name: Tests (ohne Netz)
+        run: dotnet test Brim.slnx -c Release
+
+      - name: Velopack-Werkzeug
+        run: dotnet tool install -g vpk --version 1.2.161
+
+      - name: Bauen, packen, hochladen
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./build/release.ps1 -Version ${{ steps.version.outputs.value }} -Upload

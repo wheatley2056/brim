@@ -66,9 +66,9 @@ internal sealed class WidgetRenderer
     {
         tb ??= new TextBlock { TextLineBounds = TextLineBounds.Full };
         tb.Text = w.Text;
-        tb.TextTrimming = w.Ellipsis ? TextTrimming.CharacterEllipsis : TextTrimming.None;
-        tb.TextWrapping = TextWrapping.NoWrap;
-        tb.MaxLines = 1;
+        tb.TextTrimming = w.Ellipsis && !w.Wrap ? TextTrimming.CharacterEllipsis : TextTrimming.None;
+        tb.TextWrapping = w.Wrap ? TextWrapping.WrapWholeWords : TextWrapping.NoWrap;
+        tb.MaxLines = w.Wrap ? 0 : 1;
 
         var (font, size, weight, color) = w.Style switch
         {

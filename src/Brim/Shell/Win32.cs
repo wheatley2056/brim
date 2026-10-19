@@ -56,6 +56,18 @@ internal static class Win32
 
     public static uint GetDpi(nint hwnd) => PInvoke.GetDpiForWindow(new HWND(hwnd));
 
+    /// <summary>Zeit seit der letzten Eingabe (Maus, Tastatur) an diesem Rechner.</summary>
+    public static TimeSpan IdleTime()
+    {
+        var info = new LASTINPUTINFO { cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>() };
+        if (!PInvoke.GetLastInputInfo(ref info))
+        {
+            return TimeSpan.Zero;
+        }
+        // Beide Werte sind Millisekunden seit Systemstart (32 Bit, läuft nach ~49 Tagen über).
+        return TimeSpan.FromMilliseconds(unchecked((uint)Environment.TickCount - info.dwTime));
+    }
+
     /// <summary>Mausposition in physischen Bildschirmpixeln.</summary>
     public static bool TryGetCursor(out int x, out int y)
     {

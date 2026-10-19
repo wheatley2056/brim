@@ -27,6 +27,7 @@ public static class Glyphs
     public static readonly string Download = G(0xE896);
     public static readonly string Computer = G(0xE7F4);
     public static readonly string Link = G(0xE71B);
+    public static readonly string Updated = G(0xE777);
 
     private static string G(int codePoint) => char.ConvertFromUtf32(codePoint);
 }
