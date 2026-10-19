@@ -1,3 +1,7 @@
 * text=auto
 *.png binary
 *.ico binary
+
+# Design-Material nicht als Programmcode zählen (GitHub-Sprachstatistik)
+design/** linguist-documentation
+"Brim – Notch für Windows.html" linguist-documentation
