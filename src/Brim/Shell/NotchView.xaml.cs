@@ -726,8 +726,8 @@ public sealed partial class NotchView : UserControl
     /// </summary>
     private void InitializeBoard(ActivityHub hub, SettingsStore settings)
     {
-        // Über den Namen, nicht über NowPresenter.Parent: Im Konstruktor ist Parent noch nicht gesetzt.
-        var host = TabContentHost;
+        // Nicht über NowPresenter.Parent: Im Konstruktor ist Parent noch leer, die Kinder der Raster aber stehen.
+        var host = ExpandedLayer.Children.OfType<Panel>().First(p => p.Children.Contains(NowPresenter));
         var index = host.Children.IndexOf(NowPresenter);
         host.Children.Remove(NowPresenter);
         _board = new NowBoard(hub, settings, NowPresenter);
