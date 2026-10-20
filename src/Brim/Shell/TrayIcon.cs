@@ -7,16 +7,16 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Brim.Shell;
 
-/// <summary>Symbol im Infobereich mit Menü (H.NotifyIcon). Bis das Einstellungsfenster kommt, öffnet es die JSON-Datei.</summary>
+/// <summary>Symbol im Infobereich mit Menü (H.NotifyIcon).</summary>
 internal sealed class TrayIcon : IDisposable
 {
     private readonly TaskbarIcon _icon;
 
-    public TrayIcon(SettingsStore settings, Action exit, Action toggle)
+    public TrayIcon(SettingsStore settings, Action exit, Action toggle, Action openSettings)
     {
         var menu = new MenuFlyout();
         menu.Items.Add(new MenuFlyoutItem { Text = "Notch aufklappen (Win+Alt+N)", Command = new RelayCommand(toggle) });
-        menu.Items.Add(new MenuFlyoutItem { Text = "Einstellungen (settings.json)", Command = new RelayCommand(() => Open(Path.Combine(App.DataDirectory, "settings.json"))) });
+        menu.Items.Add(new MenuFlyoutItem { Text = "Einstellungen", Command = new RelayCommand(openSettings) });
         menu.Items.Add(new MenuFlyoutItem { Text = "Protokolle", Command = new RelayCommand(() => Open(Path.Combine(App.DataDirectory, "logs"))) });
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(new MenuFlyoutItem { Text = "Brim beenden", Command = new RelayCommand(exit) });

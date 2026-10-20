@@ -12,6 +12,8 @@ Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der 
 - FPS in Spielen: Bildrate, 1 % Low, Frametime-Verlauf und auf Wunsch der Ping zu einem Server. Im Spiel bleibt nach Wahl eine kleine Pille mit „FPS · ms“ stehen, oder Win+Alt+F blendet sie für 5 Sekunden ein. Einschalten in den Einstellungen unter „Games“; beim ersten Mal richtet Brim nach Rückfrage die nötigen Rechte ein.
 - Timer und Stoppuhr: im Tab „Jetzt“ über das Stoppuhr-Symbol neben der Uhr. Läuft kompakt mit Ring und Restzeit; wenn die Zeit um ist, klappt die Notch kurz auf.
 - Bluetooth: Der Tab „System“ zeigt alle verbundenen Geräte. Verbindet sich eines neu, zeigt die Notch es kurz an – jeweils mit Akkustand, wenn Windows ihn kennt.
+- Einstellungen: eigenes Fenster im Windows-11-Stil (Rechtsklick auf das Brim-Symbol im Infobereich → Einstellungen) für Monitore, Ausblenden mit Regeln pro App, Animation, Module, Ablage, Teilen, Spiele und Updates.
+- Behoben: Bluetooth-Geräte zeigen jetzt ihren Akkustand, auch Mäuse wie die MX Master.
 - Behoben: Beim Wechsel des Audio-Ausgabegeräts in der Notch hing Brim sich auf.
 
 ## 0.2.1

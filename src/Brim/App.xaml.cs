@@ -29,6 +29,14 @@ public partial class App : Application
     private NearbyService? _nearby;
     private AutoUpdater? _updater;
     private PluginHostModule? _plugins;
+    private List<IBrimModule> _allModules = [];
+
+    /// <summary>Einstellungsfenster (Tray-Menü). Module ohne eigene Oberfläche (Uhr, Updates) stehen nicht zur Wahl.</summary>
+    private void OpenSettings() => SettingsWindow.Show(
+        _settings!,
+        _allModules.Where(m => m.Id is not (ClockModule.ModuleId or UpdateModule.ModuleId)).Select(m => (m.Id, m.DisplayName)).ToList(),
+        _updater?.CurrentVersion,
+        () => _windows?.ToggleExpanded());
 
     public App()
     {
@@ -93,7 +101,7 @@ public partial class App : Application
         _windows = new NotchWindowManager(_hub, _settings, shelf, nearbyModule, dispatcher);
         _windows.Build();
 
-        _tray = new TrayIcon(_settings, ExitApp, () => _windows.ToggleExpanded());
+        _tray = new TrayIcon(_settings, ExitApp, () => _windows.ToggleExpanded(), OpenSettings);
 
         // Eine zweite gestartete Instanz klappt die Notch auf, statt eine weitere zu öffnen.
         AppInstance.GetCurrent().Activated += (_, _) => dispatcher.TryEnqueue(() => _windows?.ToggleExpanded());
@@ -118,9 +126,8 @@ public partial class App : Application
             _windows.IsBusy || _hub.Snapshot().Any(a => a.Activity.ModuleId == NearbyModule.ModuleId && a.Priority >= ActivityPriority.Ongoing));
         Log.Info($"Brim {_updater.CurrentVersion ?? "Entwicklungsfassung"}");
 
-        await _modules.StartAsync(
-            [.. CreateModules(nearbyModule)],
-            settings);
+        _allModules = [.. CreateModules(nearbyModule)];
+        await _modules.StartAsync(_allModules, settings);
         if (IsDemo)
         {
             return;

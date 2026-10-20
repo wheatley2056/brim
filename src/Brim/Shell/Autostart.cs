@@ -21,6 +21,24 @@ internal static class Autostart
         return stub is not null && File.Exists(stub) ? stub : Environment.ProcessPath ?? Path.Combine(current, "Brim.exe");
     }
 
+    /// <summary>Steht Brim im Run-Schlüssel?</summary>
+    public static bool IsEnabled
+    {
+        get
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(RunKey);
+                return key?.GetValue(ValueName) is not null;
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("Autostart nicht lesbar", ex);
+                return false;
+            }
+        }
+    }
+
     public static void Enable()
     {
         try

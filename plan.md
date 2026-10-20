@@ -310,7 +310,7 @@ Kerbe.sln
 | 4 · Plugins | Protokoll, Host, SDK, zwei Beispiel-Plugins | A2 fertig (siehe 7c) |
 | 5 · Spiele | Telemetrie-Dienst, FPS/Latenz, Spielmodus | A8 fertig (siehe 7d) |
 | 6 · Mac-Paket | Timer, Kalender, Benachrichtigungen, Bluetooth, Teilen | A3 vollständig (siehe 7e) |
-| 7 · Auslieferung | MSIX, Signatur, winget, Auto-Update, Einstellungsfenster | Version 1.0 |
+| 7 · Auslieferung | MSIX, Signatur, winget, Auto-Update, Einstellungsfenster | Version 1.0 (siehe 7f) |
 
 ### 7a. Stand Phase 2 (20.10.2026)
 
@@ -400,6 +400,18 @@ Noch offen:
 - Ob die Akku-Eigenschaft bei allen Geräten ankommt, ist unter Windows zu prüfen; manche melden sie nur am Unterknoten (HFP).
 - Bildschirmaufnahme aktiv (niedrige Priorität, 4.3).
 - Der Timer ist bei laufender Musik nur über die kompakte Notch erreichbar, solange er läuft; ein Knopf im Player fehlt noch.
+
+### 7f. Stand Phase 7 (20.10.2026)
+
+Umgesetzt:
+- **Einstellungsfenster** (`SettingsWindow`, in Code statt XAML): `NavigationView` mit Mica, Bereiche Allgemein, Ausblenden (mit Regeln pro App), Animation (mit Vorschau), Module (inkl. Akku-Schwellen), Ablage und Teilen, Spiele, Plugins, Info (Updates, Protokolle). Geöffnet wird es aus dem Tray-Menü. Jede Änderung wird nach 400 ms gespeichert; was nur beim Start gelesen wird, ist gekennzeichnet.
+- **Auto-Update** ist seit 0.1.0 da (Velopack).
+
+Noch offen, braucht Entscheidungen:
+- **Signatur:** eigenes Zertifikat (Warnung von SmartScreen bleibt) oder gekauftes bzw. Azure Trusted Signing.
+- **Paketidentität:** Velopack baut kein MSIX. Vorschlag: bei Velopack bleiben und ein **Sparse Package** (nur Identität) mitliefern. Damit gehen Kalender (`AppointmentStore`) und Benachrichtigungen (`UserNotificationListener`); es braucht aber eine Signatur.
+- **winget:** Manifest auf Basis des Velopack-Setups, sobald die Signatur steht.
+- **Microsoft Store:** offene Entscheidung 5.
 
 Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das fertige Ausblende-System.
 
