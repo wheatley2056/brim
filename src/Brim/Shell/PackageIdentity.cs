@@ -94,6 +94,8 @@ internal static class PackageIdentity
                 using var certificate = X509CertificateLoader.LoadCertificateFromFile(CertificatePath);
                 using var store = new X509Store(StoreName.TrustedPeople, StoreLocation.LocalMachine);
                 store.Open(OpenFlags.ReadOnly);
+                // Jedes Release bringt ein eigenes Zertifikat mit; ein früher eingerichtetes reicht für das schon
+                // registrierte Paket weiter. Hier zählt nur das aktuelle.
                 return store.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, false).Count > 0;
             }
             catch (Exception)
@@ -121,7 +123,7 @@ internal static class PackageIdentity
         {
             $"Brim {typeof(PackageIdentity).Assembly.GetName().Version} läuft aus: {AppContext.BaseDirectory}",
             $"Identitätspaket liegt bei (installierte Fassung): {YesNo(Available)}",
-            $"Zertifikat vertraut: {YesNo(CertificateTrusted)}",
+            $"Zertifikat dieser Version vertraut: {YesNo(CertificateTrusted)} (nach einem Update normal „nein“, solange das Paket schon registriert ist)",
             $"Paket registriert: {(IsRegistered ? "ja, für " + (registered ?? "unbekannten Ordner") : "nein")}",
             $"Paketidentität in diesem Prozess: {identity}",
             $"Kalender: {Brim.Modules.Sensors.FeatureStatus.Calendar}",
