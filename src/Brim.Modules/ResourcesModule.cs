@@ -53,8 +53,10 @@ public sealed partial class ResourcesModule : IBrimModule
     {
         _context = context;
         Publish();
-        // Werte neben der Uhr (wenn eingeschaltet) auch bei geschlossenem Tab, alle 2 Sekunden.
+        // Werte neben der Uhr (wenn eingeschaltet) auch bei geschlossenem Tab, alle 2 Sekunden – aber nur, solange
+        // jemand sie sieht; sonst ruht die Messung.
         _statusTimer = context.Time.CreateTimer(_ => StatusTick(), null, StatusInterval, StatusInterval);
+        context.StatusVisibilityChanged += StatusTick;
         if (context.IsTabVisible(NotchTab.System))
         {
             OnTabVisibilityChanged(NotchTab.System, true);
@@ -317,14 +319,24 @@ public sealed partial class ResourcesModule : IBrimModule
         (bytes / (1024.0 * 1024 * 1024)).ToString("0.0", culture);
 
     /// <summary>Datenrate in B/s, KB/s, MB/s oder GB/s mit höchstens drei gültigen Stellen.</summary>
-    public static string FormatRate(double bytesPerSecond, CultureInfo culture)
+    public static string FormatRate(double bytesPerSecond, CultureInfo culture) =>
+        Format(bytesPerSecond, 1024, ["B/s", "KB/s", "MB/s", "GB/s"], culture);
+
+    /// <summary>Datenrate in Bit pro Sekunde (Basis 1000) wie der Task-Manager, z. B. „12,4 Mbit/s“.</summary>
+    public static string FormatBitRate(double bytesPerSecond, CultureInfo culture) =>
+        Format(bytesPerSecond * 8, 1000, ["bit/s", "kbit/s", "Mbit/s", "Gbit/s"], culture);
+
+    /// <summary>Rate in der Einheit aus den Einstellungen.</summary>
+    public static string FormatRate(double bytesPerSecond, NetworkUnit unit, CultureInfo culture) =>
+        unit == NetworkUnit.Bytes ? FormatRate(bytesPerSecond, culture) : FormatBitRate(bytesPerSecond, culture);
+
+    private static string Format(double perSecond, double step, string[] units, CultureInfo culture)
     {
-        string[] units = ["B/s", "KB/s", "MB/s", "GB/s"];
-        var value = Math.Max(0, bytesPerSecond);
+        var value = Math.Max(0, perSecond);
         var unit = 0;
         while (value >= 1000 && unit < units.Length - 1)
         {
-            value /= 1024;
+            value /= step;
             unit++;
         }
         var format = unit == 0 || value >= 100 ? "0" : value >= 10 ? "0.0" : "0.00";
@@ -362,6 +374,10 @@ public sealed partial class ResourcesModule : IBrimModule
 
     public ValueTask DisposeAsync()
     {
+        if (_context is { } context)
+        {
+            context.StatusVisibilityChanged -= StatusTick;
+        }
         lock (_gate)
         {
             _statusTimer?.Dispose();
@@ -395,7 +411,8 @@ public sealed partial class ResourcesModule : IBrimModule
             PublishStatus(null, CultureInfo.CurrentCulture);
             return;
         }
-        if (_timer is not null || Interlocked.Exchange(ref _sampling, 1) == 1)
+        // Niemand sieht die Werte (versteckt, aufgeklappt, gesperrt, Bildschirm aus): nicht messen, die letzten bleiben.
+        if (!context.IsStatusVisible || _timer is not null || Interlocked.Exchange(ref _sampling, 1) == 1)
         {
             return;
         }
@@ -434,17 +451,13 @@ public sealed partial class ResourcesModule : IBrimModule
         context.SetStatus("load", display.Load && s is not null
             ? new TextWidget($"CPU {Percent(s.Cpu, culture)} · RAM {(s.MemoryTotal > 0 ? Percent(100.0 * s.MemoryUsed / s.MemoryTotal, culture) : "–")}")
             {
-                Style = TextStyle.Mono,
-                FontSize = 12,
-                Color = BrimColors.Slate,
+                Style = TextStyle.Status,
             }
             : null);
         context.SetStatus("network", display.Network && s is not null
-            ? new TextWidget($"↓ {FormatRate(s.NetworkDown, culture)}  ↑ {FormatRate(s.NetworkUp, culture)}")
+            ? new TextWidget($"↓ {FormatRate(s.NetworkDown, display.NetworkUnit, culture)}  ↑ {FormatRate(s.NetworkUp, display.NetworkUnit, culture)}")
             {
-                Style = TextStyle.Mono,
-                FontSize = 12,
-                Color = BrimColors.Slate,
+                Style = TextStyle.Status,
             }
             : null);
     }

@@ -61,6 +61,16 @@ public class ResourceMathTests
         Assert.Equal(expected, ResourcesModule.FormatRate(bytes, CultureInfo.GetCultureInfo("de-DE")));
     }
 
+    [Theory]
+    [InlineData(0, "0 bit/s")]
+    [InlineData(100, "800 bit/s")]
+    [InlineData(1550, "12,4 kbit/s")]
+    [InlineData(1_550_000, "12,4 Mbit/s")]
+    public void Bit_rates_match_the_task_manager(double bytes, string expected)
+    {
+        Assert.Equal(expected, ResourcesModule.FormatBitRate(bytes, CultureInfo.GetCultureInfo("de-DE")));
+    }
+
     [Fact]
     public void Percent_shows_one_decimal_below_one_for_processes()
     {

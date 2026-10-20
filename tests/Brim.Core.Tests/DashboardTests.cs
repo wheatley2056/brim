@@ -108,30 +108,86 @@ public class IdleLayoutTests
         Assert.Equal(IdleLayout.Padding, IdleLayout.Arrange(ClockAlignment.Left, 60, []).ClockX);
     }
 
+    private static IdleItem R(double width, int priority = 1) => new(width, IdleSide.Right, priority);
+    private static IdleItem L(double width, int priority = 1) => new(width, IdleSide.Left, priority);
+
     [Fact]
-    public void Centered_clock_stays_in_the_middle_with_values_on_both_sides()
+    public void Centered_clock_stays_in_the_middle_with_values_on_their_own_side()
     {
-        var a = IdleLayout.Arrange(ClockAlignment.Center, 60, [80, 50, 40]);
+        var a = IdleLayout.Arrange(ClockAlignment.Center, 60, [R(80), L(50), R(40)]);
         Assert.Equal([0, 2], a.Right);
         Assert.Equal([1], a.Left);
-        // Breiteste Seite: 80 + 10 + 40 = 130 → 2 × 14 + 60 + 2 × (130 + 10).
+        // Längere Seite: 80 + 40 + 2 × 10 = 140 → 2 × 14 + 60 + 2 × 140.
         Assert.Equal(368, a.Width);
         Assert.Equal((a.Width - 60) / 2, a.ClockX);
     }
 
     [Fact]
+    public void Centered_content_puts_the_whole_row_in_the_middle()
+    {
+        var a = IdleLayout.Arrange(ClockAlignment.Center, 60, [R(80), L(50), R(40)], centerContent: true);
+        // 2 × 14 + 60 + (50 + 10) + (80 + 40 + 20).
+        Assert.Equal(288, a.Width);
+        Assert.Equal(14 + 60, a.ClockX);
+    }
+
+    [Fact]
     public void Left_and_right_put_all_values_beside_the_clock()
     {
-        var left = IdleLayout.Arrange(ClockAlignment.Left, 60, [80, 50]);
+        var left = IdleLayout.Arrange(ClockAlignment.Left, 60, [R(80), L(50)]);
         Assert.Equal([0, 1], left.Right);
         Assert.Equal(2 * 14 + 60 + 10 + 80 + 10 + 50, left.Width);
         Assert.Equal(14, left.ClockX);
 
-        var right = IdleLayout.Arrange(ClockAlignment.Right, 60, [80, 50]);
+        var right = IdleLayout.Arrange(ClockAlignment.Right, 60, [R(80), L(50)]);
         Assert.Equal([0, 1], right.Left);
         Assert.Equal(right.Width - 14 - 60, right.ClockX);
+    }
 
-        Assert.Equal(IdleLayout.MaxWidth, IdleLayout.Arrange(ClockAlignment.Left, 60, [300, 300]).Width);
+    [Fact]
+    public void Too_wide_drops_the_least_important_values_instead_of_overflowing()
+    {
+        // Netzwerk (Vorrang 1) fällt zuerst, dann CPU/RAM (2); Datum und Akku bleiben.
+        var a = IdleLayout.Arrange(ClockAlignment.Center, 60, [R(70, 3), L(180, 2), L(200, 1), R(60, 4)]);
+        Assert.True(a.Width <= IdleLayout.MaxWidth);
+        Assert.Equal([1], a.Left);
+        Assert.Equal([0, 3], a.Right);
+
+        var b = IdleLayout.Arrange(ClockAlignment.Left, 60, [R(300, 2), R(300, 1)]);
+        Assert.Equal([0], b.Right);
+        Assert.True(b.Width <= IdleLayout.MaxWidth);
+    }
+
+    [Fact]
+    public void Widths_are_even_so_the_edges_stay_on_whole_pixels()
+    {
+        var a = IdleLayout.Arrange(ClockAlignment.Left, 60.3, [R(181.2)]);
+        Assert.Equal(0, a.Width % 2);
+    }
+
+    [Fact]
+    public void Status_values_have_fixed_sides()
+    {
+        Assert.Equal(IdleSide.Right, IdleLayout.Slot(StatusKeys.Date).Side);
+        Assert.Equal(IdleSide.Right, IdleLayout.Slot(StatusKeys.Battery).Side);
+        Assert.Equal(IdleSide.Left, IdleLayout.Slot(StatusKeys.Load).Side);
+        Assert.Equal(IdleSide.Left, IdleLayout.Slot(StatusKeys.Network).Side);
+        Assert.True(IdleLayout.Slot(StatusKeys.Network).Priority < IdleLayout.Slot(StatusKeys.Load).Priority);
+    }
+
+    [Fact]
+    public void Stable_widths_grow_at_once_and_shrink_only_after_a_while()
+    {
+        var widths = new StableWidths(TimeSpan.FromSeconds(5));
+        var t = DateTimeOffset.UnixEpoch;
+        Assert.Equal(80, widths.Get("n", 79.6, t));
+        Assert.Equal(90, widths.Get("n", 90, t.AddSeconds(2)));
+        Assert.Equal(90, widths.Get("n", 70, t.AddSeconds(4)));
+        Assert.Equal(90, widths.Get("n", 72, t.AddSeconds(8)));
+        Assert.Equal(72, widths.Get("n", 72, t.AddSeconds(9)));
+
+        widths.Retain([]);
+        Assert.Equal(40, widths.Get("n", 40, t.AddSeconds(10)));
     }
 
     [Fact]
@@ -150,5 +206,26 @@ public class IdleLayoutTests
         Assert.Null(hub.Status(StatusKeys.Date));
 
         Assert.Equal([StatusKeys.Load, StatusKeys.Battery, StatusKeys.NotificationDot], new NotchDisplaySettings { Load = true, Battery = true }.EnabledStatus());
+    }
+
+    [Fact]
+    public void Status_is_visible_while_any_notch_rests_and_the_screen_is_on()
+    {
+        var hub = new ActivityHub();
+        var changes = 0;
+        hub.StatusVisibilityChanged += () => changes++;
+        object a = new(), b = new();
+        Assert.False(hub.StatusVisible);
+        hub.NotifyIdleShown(a, true);
+        hub.NotifyIdleShown(b, true);
+        Assert.True(hub.StatusVisible);
+        hub.NotifyIdleShown(a, false);
+        Assert.True(hub.StatusVisible);
+        hub.SetScreenAway(true);
+        Assert.False(hub.StatusVisible);
+        hub.SetScreenAway(false);
+        hub.NotifyIdleShown(b, false);
+        Assert.False(hub.StatusVisible);
+        Assert.Equal(4, changes);
     }
 }

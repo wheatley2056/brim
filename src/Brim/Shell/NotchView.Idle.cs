@@ -10,7 +10,8 @@ namespace Brim.Shell;
 /// <summary>
 /// Ruhende Notch: die Uhr mittig, links oder rechts, daneben Werte aus den Einstellungen (CPU/RAM, Netzwerk,
 /// Akku, Datum) und der blaue Punkt für Benachrichtigungen. Die Notch wird so breit, dass alles hineinpasst
-/// (<see cref="IdleLayout"/>).
+/// (<see cref="IdleLayout"/>). Jeder Wert behält seine Breite, bis er eine Weile schmaler war, damit die Notch
+/// nicht bei jeder Messung atmet.
 /// </summary>
 public sealed partial class NotchView
 {
@@ -19,6 +20,7 @@ public sealed partial class NotchView
     private readonly Dictionary<string, (WidgetRenderer Renderer, FrameworkElement? Element)> _statusSlots = new();
     private IdleArrangement _idle = new(NotchGeometry.Idle.Width, 0, [], []);
     private SettingsStore? _displaySettings;
+    private readonly StableWidths _statusWidths = new(TimeSpan.FromSeconds(8));
 
     private void InitializeIdle(SettingsStore settings)
     {
@@ -31,7 +33,8 @@ public sealed partial class NotchView
     private void ArrangeIdle()
     {
         var display = _displaySettings?.Current.Display ?? new NotchDisplaySettings();
-        var shown = new List<(string Key, FrameworkElement Element)>();
+        var now = DateTimeOffset.UtcNow;
+        var shown = new List<(string Key, FrameworkElement Element, IdleItem Item)>();
         foreach (var key in display.EnabledStatus())
         {
             if (_hub.Status(key) is not { } widget)
@@ -45,13 +48,27 @@ public sealed partial class NotchView
             }
             var element = slot.Renderer.Render(widget, slot.Element);
             _statusSlots[key] = (slot.Renderer, element);
+            // Natürliche Breite messen, dann die gleichbleibende setzen; Zahlen stehen rechtsbündig darin.
+            element.Width = double.NaN;
             element.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
-            shown.Add((key, element));
+            var width = _statusWidths.Get(key, element.DesiredSize.Width, now);
+            element.Width = width;
+            if (element is TextBlock text)
+            {
+                text.TextAlignment = TextAlignment.Right;
+            }
+            else
+            {
+                element.HorizontalAlignment = HorizontalAlignment.Right;
+            }
+            var (side, priority) = IdleLayout.Slot(key);
+            shown.Add((key, element, new IdleItem(width, side, priority)));
         }
+        _statusWidths.Retain(shown.Select(s => s.Key));
 
         SharedClock.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
         var clockWidth = Math.Max(1, SharedClock.DesiredSize.Width);
-        var arrangement = IdleLayout.Arrange(display.Clock, clockWidth, shown.Select(s => s.Element.DesiredSize.Width).ToList());
+        var arrangement = IdleLayout.Arrange(display.Clock, clockWidth, shown.Select(s => s.Item).ToList(), display.CenterContent);
         _idle = arrangement;
 
         Place(_idleLeft, arrangement.Left.Select(i => shown[i].Element).Reverse());
@@ -85,7 +102,7 @@ public sealed partial class NotchView
     /// <summary>Fläche für Maus und Fensterregion, auch für die ruhende Notch mit Werten.</summary>
     public NotchShape HitShape(NotchMode mode)
     {
-        var shape = mode == NotchMode.Idle ? NotchGeometry.For(mode, _form) with { Width = _idle.Width } : NotchGeometry.For(mode, _form);
+        var shape = BaseShape(mode);
         return NotchGeometry.SwellsOnHover(mode) ? NotchGeometry.Swell(shape) : TargetShape;
     }
 }

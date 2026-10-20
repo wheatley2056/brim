@@ -81,6 +81,7 @@ internal sealed class WidgetRenderer
             TextStyle.Mono => ("NotchMonoFont", 13d, FontWeights.Normal, BrimColors.Fog),
             TextStyle.MonoCaption => ("NotchMonoFont", 11d, FontWeights.Normal, BrimColors.Slate),
             TextStyle.Display => ("NotchDisplayFont", 44d, FontWeights.SemiBold, BrimColors.Fog),
+            TextStyle.Status => ("NotchClockFont", 12d, FontWeights.Normal, BrimColors.Slate),
             _ => ("NotchTextFont", 13d, FontWeights.Normal, BrimColors.Fog),
         };
         tb.FontFamily = (FontFamily)Application.Current.Resources[font];
@@ -88,6 +89,8 @@ internal sealed class WidgetRenderer
         tb.FontWeight = weight;
         tb.CharacterSpacing = w.Style is TextStyle.Title or TextStyle.Display ? -20 : 0;
         tb.Foreground = Brushes.Get(w.Color ?? color);
+        // Werte neben der Uhr: gleich breite Ziffern, damit nichts springt, auch in Proportionalschriften.
+        Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(tb, w.Style == TextStyle.Status ? FontNumeralAlignment.Tabular : FontNumeralAlignment.Normal);
         return tb;
     }
 

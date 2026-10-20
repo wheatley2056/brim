@@ -95,6 +95,19 @@ public sealed class ModuleContext
         remove => _hub.TilePlacementsChanged -= value;
     }
 
+    /// <summary>
+    /// Sieht gerade jemand die Werte neben der Uhr? Nein, wenn die Notch versteckt oder aufgeklappt ist, der
+    /// Bildschirm aus oder die Sitzung gesperrt. Module, die dafür messen, pausieren dann (Plan 4.1).
+    /// </summary>
+    public bool IsStatusVisible => _hub.StatusVisible;
+
+    /// <summary><see cref="IsStatusVisible"/> hat sich geändert.</summary>
+    public event Action? StatusVisibilityChanged
+    {
+        add => _hub.StatusVisibilityChanged += value;
+        remove => _hub.StatusVisibilityChanged -= value;
+    }
+
     /// <summary>Löst eine Aktion in einem anderen Modul aus, z. B. „Audio-Menü öffnen“ aus dem Player.</summary>
     public void Send(string moduleId, string actionId, double? value = null) =>
         _hub.Invoke(new ActionInvocation(moduleId, actionId, value));

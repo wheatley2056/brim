@@ -2,8 +2,9 @@
 <Application
     x:Class="Brim.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    RequestedTheme="Dark">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Kein festes Design: Einstellungsfenster und Tray-Menü folgen Hell/Dunkel des Systems.
+         Die Notch selbst ist immer dunkel (RequestedTheme in NotchView.xaml). -->
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

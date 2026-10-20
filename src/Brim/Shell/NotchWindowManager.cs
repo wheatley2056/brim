@@ -2,6 +2,7 @@ using Brim.Core;
 using Brim.Modules;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
+using Windows.Graphics;
 using WinUIEx.Messaging;
 
 namespace Brim.Shell;
@@ -73,6 +74,16 @@ internal sealed class NotchWindowManager : IDisposable
     private bool _sharing;
     private bool _wasIdle;
 
+    // „Monitor mit Maus“: eine Notch, die dem Zeiger folgt (Plan 5, Monitore).
+    private DispatcherQueueTimer? _mouseTimer;
+
+    // Gesperrt oder Bildschirm aus: Statuswerte pausieren (Plan 4.1).
+    private WindowMessageMonitor? _session;
+    private nint _sessionWindow;
+    private nint _powerNotification;
+    private bool _locked;
+    private bool _displayOff;
+
     private bool IsIdle() =>
         _settings.Current.AutoHide.IdleSeconds is > 0 and var seconds && Win32.IdleTime() >= TimeSpan.FromSeconds(seconds);
 
@@ -112,9 +123,12 @@ internal sealed class NotchWindowManager : IDisposable
     {
         var displays = SelectDisplays();
         var keep = new List<NotchWindow>();
+        var follow = _settings.Current.Monitors == MonitorMode.Mouse;
         foreach (var display in displays)
         {
-            var existing = _windows.FirstOrDefault(w => w.Display.DisplayId.Value == display.DisplayId.Value);
+            // Folgt die Notch der Maus, wandert dasselbe Fenster mit, statt neu zu entstehen.
+            var existing = _windows.FirstOrDefault(w => w.Display.DisplayId.Value == display.DisplayId.Value)
+                ?? (follow && _windows.Count == 1 ? _windows[0] : null);
             if (existing is not null)
             {
                 existing.UpdateDisplay(display);
@@ -134,7 +148,97 @@ internal sealed class NotchWindowManager : IDisposable
         _windows.AddRange(keep);
         Log.Info($"Notch auf {_windows.Count} Monitor(en)");
         RegisterHotkey();
+        WatchSession();
+        UpdateMouseFollow(follow);
         EvaluateAutoHide();
+    }
+
+    private void UpdateMouseFollow(bool follow)
+    {
+        if (!follow)
+        {
+            _mouseTimer?.Stop();
+            return;
+        }
+        if (_mouseTimer is null)
+        {
+            _mouseTimer = _dispatcher.CreateTimer();
+            _mouseTimer.IsRepeating = true;
+            _mouseTimer.Interval = TimeSpan.FromMilliseconds(300);
+            _mouseTimer.Tick += (_, _) => FollowMouse();
+        }
+        _mouseTimer.Start();
+    }
+
+    /// <summary>Wechselt die Maus den Monitor, zieht die Notch nach – nur, wenn sie gerade nichts zu tun hat.</summary>
+    private void FollowMouse()
+    {
+        if (_windows.Count != 1 || _windows[0].IsBusy)
+        {
+            return;
+        }
+        var display = MouseDisplay();
+        if (display.DisplayId.Value != _windows[0].Display.DisplayId.Value)
+        {
+            Build();
+        }
+    }
+
+    private static DisplayArea MouseDisplay() =>
+        Win32.TryGetCursor(out var x, out var y)
+            ? DisplayArea.GetFromPoint(new PointInt32(x, y), DisplayAreaFallback.Primary)
+            : DisplayArea.Primary;
+
+    private void WatchSession()
+    {
+        var primary = _windows.FirstOrDefault();
+        if (primary is null || primary.Handle == _sessionWindow)
+        {
+            return;
+        }
+        UnwatchSession();
+        _sessionWindow = primary.Handle;
+        _powerNotification = Win32.WatchSession(primary.Handle);
+        _session = new WindowMessageMonitor(primary);
+        _session.WindowMessageReceived += (_, e) =>
+        {
+            if (e.Message.MessageId == Win32.WmWtsSessionChange)
+            {
+                switch ((int)e.Message.WParam)
+                {
+                    case Win32.WtsSessionLock:
+                        _locked = true;
+                        break;
+                    case Win32.WtsSessionUnlock:
+                        _locked = false;
+                        break;
+                    default:
+                        return;
+                }
+            }
+            else if (e.Message.MessageId == Win32.WmPowerBroadcast && (int)e.Message.WParam == Win32.PbtPowerSettingChange
+                && Win32.DisplayState(e.Message.LParam) is { } state)
+            {
+                _displayOff = state == 0;
+            }
+            else
+            {
+                return;
+            }
+            _hub.SetScreenAway(_locked || _displayOff);
+        };
+    }
+
+    private void UnwatchSession()
+    {
+        if (_sessionWindow != 0)
+        {
+            Win32.UnwatchSession(_sessionWindow, _powerNotification);
+            _sessionWindow = 0;
+            _powerNotification = 0;
+        }
+        _session?.Dispose();
+        _session = null;
     }
 
     public bool IsBusy => _windows.Any(w => w.IsBusy);
@@ -164,9 +268,12 @@ internal sealed class NotchWindowManager : IDisposable
 
     private List<DisplayArea> SelectDisplays()
     {
-        if (_settings.Current.Monitors == MonitorMode.Primary)
+        switch (_settings.Current.Monitors)
         {
-            return [DisplayArea.Primary];
+            case MonitorMode.Primary:
+                return [DisplayArea.Primary];
+            case MonitorMode.Mouse:
+                return [MouseDisplay()];
         }
         // FindAll liefert eine Projektion, die man per Index lesen muss.
         var all = DisplayArea.FindAll();
@@ -258,6 +365,8 @@ internal sealed class NotchWindowManager : IDisposable
         _hub.Changed -= QueueRefresh;
         _watcher?.Stop();
         _idleTimer.Stop();
+        _mouseTimer?.Stop();
+        UnwatchSession();
         _windowWatcher.Dispose();
         _watcher = null;
         UnregisterHotkey();

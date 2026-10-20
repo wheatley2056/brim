@@ -154,7 +154,7 @@ Content is a tree of widgets, each with a `"type"`. Names are camelCase. Colors 
 
 | `type` | Main fields |
 |---|---|
-| `text` | `text`, `style` (`body`, `secondary`, `title`, `caption`, `mono`, `monoCaption`, `display`), `color`, `fontSize`, `wrap` |
+| `text` | `text`, `style` (`body`, `secondary`, `title`, `caption`, `mono`, `monoCaption`, `display`, `status`: the clock's font at 12 px with equal-width digits), `color`, `fontSize`, `wrap` |
 | `icon` | `glyph`, `size`, `color` |
 | `image` | `image: { "id", "bytes" (Base64) }`, `width`, `height`, `cornerRadius` |
 | `progress` | `value` 0–1, `color`, `thickness`, `seekActionId` (makes it a slider), `live` |

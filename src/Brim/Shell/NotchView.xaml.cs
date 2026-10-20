@@ -255,13 +255,20 @@ public sealed partial class NotchView : UserControl
 
     private NotchShape ShapeFor(NotchMode mode)
     {
-        var shape = mode == NotchMode.Idle ? NotchGeometry.For(mode, _form) with { Width = _idle.Width }
-            : mode != NotchMode.Expanded ? NotchGeometry.For(mode, _form)
-            : _settingsOpen || _onboarding ? NotchGeometry.Styled(LargeShape, _form)
-            : _tall ? NotchGeometry.Styled(NotchGeometry.ExpandedTall, _form)
-            : NotchGeometry.For(mode, _form);
+        var shape = BaseShape(mode);
         return _hovering && NotchGeometry.SwellsOnHover(mode) ? NotchGeometry.Swell(shape) : shape;
     }
+
+    /// <summary>Form ohne Anschwellen: ruhend so breit wie die Werte, breites HUD für Benachrichtigungen, groß für Einstellungen.</summary>
+    private NotchShape BaseShape(NotchMode mode) =>
+        mode == NotchMode.Idle ? NotchGeometry.For(mode, _form) with { Width = _idle.Width }
+        : mode == NotchMode.Hud && WideHud ? NotchGeometry.Styled(NotchGeometry.HudWide, _form)
+        : mode != NotchMode.Expanded ? NotchGeometry.For(mode, _form)
+        : _settingsOpen || _onboarding ? NotchGeometry.Styled(LargeShape, _form)
+        : _tall ? NotchGeometry.Styled(NotchGeometry.ExpandedTall, _form)
+        : NotchGeometry.For(mode, _form);
+
+    private bool WideHud => _current?.Primary?.Activity.Wide == true;
 
     /// <summary>
     /// Maus auf der Notch: Sie schwillt sofort an. Klappt sie danach auf, übernimmt die Feder
@@ -376,6 +383,10 @@ public sealed partial class NotchView : UserControl
     private FrameworkElement UpdateHud(NotchPresentation p)
     {
         var a = p.Primary?.Activity;
+        var size = a?.Wide == true ? NotchGeometry.HudWide : NotchGeometry.Compact;
+        HudLayer.Width = size.Width;
+        HudLayer.Height = size.Height;
+        ElementCompositionPreview.GetElementVisual(HudLayer).CenterPoint = new Vector3((float)size.Width / 2, 0, 0);
         Render("hud", HudPresenter, p.Primary, a?.Content ?? CompactFallback(a));
         return HudLayer;
     }

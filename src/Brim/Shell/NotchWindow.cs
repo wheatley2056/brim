@@ -155,6 +155,7 @@ internal sealed partial class NotchWindow : WindowEx
         Closed += (_, _) =>
         {
             _hub.NotifyVisibleTab(this, null);
+            _hub.NotifyIdleShown(this, false);
             Microsoft.UI.Xaml.Media.CompositionTarget.Rendering -= TrackGlass;
         };
 
@@ -236,6 +237,8 @@ internal sealed partial class NotchWindow : WindowEx
         View.Present(presentation, animation, reducedMotion: !_uiSettings.AnimationsEnabled);
         // Module mit teuren Abfragen (Ressourcen) messen nur, solange ihr Tab irgendwo offen ist.
         _hub.NotifyVisibleTab(this, presentation.Mode == NotchMode.Expanded ? presentation.Tab : null);
+        // Werte neben der Uhr werden nur gemessen, solange irgendeine Notch ruht und sie zeigt.
+        _hub.NotifyIdleShown(this, presentation.Mode == NotchMode.Idle);
         UpdateRegion(animation);
         ScheduleExpiry();
     }

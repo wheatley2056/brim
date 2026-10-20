@@ -175,14 +175,28 @@ public sealed class BatteryModule : IBrimModule
 
     // ───────── Darstellung ─────────
 
-    /// <summary>Neben der Uhr in der ruhenden Notch: Symbol und Prozent in den Akku-Farben.</summary>
-    private Widget StatusWidget(BatteryState state) => new StackWidget(
-        new IconWidget(Glyph(state)) { Size = 13, Color = ColorFor(state, Settings) },
-        new TextWidget($"{state.Percent} %") { Style = TextStyle.Mono, Color = ColorFor(state, Settings) })
+    /// <summary>
+    /// Neben der Uhr in der ruhenden Notch: Symbol und Prozent wie die anderen Werte. Farbig nur, wenn es etwas zu
+    /// sagen gibt (lädt, fast leer, Energiesparen); ein dauerhaftes Grün würde nur ablenken.
+    /// </summary>
+    private Widget StatusWidget(BatteryState state)
     {
-        Spacing = 4,
-        AccessibleName = $"Akku {state.Percent} %, {StatusText(state)}",
-    };
+        var color = StatusColor(state, Settings);
+        return new StackWidget(
+            new IconWidget(Glyph(state)) { Size = 12, Color = color },
+            new TextWidget($"{state.Percent} %") { Style = TextStyle.Status, Color = color })
+        {
+            Spacing = 4,
+            AccessibleName = $"Akku {state.Percent} %, {StatusText(state)}",
+        };
+    }
+
+    /// <summary>Wie <see cref="ColorFor"/>, aber im Normalfall neutral (Slate) statt grün.</summary>
+    public static string StatusColor(BatteryState state, BatterySettings settings)
+    {
+        var color = ColorFor(state, settings);
+        return color == BrimColors.Charge ? BrimColors.Slate : color;
+    }
 
     private Widget Card(BatteryState state) => new StackWidget(
         new IconWidget(Glyph(state)) { Size = 18, Color = ColorFor(state, Settings) },

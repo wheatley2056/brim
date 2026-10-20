@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
 using Brim.Core;
+using Microsoft.Graphics.Canvas;
+using Microsoft.Graphics.Canvas.Geometry;
 using Microsoft.UI;
 using Microsoft.UI.Composition;
 using Windows.UI;
@@ -19,6 +21,9 @@ internal sealed class NotchSurface : IDisposable
 {
     private const string W = "W", H = "H", R = "R", E = "E", K = "K";
 
+    /// <summary>Überlappung der Ohren mit dem Körper (DIP), damit an der Naht kein heller Haarstrich entsteht.</summary>
+    private const string O = "O";
+
     private readonly Compositor _compositor;
     private readonly CompositionPropertySet _props;
     private readonly ContainerVisual _root;
@@ -32,7 +37,6 @@ internal sealed class NotchSurface : IDisposable
     private readonly Dictionary<string, SpringChannel> _channels;
     private NotchShape _target;
     private readonly CompositionColorBrush _fill;
-    private readonly List<CompositionColorGradientStop> _earStops = [];
     private bool _glass;
     private byte _tint;
     private string? _accent;
@@ -59,6 +63,7 @@ internal sealed class NotchSurface : IDisposable
         _props.InsertScalar(R, (float)initial.Radius);
         _props.InsertScalar(E, (float)initial.Ear);
         _props.InsertScalar(K, (float)initial.Round);
+        _props.InsertScalar(O, 0.5f);
 
         _root = compositor.CreateContainerVisual();
         _root.Size = new Vector2(canvasWidth, canvasHeight);
@@ -76,9 +81,9 @@ internal sealed class NotchSurface : IDisposable
         body.Shapes.Add(bodyShape);
         _root.Children.InsertAtTop(body);
 
-        // Ohren: Viertelkreis-Aussparung, wie radial-gradient(circle at 0 100%, transparent r, #000 r) im Design.
-        _root.Children.InsertAtTop(CreateEar(left: true));
-        _root.Children.InsertAtTop(CreateEar(left: false));
+        // Ohren: Viertelkreis-Aussparung, wie radial-gradient(circle at 0 100%, transparent r, #000 r) im Design –
+        // als Vektorform, die der Compositor in jeder Größe sauber glättet.
+        _root.Children.InsertAtTop(CreateEars());
 
         // Schimmer in Akzentfarbe: ein weicher Lichtschein, der von der Mitte der Unterkante aus
         // in alle Richtungen ausläuft – keine Kanten, keine Ecken.
@@ -203,10 +208,8 @@ internal sealed class NotchSurface : IDisposable
         animation.InsertKeyFrame(1, color);
         animation.Duration = TimeSpan.FromMilliseconds(300);
         _fill.StartAnimation("Color", animation);
-        foreach (var stop in _earStops)
-        {
-            stop.StartAnimation("Color", animation);
-        }
+        // Halbtransparent würde die Überlappung als dunklere Naht sichtbar; die Kante kommt dann von der Region.
+        _props.InsertScalar(O, glass ? 0f : 0.5f);
     }
 
     /// <summary>Deckkraft der Tönung bei Glas: dunkel genug für weiße Schrift, hell genug, dass der Desktop durchscheint.</summary>
@@ -553,23 +556,49 @@ internal sealed class NotchSurface : IDisposable
         return geometry;
     }
 
-    private SpriteVisual CreateEar(bool left)
+    /// <summary>
+    /// Beide Ohren als Vektorpfade (Quadrat minus Viertelkreis), in Einheitsgröße gebaut und über die Skalierung
+    /// an <c>E</c> gebunden. Füllen mit derselben Farbe wie der Körper, auch beim Wechsel zu Glas.
+    /// </summary>
+    private ShapeVisual CreateEars()
     {
-        var ear = _compositor.CreateSpriteVisual();
-        var brush = _compositor.CreateRadialGradientBrush();
-        brush.MappingMode = CompositionMappingMode.Relative;
-        brush.EllipseCenter = new Vector2(left ? 0 : 1, 1);
-        brush.EllipseRadius = new Vector2(1, 1);
-        brush.ExtendMode = CompositionGradientExtendMode.Clamp;
-        brush.ColorStops.Add(_compositor.CreateColorGradientStop(0, Color.FromArgb(0, 0, 0, 0)));
-        brush.ColorStops.Add(_compositor.CreateColorGradientStop(0.94f, Color.FromArgb(0, 0, 0, 0)));
-        var solid = _compositor.CreateColorGradientStop(1, Colors.Black);
-        _earStops.Add(solid);
-        brush.ColorStops.Add(solid);
-        ear.Brush = brush;
-        Bind(ear, "Size", "Vector2(p.E, p.E)");
-        Bind(ear, "Offset", left ? "Vector3(p.CX - p.W / 2 - p.E + 0.5, 0, 0)" : "Vector3(p.CX + p.W / 2 - 0.5, 0, 0)");
-        return ear;
+        var visual = _compositor.CreateShapeVisual();
+        visual.Size = _root.Size;
+        foreach (var left in new[] { true, false })
+        {
+            var shape = _compositor.CreateSpriteShape(CreateEarGeometry(left));
+            shape.FillBrush = _fill;
+            Bind(shape, "Scale", "Vector2(p.E, p.E)");
+            Bind(shape, "Offset", left ? "Vector2(p.CX - p.W / 2 - p.E + p.O, 0)" : "Vector2(p.CX + p.W / 2 - p.O, 0)");
+            visual.Shapes.Add(shape);
+        }
+        return visual;
+    }
+
+    /// <summary>Ohr in 1 × 1: links mit dem Kreismittelpunkt unten links, rechts gespiegelt.</summary>
+    private CompositionPathGeometry CreateEarGeometry(bool left)
+    {
+        // Viertelkreis als kubische Bézierkurve (Kontrollpunkte bei 0,5523 des Radius).
+        const float k = 0.5523f;
+        using var builder = new CanvasPathBuilder(CanvasDevice.GetSharedDevice());
+        if (left)
+        {
+            builder.BeginFigure(0, 0);
+            builder.AddLine(1, 0);
+            builder.AddLine(1, 1);
+            builder.AddCubicBezier(new Vector2(1, 1 - k), new Vector2(k, 0), new Vector2(0, 0));
+        }
+        else
+        {
+            builder.BeginFigure(1, 0);
+            builder.AddLine(0, 0);
+            builder.AddLine(0, 1);
+            builder.AddCubicBezier(new Vector2(0, 1 - k), new Vector2(1 - k, 0), new Vector2(1, 0));
+        }
+        builder.EndFigure(CanvasFigureLoop.Closed);
+        var geometry = CanvasGeometry.CreatePath(builder);
+        _owned.Add(geometry);
+        return _compositor.CreatePathGeometry(new CompositionPath(geometry));
     }
 
     private void Bind(CompositionObject target, string property, string expression)

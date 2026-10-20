@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Brim.Core;
 using Brim.Core.Widgets;
 using Brim.Modules.Sensors;
@@ -7,7 +8,8 @@ using Windows.UI.Notifications.Management;
 namespace Brim.Modules;
 
 /// <summary>Eine Benachrichtigung, wie das Modul sie zeigt.</summary>
-public sealed record NotificationPreview(string App, string Title, string Body);
+/// <param name="AppId">AppUserModelId der App, damit ein Klick sie öffnet; <c>null</c>, wenn unbekannt.</param>
+public sealed record NotificationPreview(string App, string Title, string Body, string? AppId = null);
 
 /// <summary>
 /// Benachrichtigungen spiegeln (A3, Plan 4.3): Neue Windows-Benachrichtigungen erscheinen kurz als Vorschau in der
@@ -25,6 +27,9 @@ public sealed class NotificationModule : IBrimModule
     private bool _subscribed;
     private readonly NotificationTracker _tracker = new();
     private readonly CancellationTokenSource _stop = new();
+    private readonly Dictionary<string, ImageData?> _logos = new();
+    private readonly Lock _logoGate = new();
+    private string? _shownAppId;
 
     /// <summary>
     /// Gibt eine Benachrichtigung an ein Plugin weiter (z. B. Swyx Messenger an das SwyxIt!-Plugin).
@@ -101,7 +106,7 @@ public sealed class NotificationModule : IBrimModule
                     var fresh = _tracker.Update(current.Select(n => n.Id)).ToHashSet();
                     foreach (var notification in current.Where(n => fresh.Contains(n.Id)))
                     {
-                        Handle(notification);
+                        await HandleAsync(notification);
                     }
                     failures = 0;
                 }
@@ -130,7 +135,7 @@ public sealed class NotificationModule : IBrimModule
         {
             if (_tracker.Add(args.UserNotificationId) && sender.GetNotification(args.UserNotificationId) is { } notification)
             {
-                Handle(notification);
+                _ = HandleAsync(notification);
             }
         }
         catch (Exception ex)
@@ -139,32 +144,77 @@ public sealed class NotificationModule : IBrimModule
         }
     }
 
-    private void Handle(UserNotification notification)
+    private async Task HandleAsync(UserNotification notification)
     {
         try
         {
-            var app = notification.AppInfo?.DisplayInfo?.DisplayName ?? "";
+            var info = notification.AppInfo;
+            var app = info?.DisplayInfo?.DisplayName ?? "";
             var visual = notification.Notification?.Visual;
             // Ältere Apps nutzen die alten Vorlagen (ToastText02 …) statt ToastGeneric.
             var binding = visual?.GetBinding(KnownNotificationBindings.ToastGeneric) ?? visual?.Bindings.FirstOrDefault();
             var texts = binding?.GetTextElements().Select(t => t.Text).Where(t => !string.IsNullOrWhiteSpace(t)).ToList() ?? [];
-            if (Preview(app, texts) is { } preview && Route?.Invoke(preview) != true)
+            if (Preview(app, texts) is not { } found)
             {
-                if (_context?.Settings.Notifications.Style == NotificationStyle.Dot)
-                {
-                    // Die Uhr bleibt; ein blauer Punkt zeigt, dass etwas gekommen ist, bis die Notch aufgeht.
-                    _context.SetStatus("dot", new IconWidget(Glyphs.Dot) { Size = 10, Color = BrimColors.Charging, AccessibleName = $"Neue Benachrichtigung von {preview.App}" });
-                }
-                else
-                {
-                    Show(preview);
-                }
+                return;
+            }
+            var preview = found with { AppId = info?.AppUserModelId };
+            if (Route?.Invoke(preview) == true || _context is not { } context)
+            {
+                return;
+            }
+            // Präsentation, Vollbild oder „Nicht stören“: nicht dazwischenfunken, nur der Punkt wie bei „Nur Punkt“.
+            var quiet = context.Settings.Notifications.QuietWhenBusy && QuietHours.IsActive();
+            if (context.Settings.Notifications.Style == NotificationStyle.Dot || quiet)
+            {
+                // Die Uhr bleibt; ein blauer Punkt zeigt, dass etwas gekommen ist, bis die Notch aufgeht.
+                context.SetStatus("dot", new IconWidget(Glyphs.Dot) { Size = 10, Color = BrimColors.Charging, AccessibleName = $"Neue Benachrichtigung von {preview.App}" });
+            }
+            else
+            {
+                Show(preview, info is null ? null : await LogoAsync(info));
             }
         }
         catch (Exception ex)
         {
             Log.Warn("Benachrichtigung nicht lesbar", ex);
         }
+    }
+
+    /// <summary>Symbol der App in 32 px, je App einmal gelesen; <c>null</c>, wenn sie keins hat.</summary>
+    private async Task<ImageData?> LogoAsync(Windows.ApplicationModel.AppInfo info)
+    {
+        var id = info.AppUserModelId ?? info.DisplayInfo?.DisplayName ?? "";
+        lock (_logoGate)
+        {
+            if (_logos.TryGetValue(id, out var cached))
+            {
+                return cached;
+            }
+        }
+        ImageData? logo = null;
+        try
+        {
+            if (info.DisplayInfo?.GetLogo(new Windows.Foundation.Size(32, 32)) is { } reference)
+            {
+                using var stream = await reference.OpenReadAsync();
+                using var reader = new Windows.Storage.Streams.DataReader(stream);
+                var length = (uint)stream.Size;
+                await reader.LoadAsync(length);
+                var bytes = new byte[length];
+                reader.ReadBytes(bytes);
+                logo = bytes.Length > 0 ? new ImageData("app:" + id, bytes) : null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Info($"Kein Symbol für {id}: {ex.Message}");
+        }
+        lock (_logoGate)
+        {
+            _logos[id] = logo;
+        }
+        return logo;
     }
 
     /// <summary>Erste Zeile ist der Titel, der Rest der Text. <c>null</c> für Brim selbst und stumme Apps.</summary>
@@ -182,22 +232,68 @@ public sealed class NotificationModule : IBrimModule
         return new NotificationPreview(app.Length > 0 ? app : "Benachrichtigung", texts[0].Trim(), string.Join(" ", texts.Skip(1)).Trim());
     }
 
-    public void Show(NotificationPreview preview) => _context?.Post(new Activity
+    /// <summary>
+    /// Breites HUD in zwei Zeilen: links das Symbol der App, oben Titel und App, darunter der Text, beides mit
+    /// Auslassungspunkten. Ein Klick öffnet die App.
+    /// </summary>
+    public void Show(NotificationPreview preview, ImageData? logo = null)
     {
-        ModuleId = ModuleId,
-        Id = "preview",
-        Priority = ActivityPriority.Transient,
-        Duration = TimeSpan.FromSeconds(5),
-        Announcement = $"{preview.App}: {preview.Title}. {preview.Body}",
-        Content = new StackWidget(
-            new TextWidget(preview.App) { Style = TextStyle.Caption, FontSize = 11, FixedWidth = 70 },
-            new TextWidget(preview.Title) { FontSize = 12 },
-            new TextWidget(preview.Body) { Style = TextStyle.Secondary, FontSize = 12, Grow = 1 })
+        _shownAppId = preview.AppId;
+        Widget icon = logo is not null
+            ? new ImageWidget(logo) { Width = 28, Height = 28, CornerRadius = 6 }
+            : new IconWidget(Glyphs.Bell) { Size = 18, Color = BrimColors.Slate };
+        var title = new StackWidget(
+            new TextWidget(preview.Title) { FontSize = 13, Grow = 1 },
+            new TextWidget(preview.App) { Style = TextStyle.Caption })
         {
             Spacing = 8,
-            Padding = (18, 0, 18, 0),
-        },
-    });
+        };
+        var lines = preview.Body.Length > 0
+            ? new StackWidget(title, new TextWidget(preview.Body) { Style = TextStyle.Secondary, FontSize = 12 })
+            : new StackWidget(title);
+        _context?.Post(new Activity
+        {
+            ModuleId = ModuleId,
+            Id = "preview",
+            Priority = ActivityPriority.Transient,
+            Duration = TimeSpan.FromSeconds(5),
+            Wide = true,
+            Announcement = $"{preview.App}: {preview.Title}. {preview.Body}",
+            Content = new StackWidget(
+                icon,
+                lines with
+                {
+                    Orientation = StackOrientation.Vertical,
+                    Spacing = 2,
+                    Align = CrossAlign.Stretch,
+                    Grow = 1,
+                })
+            {
+                Spacing = 12,
+                Padding = (20, 0, 22, 0),
+                ActionId = preview.AppId is null ? null : "open",
+                AccessibleName = preview.AppId is null ? null : $"{preview.App} öffnen",
+            },
+        });
+    }
+
+    /// <summary>Klick auf die Vorschau: die App öffnen, von der sie kam.</summary>
+    public void OnAction(ActionInvocation invocation)
+    {
+        if (invocation.ActionId != "open" || _shownAppId is not { } appId)
+        {
+            return;
+        }
+        _context?.End("preview");
+        try
+        {
+            Process.Start(new ProcessStartInfo("explorer.exe", $"shell:AppsFolder\\{appId}") { UseShellExecute = true })?.Dispose();
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            Log.Info($"App {appId} nicht geöffnet: {ex.Message}");
+        }
+    }
 
     public void OnExpandedChanged(bool expanded)
     {

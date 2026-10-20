@@ -1,4 +1,4 @@
-# Kerbe – Plan
+# Brim – Plan
 
 Stand: 19.10.2026 · Basis: bestehender WinUI-3-Prototyp (C#, Windows App SDK)
 
@@ -24,7 +24,7 @@ Eine Notch für Windows, die sich anfühlt wie ein Teil des Systems: Sie nutzt a
 ## 3. Architektur
 
 ```
-┌──────────────────────────── Kerbe.exe (WinUI 3) ────────────────────────────┐
+┌──────────────────────────── Brim.exe (WinUI 3) ────────────────────────────┐
 │  Shell          Fenster pro Monitor · Morph-Engine · Zustandsmaschine · Hover │
 │  Core-Module    Medien · Uhr · Akku · Ressourcen · FPS · Ablage · HUDs · …     │
 │  Plugin-Host    lädt Plugins, verteilt Ereignisse, rendert deklarative UI     │
@@ -32,7 +32,7 @@ Eine Notch für Windows, die sich anfühlt wie ein Teil des Systems: Sie nutzt a
 └──────────────────────────────┬───────────────────────────────────────────────┘
                                │ Named Pipe · JSON-RPC
          ┌─────────────────────┼─────────────────────┐
-   Kerbe.Telemetry.exe    Plugin A.exe          Plugin B.exe
+   Brim.Telemetry.exe    Plugin A.exe          Plugin B.exe
    (optional, erhöht:     (beliebige Sprache)   (.NET mit SDK)
    ETW für FPS)
 ```
@@ -101,22 +101,22 @@ Laufen mehrere Aktivitäten gleichzeitig, zeigt die kompakte Ansicht die wichtig
 
 **Bausteine der deklarativen UI:** Text, Icon (Segoe Fluent Icons oder eigenes PNG/SVG), Bild, Fortschritt, Ring, Pegel, Button, Liste, Stack, Schalter. Mehr nicht, bewusst.
 
-**Protokoll:** JSON-RPC 2.0 über Named Pipe `\\.\pipe\kerbe-<id>`
+**Protokoll:** JSON-RPC 2.0 über Named Pipe `\\.\pipe\brim-<id>`
 
 | Richtung | Methode | Zweck |
 |---|---|---|
-| Plugin → Kerbe | `activity.start / update / end` | laufende Aktivität mit Priorität |
-| Plugin → Kerbe | `hud.show` | kurze Meldung |
-| Plugin → Kerbe | `view.set` | Inhalt eines Slots setzen |
-| Kerbe → Plugin | `action.invoked` | Button gedrückt |
-| Kerbe → Plugin | `shelf.items` | Dateien an eine Ablage-Aktion übergeben |
-| Kerbe → Plugin | `settings.changed`, `lifecycle.suspend/resume` | Konfiguration, Energiesparen |
+| Plugin → Brim | `activity.start / update / end` | laufende Aktivität mit Priorität |
+| Plugin → Brim | `hud.show` | kurze Meldung |
+| Plugin → Brim | `view.set` | Inhalt eines Slots setzen |
+| Brim → Plugin | `action.invoked` | Button gedrückt |
+| Brim → Plugin | `shelf.items` | Dateien an eine Ablage-Aktion übergeben |
+| Brim → Plugin | `settings.changed`, `lifecycle.suspend/resume` | Konfiguration, Energiesparen |
 
-**SDK:** NuGet-Paket `Kerbe.Sdk` für .NET mit typisierten Klassen; das Protokoll ist dokumentiert, damit auch Python, Node oder Rust gehen.
+**SDK:** NuGet-Paket `Brim.Sdk` für .NET mit typisierten Klassen; das Protokoll ist dokumentiert, damit auch Python, Node oder Rust gehen.
 
 **Sicherheit:** Plugins bekommen nur, was im Manifest steht und der Nutzer beim Installieren bestätigt hat (Netzwerk, Dateien der Ablage, Mediensteuerung). Pro Plugin Zeitlimits für Antworten, Neustart nach Absturz mit Backoff, Abschalten nach drei Abstürzen.
 
-**Verwaltung:** Plugins liegen in `%LocalAppData%\Kerbe\Plugins\<id>\`. Einstellungsseite listet sie mit Schalter, Rechten und Logs.
+**Verwaltung:** Plugins liegen in `%LocalAppData%\Brim\Plugins\<id>\`. Einstellungsseite listet sie mit Schalter, Rechten und Logs.
 
 ### 4.3 Standardfunktionen der Mac-Notch (A3)
 
@@ -148,7 +148,7 @@ Laufen mehrere Aktivitäten gleichzeitig, zeigt die kompakte Ansicht die wichtig
 | Modus | Verhalten | Standard |
 |---|---|---|
 | Verweis | merkt sich den Pfad, verschiebt nichts | ja |
-| Kopie | kopiert nach `%LocalAppData%\Kerbe\Shelf\` | für Dateien aus temporären Orten (Browser-Downloads, Mail-Anhänge) automatisch |
+| Kopie | kopiert nach `%LocalAppData%\Brim\Shelf\` | für Dateien aus temporären Orten (Browser-Downloads, Mail-Anhänge) automatisch |
 
 Fehlt eine verwiesene Datei später, wird der Eintrag ausgegraut mit „Nicht mehr gefunden“.
 
@@ -224,7 +224,7 @@ Die Notch liest **dieselben Quellen wie der Task-Manager**, damit die Werte übe
 | Renderlatenz | Zeit von Present bis Anzeige (`MsUntilDisplayed`) |
 | Netzwerklatenz (optional) | Ping zu einem eingestellten Server oder per Plugin aus dem Spiel |
 
-**Rechte:** ETW-Echtzeitsitzungen brauchen Admin oder Mitgliedschaft in „Leistungsprotokollbenutzer“. Deshalb läuft die Messung in `Kerbe.Telemetry.exe` als optionaler Dienst. Der Nutzer aktiviert ihn einmal in den Einstellungen. Alternative: Intel PresentMon-Dienst nutzen, falls installiert.
+**Rechte:** ETW-Echtzeitsitzungen brauchen Admin oder Mitgliedschaft in „Leistungsprotokollbenutzer“. Deshalb läuft die Messung in `Brim.Telemetry.exe` als optionaler Dienst. Der Nutzer aktiviert ihn einmal in den Einstellungen. Alternative: Intel PresentMon-Dienst nutzen, falls installiert.
 
 **Konflikt mit dem Ausblenden:** Spiele laufen im Vollbild, dort zieht sich die Notch zurück. Lösung: **Spielmodus** als eigene Ausblende-Regel:
 
@@ -281,18 +281,18 @@ Eigenes Fenster im Windows-11-Stil (`NavigationView`, Mica), Bereiche:
 7. Plugins: installieren, Rechte, Logs
 8. Info: Version, Updates
 
-Speicherung in `%LocalAppData%\Kerbe\settings.json`, Export/Import möglich.
+Speicherung in `%LocalAppData%\Brim\settings.json`, Export/Import möglich.
 
 ## 6. Projektstruktur
 
 ```
-Kerbe.sln
-├─ src/Kerbe              WinUI-3-App: Shell, Morph, Einstellungen
-├─ src/Kerbe.Core         Zustandsmaschine, Aktivitäten, Modul-Schnittstelle
-├─ src/Kerbe.Modules      Medien, Uhr, Akku, Ressourcen, Ablage, HUDs, …
-├─ src/Kerbe.Plugins      Plugin-Host, JSON-RPC, Rechte, Rendering der deklarativen UI
-├─ src/Kerbe.Telemetry    optionaler Hilfsprozess: ETW/FPS
-├─ src/Kerbe.Sdk          NuGet für Plugin-Entwickler
+Brim.slnx
+├─ src/Brim              WinUI-3-App: Shell, Morph, Einstellungen
+├─ src/Brim.Core         Zustandsmaschine, Aktivitäten, Modul-Schnittstelle
+├─ src/Brim.Modules      Medien, Uhr, Akku, Ressourcen, Ablage, HUDs, …
+├─ src/Brim.Plugins      Plugin-Host, JSON-RPC, Rechte, Rendering der deklarativen UI
+├─ src/Brim.Telemetry    optionaler Hilfsprozess: ETW/FPS
+├─ src/Brim.Sdk          NuGet für Plugin-Entwickler
 ├─ samples/               Beispiel-Plugins (.NET, Python)
 ├─ tests/                 Unit-Tests Core, Protokoll-Tests
 └─ packaging/             MSIX, winget-Manifest
@@ -348,7 +348,7 @@ Noch offen:
 
 Umgesetzt (Protokoll für Entwickler: `docs/plugins.md`):
 - **Protokoll** in `Brim.Core/Plugins`: JSON-RPC 2.0, eine Nachricht pro Zeile, höchstens 1 MB. Widgets als JSON mit `"type"`. Methoden wie in 4.2, dazu `view.clear`, `log`, `tab.visibility` und `shutdown`.
-- **Pipe** mit zufälligem Namen pro Start (`BRIM_PIPE`), nur für den eigenen Benutzer (`CurrentUserOnly`), genau eine Verbindung. Der Name `\\.\pipe\kerbe-<id>` aus 4.2 wäre erratbar.
+- **Pipe** mit zufälligem Namen pro Start (`BRIM_PIPE`), nur für den eigenen Benutzer (`CurrentUserOnly`), genau eine Verbindung. Der Name `\\.\pipe\brim-<id>` aus 4.2 wäre erratbar.
 - **Host** (`Brim.Plugins`): findet Plugins in `%LocalAppData%\Brim\Plugins` und `PluginDirectories`, prüft Manifeste (Kennung, API, `entry` nur im eigenen Ordner oder als Befehl im Suchpfad, bekannte Rechte). Startet eingeschaltete Plugins ohne Fenster, Ausgaben in `logs\plugins\<id>.log`.
 - **Prüfung aller Inhalte** (`WidgetValidator`): Farben, Maße, Textlängen, höchstens 400 Bausteine, 16 Ebenen, 1 MB Bilder. Aktionen werden pro Plugin zugeordnet. Rang 0–9, `idle` ist der Uhr vorbehalten, `critical` nur mit dem Recht „alerts“, höchstens 120 Nachrichten pro Sekunde.
 - **Abstürze:** 10 s Zeit für `hello`, Neustart nach 1 s und 5 s, abgeschaltet nach 3 Abstürzen in 10 Minuten. Beim Beenden erst `shutdown`, nach 2 s wird der Prozessbaum beendet. Alles, was das Plugin zeigte, verschwindet.
