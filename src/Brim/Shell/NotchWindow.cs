@@ -100,6 +100,23 @@ internal sealed partial class NotchWindow : WindowEx
         };
         View.DropTargetChanged += OnDropTargetChanged;
         View.Dropped += OnDropped;
+        View.SettingsOpenChanged += open =>
+        {
+            // Einstellungen: offen bleiben wie bei einem Menü, und Tastatur annehmen.
+            Win32.SetActivatable(Handle, open);
+            _popupOpen = open;
+            if (open)
+            {
+                _collapseTimer.Stop();
+            }
+            else if (!CursorInside())
+            {
+                SetInside(false);
+                StartCollapse();
+            }
+            // Nicht mitten in Present (Zuklappen schließt die Einstellungen) neu zeichnen.
+            DispatcherQueue.TryEnqueue(Refresh);
+        };
         View.PopupChanged += open =>
         {
             _popupOpen = open;

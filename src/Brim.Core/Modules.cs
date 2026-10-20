@@ -63,6 +63,10 @@ public sealed class ModuleContext
 
     public void RemoveView(string id) => _hub.RemoveView(ModuleId, id);
 
+    /// <summary>Detailansicht im Tab (volle Breite, höhere Notch), bis <see cref="RemoveView"/> sie schließt.</summary>
+    public void SetDetail(string id, Widget content, NotchTab tab = NotchTab.System) =>
+        _hub.SetView(new TabView { ModuleId = ModuleId, Id = id, Content = content, Tab = tab, IsDetail = true });
+
     public bool IsTabVisible(NotchTab tab) => _hub.IsTabVisible(tab);
 
     /// <summary>Bietet eine Kachel für „Jetzt“ an (Galerie).</summary>

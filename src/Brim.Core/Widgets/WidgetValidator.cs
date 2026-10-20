@@ -70,7 +70,7 @@ public static class WidgetValidator
                 ?? Text(b.Label, "label") ?? Range(b.Size, 12, 200, "size") ?? Range(b.GlyphSize, 4, 100, "glyphSize") ?? Color(b.GlyphColor),
             SwitchWidget s => (string.IsNullOrEmpty(s.ActionId) ? "actionId fehlt" : null) ?? Text(s.Label, "label"),
             StackWidget s => (s.Children is null || s.Children.Any(c => c is null) ? "children enthält null" : null)
-                ?? Size(s.Spacing, "spacing") ?? Size(s.CornerRadius, "cornerRadius") ?? Color(s.Background)
+                ?? Size(s.Spacing, "spacing") ?? Size(s.CornerRadius, "cornerRadius") ?? Color(s.Background) ?? Text(s.ActionId, "actionId")
                 ?? Size(s.Padding.Left, "padding") ?? Size(s.Padding.Top, "padding") ?? Size(s.Padding.Right, "padding") ?? Size(s.Padding.Bottom, "padding"),
             ListWidget l => (l.Items is null || l.Items.Any(c => c is null) ? "items enthält null" : null) ?? Size(l.Spacing, "spacing"),
             SpacerWidget s => Size(s.Size, "size"),

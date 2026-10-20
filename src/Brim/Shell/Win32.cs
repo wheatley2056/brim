@@ -46,6 +46,22 @@ internal static class Win32
         }
     }
 
+    /// <summary>
+    /// Für Eingaben in der Notch (Einstellungen): Das Fenster darf aktiv werden und bekommt den Fokus, damit
+    /// Textfelder Tastatur annehmen. Danach wieder wie ein Overlay, das nie den Fokus stiehlt.
+    /// </summary>
+    public static void SetActivatable(nint hwnd, bool activatable)
+    {
+        var h = new HWND(hwnd);
+        var style = (WINDOW_EX_STYLE)PInvoke.GetWindowLong(h, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
+        style = activatable ? style & ~WINDOW_EX_STYLE.WS_EX_NOACTIVATE : style | WINDOW_EX_STYLE.WS_EX_NOACTIVATE;
+        _ = PInvoke.SetWindowLong(h, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE, (int)style);
+        if (activatable)
+        {
+            PInvoke.SetForegroundWindow(h);
+        }
+    }
+
     /// <summary>Nur dieses Rechteck (physische Pixel, Fensterkoordinaten) nimmt Maus und Zeichnen an.</summary>
     public static void SetRegion(nint hwnd, int x, int y, int width, int height)
     {

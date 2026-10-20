@@ -194,6 +194,9 @@ public sealed record StackWidget(params IReadOnlyList<Widget> Children) : Widget
     public string? Background { get; init; }
 
     public double CornerRadius { get; init; }
+
+    /// <summary>Macht die ganze Fläche klickbar (z. B. eine Karte, die Details öffnet); kommt wie ein Knopf zurück.</summary>
+    public string? ActionId { get; init; }
 }
 
 public sealed record ListWidget(IReadOnlyList<Widget> Items) : Widget

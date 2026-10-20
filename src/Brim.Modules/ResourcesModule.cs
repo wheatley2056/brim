@@ -11,7 +11,7 @@ namespace Brim.Modules;
 /// Prozessen mit der meisten CPU-Last, aus denselben Quellen wie der Task-Manager.
 /// Gemessen wird einmal pro Sekunde und nur, solange der Tab „System“ irgendwo offen ist.
 /// </summary>
-public sealed class ResourcesModule : IBrimModule
+public sealed partial class ResourcesModule : IBrimModule
 {
     public const string ModuleId = "resources";
     public const int HistoryLength = 60;
@@ -21,6 +21,11 @@ public sealed class ResourcesModule : IBrimModule
     private readonly Lock _gate = new();
     private readonly Queue<double> _cpuHistory = new();
     private readonly Queue<double> _gpuHistory = new();
+    private readonly Queue<double> _memoryHistory = new();
+    private readonly Queue<double> _diskHistory = new();
+    private readonly Queue<double> _downHistory = new();
+    private readonly Queue<double> _upHistory = new();
+    private ResourceDetail? _lastDetail;
     private ModuleContext? _context;
     private IResourceSampler? _sampler;
     private ITimer? _timer;
@@ -73,6 +78,10 @@ public sealed class ResourcesModule : IBrimModule
                 _timer = null;
             }
         }
+        if (!visible)
+        {
+            CloseDetail();
+        }
     }
 
     private void Tick()
@@ -109,11 +118,17 @@ public sealed class ResourcesModule : IBrimModule
                 return;
             }
             var sample = sampler.Sample();
+            var detail = _detail is not null ? sampler.Detail() : null;
             lock (_gate)
             {
                 _last = sample;
+                _lastDetail = detail ?? _lastDetail;
                 Push(_cpuHistory, sample.Cpu);
                 Push(_gpuHistory, sample.Gpu);
+                Push(_memoryHistory, sample.MemoryTotal > 0 ? 100.0 * sample.MemoryUsed / sample.MemoryTotal : null);
+                Push(_diskHistory, sample.Disk);
+                Push(_downHistory, sample.NetworkDown);
+                Push(_upHistory, sample.NetworkUp);
             }
             Publish();
         }
@@ -155,7 +170,7 @@ public sealed class ResourcesModule : IBrimModule
 
         if (_unavailable)
         {
-            context.SetView("meters", Card(
+            context.SetView("meters", Card(null,
                 new TextWidget("Ressourcen") { Style = TextStyle.Secondary, FontSize = 12 },
                 new TextWidget("Leistungsindikatoren sind auf diesem PC nicht verfügbar.") { Style = TextStyle.Secondary, Wrap = true }));
             context.RemoveView("processes");
@@ -166,10 +181,11 @@ public sealed class ResourcesModule : IBrimModule
         var memoryValue = s is { MemoryTotal: > 0 }
             ? $"{FormatGigabytes(s.MemoryUsed, culture)} / {FormatGigabytes(s.MemoryTotal, culture)}"
             : "–";
-        var cpuCard = Card(
+        PublishDetail(s, culture);
+        var cpuCard = Card("detail:cpu",
             Header("CPU", Percent(s?.Cpu, culture)),
             new ChartWidget(cpu) { Max = 100, Capacity = HistoryLength, Color = BrimColors.Cpu, AccessibleName = "CPU-Verlauf" });
-        var memoryCard = Card(
+        var memoryCard = Card("detail:memory",
             Header("RAM", memoryValue),
             new StackWidget(
                 new ProgressWidget(s is { MemoryTotal: > 0 } m ? (double)m.MemoryUsed / m.MemoryTotal : 0)
@@ -184,14 +200,21 @@ public sealed class ResourcesModule : IBrimModule
                 Spacing = 6,
                 Align = CrossAlign.Stretch,
             });
-        var gpuCard = Card(
+        var gpuCard = Card("detail:gpu",
             Header("GPU", Percent(s?.Gpu, culture)),
             new ChartWidget(gpu) { Max = 100, Capacity = HistoryLength, Color = BrimColors.Gpu, AccessibleName = "GPU-Verlauf" });
-        var networkCard = Card(
+        var networkCard = Card("detail:network",
             // Datenträger (aktive Zeit) passt als Wert in die Kopfzeile; für eine eigene Karte fehlt der Platz.
+            // Ein Klick darauf öffnet die Datenträger, ein Klick auf den Rest das Netzwerk.
             new StackWidget(
                 new TextWidget("Netzwerk") { Style = TextStyle.Secondary, FontSize = 12, Grow = 1 },
-                new TextWidget(s?.Disk is { } disk ? "Disk " + Percent(disk, culture) : "") { Style = TextStyle.MonoCaption, FontSize = 11, AccessibleName = s?.Disk is { } d ? $"Datenträger {Percent(d, culture)} aktiv" : null })
+                new StackWidget(new TextWidget(s?.Disk is { } disk ? "Disk " + Percent(disk, culture) : "Disk") { Style = TextStyle.MonoCaption, FontSize = 11 })
+                {
+                    ActionId = "detail:disk",
+                    CornerRadius = 6,
+                    Padding = (4, 1, 4, 1),
+                    AccessibleName = s?.Disk is { } d ? $"Datenträger {Percent(d, culture)} aktiv, Details" : "Datenträger, Details",
+                })
             {
                 Spacing = 6,
             },
@@ -250,8 +273,10 @@ public sealed class ResourcesModule : IBrimModule
         }, column: TabColumn.Side, order: 10);
     }
 
-    private static StackWidget Card(params Widget[] children) => new(children)
+    /// <param name="actionId">Klick auf die Karte, z. B. „detail:cpu“ für die Detailansicht.</param>
+    private static StackWidget Card(string? actionId, params Widget[] children) => new(children)
     {
+        ActionId = actionId,
         Orientation = StackOrientation.Vertical,
         Justify = Justify.SpaceBetween,
         Align = CrossAlign.Stretch,
@@ -305,6 +330,19 @@ public sealed class ResourcesModule : IBrimModule
 
     public void OnAction(ActionInvocation invocation)
     {
+        if (invocation.ActionId.StartsWith("detail:", StringComparison.Ordinal))
+        {
+            var kind = invocation.ActionId["detail:".Length..];
+            if (kind == "close")
+            {
+                CloseDetail();
+                return;
+            }
+            _detail = kind;
+            // Sofort zeigen, die Zusatzwerte kommen mit der nächsten Messung.
+            Publish();
+            return;
+        }
         if (invocation.ActionId == "taskmgr")
         {
             try

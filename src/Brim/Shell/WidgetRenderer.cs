@@ -800,16 +800,53 @@ internal sealed class WidgetRenderer
 
     // ───────── Stapel, Liste, Abstand ─────────
 
+    /// <summary>Fläche aus Zeilen oder Spalten; mit <see cref="StackWidget.ActionId"/> klickbar wie eine Karte.</summary>
     private sealed class StackView : Grid
     {
+        private string? _actionId;
+        private string? _background;
+        private bool _hover;
+
+        public Action<string>? Invoke { get; set; }
+
+        public void SetAction(string? actionId, string? background)
+        {
+            _background = background;
+            if (_actionId is null && actionId is not null)
+            {
+                Tapped += (_, e) =>
+                {
+                    if (_actionId is { } id)
+                    {
+                        Invoke?.Invoke(id);
+                        e.Handled = true;
+                    }
+                };
+                PointerEntered += (_, _) => Hover(true);
+                PointerExited += (_, _) => Hover(false);
+                PointerCanceled += (_, _) => Hover(false);
+            }
+            _actionId = actionId;
+            ProtectedCursor = actionId is null ? null : Microsoft.UI.Input.InputSystemCursor.Create(Microsoft.UI.Input.InputSystemCursorShape.Hand);
+            IsTabStop = actionId is not null;
+            Hover(_hover);
+        }
+
+        /// <summary>Unter der Maus etwas heller, damit man sieht, dass es klickbar ist.</summary>
+        private void Hover(bool on)
+        {
+            _hover = on;
+            var color = _actionId is not null && on ? BrimColors.Track : _background;
+            Background = color is null ? null : Brushes.Get(color);
+        }
     }
 
     private StackView RenderStack(StackWidget w, StackView? grid)
     {
-        grid ??= new StackView();
+        grid ??= new StackView { Invoke = id => _invoke(id, null) };
         var horizontal = w.Orientation == StackOrientation.Horizontal;
         grid.Padding = new Thickness(w.Padding.Left, w.Padding.Top, w.Padding.Right, w.Padding.Bottom);
-        grid.Background = w.Background is { } background ? Brushes.Get(background) : null;
+        grid.SetAction(w.ActionId, w.Background);
         grid.CornerRadius = new CornerRadius(w.CornerRadius);
         grid.ColumnDefinitions.Clear();
         grid.RowDefinitions.Clear();

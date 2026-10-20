@@ -43,6 +43,12 @@ public static class NotchGeometry
     public static readonly NotchShape Compact = new(300, 34, 17, 10);
     public static readonly NotchShape Alert = new(480, 88, 28, 12);
     public static readonly NotchShape Expanded = new(620, 248, 38, 12);
+
+    /// <summary>Aufgeklappt mit Detailansicht (z. B. CPU im Tab „System“): gleiche Breite, mehr Höhe.</summary>
+    public static readonly NotchShape ExpandedTall = new(620, 420, 38, 12);
+
+    /// <summary>Einstellungen in der Notch.</summary>
+    public static readonly NotchShape Settings = new(720, 480, 38, 12);
     public static readonly NotchShape ShelfDrop = new(352, 88, 28, 12);
 
     /// <summary>Spielmodus „Mini“: schmale Pille mit FPS · ms (Plan 4.8: ca. 120 × 22).</summary>
@@ -67,7 +73,8 @@ public static class NotchGeometry
 
     /// <summary>Feste Größe der Zeichenfläche (Fenster), in die alle Formen passen – auch die Insel mit Abstand.</summary>
     public static readonly (double Width, double Height) Canvas =
-        (Expanded.OuterWidth + 2 * (BeadGap + BeadSize) + 2 * Overshoot, Expanded.Height + Overshoot + IslandGap);
+        (Math.Max(Expanded.OuterWidth + 2 * (BeadGap + BeadSize), Settings.OuterWidth) + 2 * Overshoot,
+         Math.Max(Expanded.Height, Math.Max(ExpandedTall.Height, Settings.Height)) + Overshoot + IslandGap);
 
     /// <summary>Abstand zur Oberkante: Nur die Insel schwebt.</summary>
     public static double Gap(NotchForm form) => form == NotchForm.Island ? IslandGap : 0;

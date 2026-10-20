@@ -50,7 +50,7 @@ public sealed partial class NotchView
         }
 
         // Beim Bearbeiten von „Jetzt“ steht oben rechts „Fertig“ statt der Uhr.
-        var visible = p.Mode is NotchMode.Idle or NotchMode.Expanded && text.Length > 0 && _board?.IsEditing != true;
+        var visible = p.Mode is NotchMode.Idle or NotchMode.Expanded && text.Length > 0 && _board?.IsEditing != true && !_settingsOpen;
         if (!visible)
         {
             FadeClock(false);

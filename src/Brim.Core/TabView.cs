@@ -20,5 +20,11 @@ public sealed record TabView
     /// <summary>Kleinere Werte stehen weiter oben.</summary>
     public int Order { get; init; }
 
+    /// <summary>
+    /// Detailansicht: verdrängt alle anderen Karten des Tabs, nimmt die volle Breite ein, und die Notch wird höher
+    /// (z. B. CPU nach einem Klick auf ihre Karte). Nur eine je Tab.
+    /// </summary>
+    public bool IsDetail { get; init; }
+
     public string Key => ActivityKey.Of(ModuleId, Id);
 }

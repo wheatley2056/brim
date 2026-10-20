@@ -21,7 +21,7 @@ public sealed partial class NotchView : UserControl
 {
     private readonly ActivityHub _hub;
     private readonly NotchSurface _surface;
-    private readonly FrameworkElement[] _layers;
+    private FrameworkElement[] _layers;
     private readonly Dictionary<string, Slot> _slots = new();
     private readonly ContentPresenter[] _beadPresenters = new ContentPresenter[NotchStateMachine.MaxBeads];
     private NotchPresentation? _current;
@@ -92,6 +92,7 @@ public sealed partial class NotchView : UserControl
         ContentHost.Tapped += OnContentTapped;
 
         InitializeShelf(shelf, settings, nearby, window);
+        InitializeSettings(window);
         KeyDown += OnKeyDown;
     }
 
@@ -124,11 +125,15 @@ public sealed partial class NotchView : UserControl
         _reducedMotion = reducedMotion;
         var modeChanged = previous?.Mode != p.Mode;
 
-        // Zugeklappt: Bearbeiten von „Jetzt“ endet.
+        // Zugeklappt: Bearbeiten von „Jetzt“ und die Einstellungen enden.
         if (p.Mode != NotchMode.Expanded)
         {
             _board?.SetEditing(false);
+            SetSettingsOpen(false);
         }
+        // Detailansicht (z. B. CPU) im Tab: Die Notch wird höher.
+        _tall = p.Mode == NotchMode.Expanded && !_settingsOpen && p.Tab is NotchTab.System or NotchTab.Plugins
+            && _hub.Views(p.Tab).Any(v => v.IsDetail);
 
         // 1. Form
         var shape = ShapeFor(p.Mode);
@@ -235,9 +240,14 @@ public sealed partial class NotchView : UserControl
     /// <summary>Form in diesem Moment, auch mitten in einer Animation.</summary>
     public NotchShape CurrentShape => _surface.Current;
 
+    private bool _tall;
+
     private NotchShape ShapeFor(NotchMode mode)
     {
-        var shape = NotchGeometry.For(mode, _form);
+        var shape = mode != NotchMode.Expanded ? NotchGeometry.For(mode, _form)
+            : _settingsOpen ? NotchGeometry.Styled(NotchGeometry.Settings, _form)
+            : _tall ? NotchGeometry.Styled(NotchGeometry.ExpandedTall, _form)
+            : NotchGeometry.For(mode, _form);
         return _hovering && NotchGeometry.SwellsOnHover(mode) ? NotchGeometry.Swell(shape) : shape;
     }
 
@@ -381,6 +391,11 @@ public sealed partial class NotchView : UserControl
 
     private FrameworkElement UpdateExpanded(NotchPresentation p)
     {
+        if (_settingsOpen && _settingsLayer is not null)
+        {
+            return _settingsLayer;
+        }
+        ExpandedLayer.Height = _tall ? NotchGeometry.ExpandedTall.Height : NotchGeometry.Expanded.Height;
         // Die Uhr der Kopfzeile ist die gemeinsame Uhr (NotchView.Clock.cs).
         UpdateTabs(p.Tab);
 

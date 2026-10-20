@@ -32,13 +32,17 @@ public partial class App : Application
     private List<IBrimModule> _allModules = [];
 
     /// <summary>Einstellungsfenster (Tray-Menü). Module ohne eigene Oberfläche (Uhr, Updates) stehen nicht zur Wahl.</summary>
-    private void OpenSettings() => SettingsWindow.Show(
+    private void OpenSettings() => SettingsWindow.Show();
+
+    /// <summary>Einstellungsseite für das Fenster und für die Notch (Zahnrad).</summary>
+    private SettingsPage CreateSettingsPage(Func<nint> window) => new(
         _settings!,
         _allModules.Where(m => m.Id is not (ClockModule.ModuleId or UpdateModule.ModuleId)).Select(m => (m.Id, m.DisplayName)).ToList(),
         _updater?.CurrentVersion,
         () => _windows?.ToggleExpanded(),
         () => PackageIdentity.Restart(ExitApp),
-        () => _plugins?.Installed ?? []);
+        () => _plugins?.Installed ?? [],
+        window);
 
     public App()
     {
@@ -103,6 +107,7 @@ public partial class App : Application
         _windows = new NotchWindowManager(_hub, _settings, shelf, nearbyModule, dispatcher);
         _windows.Build();
 
+        SettingsPage.Create = CreateSettingsPage;
         _tray = new TrayIcon(_settings, ExitApp, () => _windows.ToggleExpanded(), OpenSettings);
 
         // Eine zweite gestartete Instanz klappt die Notch auf, statt eine weitere zu öffnen.
