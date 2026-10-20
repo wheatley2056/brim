@@ -188,7 +188,13 @@ public sealed class ResourcesModule : IBrimModule
             Header("GPU", Percent(s?.Gpu, culture)),
             new ChartWidget(gpu) { Max = 100, Capacity = HistoryLength, Color = BrimColors.Gpu, AccessibleName = "GPU-Verlauf" });
         var networkCard = Card(
-            new TextWidget("Netzwerk") { Style = TextStyle.Secondary, FontSize = 12 },
+            // Datenträger (aktive Zeit) passt als Wert in die Kopfzeile; für eine eigene Karte fehlt der Platz.
+            new StackWidget(
+                new TextWidget("Netzwerk") { Style = TextStyle.Secondary, FontSize = 12, Grow = 1 },
+                new TextWidget(s?.Disk is { } disk ? "Disk " + Percent(disk, culture) : "") { Style = TextStyle.MonoCaption, FontSize = 11, AccessibleName = s?.Disk is { } d ? $"Datenträger {Percent(d, culture)} aktiv" : null })
+            {
+                Spacing = 6,
+            },
             new StackWidget(
                 new TextWidget("↓ " + (s is null ? "–" : FormatRate(s.NetworkDown, culture))) { Style = TextStyle.Mono, FontSize = 12 },
                 new TextWidget("↑ " + (s is null ? "–" : FormatRate(s.NetworkUp, culture))) { Style = TextStyle.MonoCaption, FontSize = 12 })

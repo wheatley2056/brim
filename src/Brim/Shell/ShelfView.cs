@@ -412,6 +412,21 @@ internal sealed class ShelfView : Grid
         menu.Items.Add(open);
         menu.Items.Add(reveal);
         menu.Items.Add(share);
+
+        // Aktionen von Plugins mit dem Recht „shelf“, z. B. „Hochladen“.
+        var paths = targets.Where(t => t.Exists).Select(t => t.Path).ToList();
+        var actions = ShelfPluginActions.List();
+        if (actions.Count > 0)
+        {
+            menu.Items.Add(new MenuFlyoutSeparator());
+            foreach (var (pluginId, pluginName, actionId, label) in actions)
+            {
+                var entry = new MenuFlyoutItem { Text = label, IsEnabled = paths.Count > 0 };
+                ToolTipService.SetToolTip(entry, pluginName);
+                entry.Click += (_, _) => ShelfPluginActions.Invoke(pluginId, actionId, paths);
+                menu.Items.Add(entry);
+            }
+        }
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(remove);
         menu.ShowAt(tile, e.GetPosition(tile));

@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Text.Json;
+using Brim.Plugins;
 using Brim.Core;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
@@ -22,6 +24,7 @@ internal sealed class SettingsWindow : Window
     private readonly string? _version;
     private readonly Action _preview;
     private readonly Action _restart;
+    private readonly Func<IReadOnlyList<PluginManifest>> _plugins;
     private readonly NavigationView _navigation = new()
     {
         IsBackButtonVisible = NavigationViewBackButtonVisible.Collapsed,
@@ -34,20 +37,23 @@ internal sealed class SettingsWindow : Window
     private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(400) };
 
     /// <summary>Öffnet das Fenster oder holt das offene nach vorn.</summary>
-    public static void Show(SettingsStore store, IReadOnlyList<(string Id, string Name)> modules, string? version, Action preview, Action restart)
+    public static void Show(SettingsStore store, IReadOnlyList<(string Id, string Name)> modules, string? version, Action preview, Action restart,
+        Func<IReadOnlyList<PluginManifest>> plugins)
     {
         if (_open is not null)
         {
             _open.Activate();
             return;
         }
-        _open = new SettingsWindow(store, modules, version, preview, restart);
+        _open = new SettingsWindow(store, modules, version, preview, restart, plugins);
         _open.Closed += (_, _) => _open = null;
         _open.Activate();
     }
 
-    private SettingsWindow(SettingsStore store, IReadOnlyList<(string Id, string Name)> modules, string? version, Action preview, Action restart)
+    private SettingsWindow(SettingsStore store, IReadOnlyList<(string Id, string Name)> modules, string? version, Action preview, Action restart,
+        Func<IReadOnlyList<PluginManifest>> plugins)
     {
+        _plugins = plugins;
         _store = store;
         _modules = modules;
         _version = version;
@@ -373,6 +379,33 @@ internal sealed class SettingsWindow : Window
             Open(folder);
         };
         p.Children.Add(Card("Plugin-Ordner", folder, open));
+        // Einstellungen, die Plugins im Manifest anbieten; Änderungen gehen sofort als settings.changed an das Plugin.
+        foreach (var manifest in _plugins().Where(m => m.Settings.Count > 0))
+        {
+            p.Children.Add(Header(manifest.Name));
+            if (!S.Plugins.TryGetValue(manifest.Id, out var config))
+            {
+                config = new PluginConfig();
+                S.Plugins[manifest.Id] = config;
+            }
+            var values = manifest.EffectiveSettings(config.Values);
+            foreach (var setting in manifest.Settings)
+            {
+                var label = setting.Label ?? setting.Key;
+                values.TryGetValue(setting.Key, out var current);
+                if (setting.Type == "bool")
+                {
+                    p.Children.Add(Toggle(label, null, current.ValueKind == JsonValueKind.True,
+                        on => config.Values[setting.Key] = JsonSerializer.SerializeToElement(on)));
+                }
+                else
+                {
+                    var text = current.ValueKind == JsonValueKind.String ? current.GetString() ?? "" : current.ValueKind == JsonValueKind.Undefined ? "" : current.ToString();
+                    p.Children.Add(Text(label, null, text, v => config.Values[setting.Key] = JsonSerializer.SerializeToElement(v)));
+                }
+            }
+        }
+
         var docs = new HyperlinkButton { Content = "Plugins entwickeln", NavigateUri = new Uri(AutoUpdater.RepositoryUrl + "/blob/main/docs/plugins.md") };
         p.Children.Add(docs);
     }

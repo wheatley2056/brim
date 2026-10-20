@@ -38,6 +38,7 @@ The plugin's stdout and stderr go to `%LocalAppData%\Brim\logs\plugins\<id>.log`
 | `args` | Arguments for `entry`, e.g. `["-3", "plugin.py"]` |
 | `api` | Protocol version, currently `"1"` |
 | `permissions` | `network`, `media`: shown to the user. Brim can't sandbox a process, so these are declarations. `alerts`: allows `critical` activities, which pop the notch open; without it they are shown as a HUD. `shelf`: receive files from the shelf. `notifications`: receive the Windows notifications of the apps in `notificationApps`. |
+| `shelfActions` | Entries in the shelf's right-click menu, e.g. `[{ "id": "upload", "label": "Upload" }]`. When chosen, the plugin gets `shelf.items` with that `id` as `actionId`. Needs `shelf`. |
 | `notificationApps` | App display names, e.g. `["Swyx Messenger"]`. Their Windows notifications go to this plugin instead of Brim's own preview. Matching is case-insensitive on a part of the name. Needs `notifications`, and Brim's identity must be set up (Settings → Calendar and notifications). |
 | `settings` | Values the user can set (for now in `settings.json` under `Plugins.<id>.Values`). Defaults are sent in `hello`. |
 

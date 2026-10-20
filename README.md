@@ -75,6 +75,9 @@ Brim updates itself from GitHub releases in the background, downloads only what 
 ### 🎮 Games
 Brim measures FPS the way PresentMon does, from Windows' own DXGI and Direct3D 9 events, for the game in front of you: frame rate, 1 % low, a frametime graph and optionally the ping to your game server. While you play, the notch steps aside. If you like, a small translucent pill with "FPS · ms" stays at the top, or Win+Alt+F shows it for five seconds. Turn it on under Settings → Games. The first time, Brim asks once for admin rights to add you to the "Performance Log Users" group. After that, measuring runs without admin rights.
 
+### 🗓️ Timer, calendar, notifications
+A timer or stopwatch is one click away in the Now tab, even next to the player. It runs in the compact notch with a ring, and when time is up the notch opens. After a one-time setup, the next meeting from the Windows calendar shows under the clock and appears 15 minutes ahead with a countdown and Join. New Windows notifications show up briefly as a preview.
+
 ### 🧩 Plugins
 Add your own content to the notch: a compact status, a HUD, or cards in the Plugins tab. Plugins run as separate processes in any language and describe their UI as data, so they can't break the notch or freeze it. A plugin that crashes is restarted and switched off after the third crash. New plugins start switched off, and the Plugins tab shows what each one may do. See [`docs/plugins.md`](docs/plugins.md) and the [samples](samples). A first real plugin is [`plugins/SwyxIt`](plugins/SwyxIt). It shows incoming SwyxIt! calls with Answer and Decline, running calls, and chat messages.
 
@@ -99,12 +102,15 @@ UI Automation names for everything, screen reader announcements for HUDs, keyboa
 | <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> | Open/close from the keyboard |
 | Drag a file onto it | Keep it on the shelf |
 | Mouse to the top edge | Bring a hidden notch back |
-| Tray icon | Settings file, logs, quit |
+| Tray icon | Settings, logs, quit |
+| <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> | Show FPS in a game (on demand mode) |
 
 Settings open from the tray icon (right-click → Settings) and are stored in `%LocalAppData%\Brim\settings.json`. The interface is German for now; English is planned.
 
 ## Privacy & security
 
+- **Plugins** run as separate processes, start switched off, and only get what you approve: the permissions shown next to their switch. Everything they display is validated, and they end with Brim.
+- **Calendar and notifications** need a package identity. Brim signs this tiny identity package with a certificate made fresh for each release; your PC trusts it only after you click "Set up" and approve the admin prompt.
 - **No telemetry, no accounts, no Brim servers.** Brim talks to the internet only to check GitHub for updates and — when you send or receive by code — to the public Magic Wormhole servers, which only ever see encrypted data.
 - **Nearby sharing** uses mutual TLS with per-install certificates; the fingerprint announced on the network must match the connection.
 - **Incoming files** always need your confirmation; paths are sanitized and archives are checked against path traversal and zip bombs.
@@ -153,12 +159,13 @@ Built-in features are modules that use the same interface plugins will: they pos
 - [x] **Shelf** — drag in, keep, drag out
 - [x] **Sharing** — nearby (LAN) and by code (Magic Wormhole), proxy support
 - [x] **Silent updates** with in-notch changelog
-- [x] **Auto-hide** — fullscreen, maximized, overlap, desktop-only, idle, per-app rules, screen-sharing detection, top-edge peek *(settings window comes with 1.0)*
-- [x] **System** — battery, CPU, RAM, GPU, network, brightness, camera/mic indicators *(disk and external monitors via DDC/CI still to come)*
-- [x] **Plugins** — open protocol and SDK for your own notch content *(shelf actions and a plugin gallery still to come)*
-- [x] **Games** — FPS, 1 % low, frametime and ping, as a mini pill or on demand *(display latency like PresentMon and Vulkan/OpenGL titles still to come)*
-- [x] **Timer, stopwatch, Bluetooth connect HUD**
-- [ ] **More** — calendar and notifications (need MSIX), settings window, code signing, winget
+- [x] **Auto-hide** — fullscreen, maximized, overlap, desktop-only, idle, per-app rules, screen-sharing detection, top-edge peek
+- [x] **System** — battery, CPU, RAM, GPU, disk, network, brightness, camera/mic, Bluetooth with battery
+- [x] **Plugins** — open protocol, SDK, settings and shelf actions; SwyxIt! plugin
+- [x] **Games** — FPS, 1 % low, frametime and ping, as a mini pill or on demand
+- [x] **Timer, stopwatch, calendar, notification preview**
+- [x] **Settings window**, winget manifests
+- [ ] **Next** — personalization (shapes, colors, glass), English interface, display latency like PresentMon, Vulkan/OpenGL, external monitor brightness (DDC/CI), code signing
 
 ## Credits
 

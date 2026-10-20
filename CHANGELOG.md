@@ -3,21 +3,20 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
-## 0.3.0
+## 1.0.0
 
-- Plugins: Eigene Inhalte für die Notch – kompakt, als HUD oder als Karten im Tab „Plugins“. Plugins laufen als eigene Programme in beliebiger Sprache; abstürzende Plugins starten neu und schalten sich nach drei Abstürzen ab.
-- Neue Plugins sind zunächst aus. Im Tab „Plugins“ siehst du, was sie dürfen, und schaltest sie ein.
-- Zwei Beispiel-Plugins: Serverstatus (.NET) und ein Zähler (Python).
-- Plugin für SwyxIt!: Eingehende Anrufe mit Annehmen und Ablehnen, laufende Gespräche mit echter Wellenform, Schnellmenü (Stumm, Tastatur, Weiterleiten, Halten) und Auflegen, Nachrichten aus dem SwyxIt!-Chat und Swyx Messenger als Hinweis (`plugins/SwyxIt`).
-- Plugins können Live-Wellenformen zeigen, erfahren, wann die Notch aufgeklappt ist, und Benachrichtigungen bestimmter Apps übernehmen.
-- FPS in Spielen: Bildrate, 1 % Low, Frametime-Verlauf und auf Wunsch der Ping zu einem Server. Im Spiel bleibt nach Wahl eine kleine Pille mit „FPS · ms“ stehen, oder Win+Alt+F blendet sie für 5 Sekunden ein. Einschalten in den Einstellungen unter „Games“; beim ersten Mal richtet Brim nach Rückfrage die nötigen Rechte ein.
-- Timer und Stoppuhr: im Tab „Jetzt“ über das Stoppuhr-Symbol neben der Uhr. Läuft kompakt mit Ring und Restzeit; wenn die Zeit um ist, klappt die Notch kurz auf.
-- Bluetooth: Der Tab „System“ zeigt alle verbundenen Geräte. Verbindet sich eines neu, zeigt die Notch es kurz an – jeweils mit Akkustand, wenn Windows ihn kennt.
-- Einstellungen: eigenes Fenster im Windows-11-Stil (Rechtsklick auf das Brim-Symbol im Infobereich → Einstellungen) für Monitore, Ausblenden mit Regeln pro App, Animation, Module, Ablage, Teilen, Spiele und Updates.
-- Kalender und Benachrichtigungen (nach einmaliger Einrichtung unter Einstellungen → Kalender und Benachrichtigungen): Der nächste Termin steht unter der Uhr und erscheint 15 Minuten vorher mit Countdown und „Beitreten“. Neue Windows-Benachrichtigungen zeigt die Notch kurz als Vorschau.
-- Brim gibt es auch über winget: `winget install wheatley2056.Brim`.
-- Behoben: Bluetooth-Geräte zeigen jetzt ihren Akkustand, auch Mäuse wie die MX Master.
-- Behoben: Beim Wechsel des Audio-Ausgabegeräts in der Notch hing Brim sich auf.
+Brim 1.0 – alles aus dem Plan ist da.
+
+- Plugins: Eigene Inhalte für die Notch – kompakt, als HUD oder als Karten im Tab „Plugins“. Plugins laufen als eigene Programme in beliebiger Sprache und enden mit Brim. Abstürzende Plugins starten neu und schalten sich nach drei Abstürzen ab. Neue Plugins sind zunächst aus; im Tab „Plugins“ siehst du, was sie dürfen, und schaltest sie ein. Ihre Einstellungen findest du im Einstellungsfenster, ihre Aktionen per Rechtsklick in der Ablage.
+- SwyxIt!-Plugin: Eingehende Anrufe mit Annehmen und Ablehnen, Gespräche mit echter Wellenform und Schnellmenü (Stumm, Tastatur, Weiterleiten, Halten), Nachrichten aus SwyxIt! und Swyx Messenger.
+- FPS in Spielen: Bildrate, 1 % Low, Frametime und auf Wunsch der Ping. Im Spiel bleibt nach Wahl eine kleine Pille mit „FPS · ms“ stehen, oder Win+Alt+F zeigt sie für 5 Sekunden. Einschalten unter Einstellungen → Spiele.
+- Timer und Stoppuhr: über das Stoppuhr-Symbol im Tab „Jetzt“, auch im Player. Läuft kompakt mit Ring und Restzeit; ist die Zeit um, klappt die Notch kurz auf.
+- Kalender und Benachrichtigungen (einmal einrichten unter Einstellungen → Kalender und Benachrichtigungen): Der nächste Termin steht unter der Uhr und erscheint 15 Minuten vorher mit Countdown und „Beitreten“. Neue Windows-Benachrichtigungen zeigt die Notch kurz als Vorschau.
+- Bluetooth: Der Tab „System“ zeigt alle verbundenen Geräte mit Akkustand; verbindet sich eines neu, zeigt die Notch es kurz an.
+- Tab „System“ zeigt jetzt auch die Auslastung der Datenträger.
+- Einstellungen: eigenes Fenster im Windows-11-Stil (Rechtsklick auf das Brim-Symbol im Infobereich → Einstellungen).
+- Behoben: Beim Wechsel des Audio-Ausgabegeräts hing Brim sich auf.
+- Behoben: Bluetooth-Geräte wie die MX Master zeigten ihren Akkustand nicht.
 
 ## 0.2.1
 

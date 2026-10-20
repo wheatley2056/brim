@@ -71,6 +71,7 @@ public sealed class ProcessPluginLauncher(string logDirectory) : IPluginLauncher
         process.OutputDataReceived += (_, e) => Write(e.Data);
         process.ErrorDataReceived += (_, e) => Write(e.Data);
         process.Start();
+        ChildProcessJob.Add(process);
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         return new Running(process, log, gate);

@@ -146,6 +146,8 @@ public class ManifestTests : IDisposable
     [InlineData("""{ "id": "de.test.x", "name": "x", "entry": "py", "permissions": ["root"] }""", "Unbekanntes Recht")]
     [InlineData("""{ "id": "de.test.x", "name": "x", "entry": "py", "api": "2" }""", "API-Version")]
     [InlineData("""{ "id": "de.test.x", "name": "x", "entry": """, "kein gültiges JSON")]
+    [InlineData("""{ "id": "de.test.x", "name": "x", "entry": "py", "shelfActions": [{ "id": "up", "label": "Hochladen" }] }""", "braucht das Recht „shelf“")]
+    [InlineData("""{ "id": "de.test.x", "name": "x", "entry": "py", "notificationApps": ["Teams"] }""", "braucht das Recht „notifications“")]
     public void Rejects_broken_manifests(string json, string expected)
     {
         var error = Assert.Throws<InvalidDataException>(() => Write(json));

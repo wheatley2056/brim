@@ -40,6 +40,7 @@ internal sealed class TelemetryLauncher(string logDirectory) : ITelemetryLaunche
             }
         };
         process.Start();
+        Brim.Plugins.ChildProcessJob.Add(process);
         process.BeginErrorReadLine();
         return new Running(process);
     }

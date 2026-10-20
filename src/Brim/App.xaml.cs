@@ -37,7 +37,8 @@ public partial class App : Application
         _allModules.Where(m => m.Id is not (ClockModule.ModuleId or UpdateModule.ModuleId)).Select(m => (m.Id, m.DisplayName)).ToList(),
         _updater?.CurrentVersion,
         () => _windows?.ToggleExpanded(),
-        () => PackageIdentity.Restart(ExitApp));
+        () => PackageIdentity.Restart(ExitApp),
+        () => _plugins?.Installed ?? []);
 
     public App()
     {
@@ -122,6 +123,8 @@ public partial class App : Application
             new ProcessPluginLauncher(Path.Combine(DataDirectory, "logs", "plugins")),
             s => _settings.Save(s));
         _settings.Changed += s => _plugins.ApplySettings(s);
+        ShelfPluginActions.List = () => _plugins.ShelfActions().Select(a => (a.PluginId, a.PluginName, a.Action.Id, a.Action.Label)).ToList();
+        ShelfPluginActions.Invoke = (plugin, action, paths) => _plugins.SendShelfItems(plugin, action, paths);
         // Unbemerkte Updates (nur installierte Fassung); kein Neustart, solange jemand arbeitet oder überträgt.
         _updater = new AutoUpdater(_settings, DataDirectory, () =>
             _windows.IsBusy || _hub.Snapshot().Any(a => a.Activity.ModuleId == NearbyModule.ModuleId && a.Priority >= ActivityPriority.Ongoing));

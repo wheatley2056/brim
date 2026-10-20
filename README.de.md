@@ -75,6 +75,9 @@ Brim aktualisiert sich im Hintergrund aus den GitHub-Releases, lädt nur, was si
 ### 🎮 Spiele
 Brim misst die Bildrate wie PresentMon über die DXGI- und Direct3D-9-Ereignisse von Windows, und zwar für das Spiel im Vordergrund: FPS, 1 % Low, Frametime-Verlauf und auf Wunsch den Ping zu deinem Spielserver. Im Spiel macht die Notch Platz. Nach Wahl bleibt eine kleine, halbtransparente Pille mit „FPS · ms“ stehen, oder Win+Alt+F zeigt sie für fünf Sekunden. Einschalten unter Einstellungen → Spiele. Beim ersten Mal fragt Brim einmal nach Adminrechten, um dich in die Gruppe „Leistungsprotokollbenutzer“ aufzunehmen. Danach misst Brim ohne Adminrechte.
 
+### 🗓️ Timer, Kalender, Benachrichtigungen
+Timer und Stoppuhr sind im Tab „Jetzt“ einen Klick entfernt, auch neben dem Player. Sie laufen kompakt mit Ring, und ist die Zeit um, klappt die Notch auf. Nach einmaliger Einrichtung steht der nächste Termin aus dem Windows-Kalender unter der Uhr und erscheint 15 Minuten vorher mit Countdown und „Beitreten“. Neue Windows-Benachrichtigungen zeigt die Notch kurz als Vorschau.
+
 ### 🧩 Plugins
 Eigene Inhalte für die Notch: kompakter Status, HUD oder Karten im Tab „Plugins“. Plugins laufen als eigene Programme in beliebiger Sprache und beschreiben ihre Oberfläche als Daten. So können sie die Notch weder verunstalten noch einfrieren. Ein abgestürztes Plugin startet neu und schaltet sich nach dem dritten Absturz ab. Neue Plugins sind zunächst aus, und der Tab „Plugins“ zeigt, was jedes darf. Siehe [`docs/plugins.md`](docs/plugins.md) und die [Beispiele](samples). Ein erstes echtes Plugin ist [`plugins/SwyxIt`](plugins/SwyxIt). Es zeigt eingehende SwyxIt!-Anrufe mit Annehmen und Ablehnen, laufende Gespräche und Chat-Nachrichten.
 
@@ -99,12 +102,15 @@ Namen für die Windows-Bedienungshilfen überall, Ansagen der Sprachausgabe für
 | <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> | Per Tastatur auf- und zuklappen |
 | Datei auf die Notch ziehen | In der Ablage behalten |
 | Maus an die Oberkante | Versteckte Notch zurückholen |
-| Symbol im Infobereich | Einstellungsdatei, Protokolle, Beenden |
+| Symbol im Infobereich | Einstellungen, Protokolle, Beenden |
+| <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> | FPS im Spiel zeigen (Modus „Bei Bedarf“) |
 
 Die Einstellungen öffnest du über das Brim-Symbol im Infobereich (Rechtsklick → Einstellungen); gespeichert werden sie in `%LocalAppData%\Brim\settings.json`.
 
 ## Datenschutz und Sicherheit
 
+- **Plugins** laufen als eigene Prozesse, sind zunächst aus und bekommen nur, was du freigibst: die Rechte neben ihrem Schalter. Alles, was sie anzeigen, wird geprüft, und sie enden mit Brim.
+- **Kalender und Benachrichtigungen** brauchen eine Paketidentität. Brim signiert dieses kleine Paket mit einem Zertifikat, das für jedes Release neu entsteht; dein PC vertraut ihm erst, wenn du „Einrichten“ klickst und die Admin-Rückfrage bestätigst.
 - **Keine Telemetrie, keine Konten, keine Brim-Server.** Brim geht nur ins Internet, um bei GitHub nach Updates zu sehen und – wenn du per Code sendest oder empfängst – zu den öffentlichen Magic-Wormhole-Servern, die ausschließlich verschlüsselte Daten sehen.
 - **Teilen in der Nähe** nutzt gegenseitiges TLS mit Zertifikaten pro Installation; der im Netz angekündigte Fingerabdruck muss zur Verbindung passen.
 - **Eingehende Dateien** brauchen immer deine Zustimmung; Pfade werden bereinigt, Archive gegen Pfad-Ausbrüche und ZIP-Bomben geprüft.
@@ -153,12 +159,13 @@ Eingebaute Funktionen sind Module mit derselben Schnittstelle, die Plugins bekom
 - [x] **Ablage** – hineinziehen, behalten, herausziehen
 - [x] **Teilen** – in der Nähe (LAN) und per Code (Magic Wormhole), mit Proxy
 - [x] **Unbemerkte Updates** mit Changelog in der Notch
-- [x] **Ausblenden** – Vollbild, maximiert, Überlappung, nur Desktop, Leerlauf, Regeln pro App, Bildschirmfreigabe, Oberkante *(Einstellungsfenster kommt mit 1.0)*
-- [x] **System** – Akku, CPU, RAM, GPU, Netzwerk, Helligkeit, Kamera/Mikrofon *(Datenträger und externe Monitore per DDC/CI folgen)*
-- [x] **Plugins** – offenes Protokoll und SDK für eigene Inhalte *(Ablage-Aktionen und Plugin-Galerie folgen)*
-- [x] **Spiele** – FPS, 1 % Low, Frametime und Ping, als Mini-Pille oder auf Abruf *(Anzeige-Latenz wie PresentMon und Vulkan/OpenGL folgen)*
-- [x] **Timer, Stoppuhr, Bluetooth-HUD**
-- [ ] **Mehr** – Kalender und Benachrichtigungen (brauchen MSIX), Einstellungsfenster, Signatur, winget
+- [x] **Ausblenden** – Vollbild, maximiert, Überlappung, nur Desktop, Leerlauf, Regeln pro App, Bildschirmfreigabe, Oberkante
+- [x] **System** – Akku, CPU, RAM, GPU, Datenträger, Netzwerk, Helligkeit, Kamera/Mikrofon, Bluetooth mit Akku
+- [x] **Plugins** – offenes Protokoll, SDK, Einstellungen und Ablage-Aktionen; SwyxIt!-Plugin
+- [x] **Spiele** – FPS, 1 % Low, Frametime und Ping, als Mini-Pille oder auf Abruf
+- [x] **Timer, Stoppuhr, Kalender, Vorschau von Benachrichtigungen**
+- [x] **Einstellungsfenster**, winget-Manifeste
+- [ ] **Als Nächstes** – Personalisierung (Formen, Farben, Glas), englische Oberfläche, Anzeige-Latenz wie PresentMon, Vulkan/OpenGL, Helligkeit externer Monitore (DDC/CI), Signatur
 
 ## Danke
 

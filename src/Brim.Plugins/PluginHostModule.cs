@@ -208,6 +208,13 @@ public sealed class PluginHostModule : IBrimModule
         }
     }
 
+    /// <summary>Aktionen laufender Plugins mit dem Recht „shelf“ für das Kontextmenü der Ablage.</summary>
+    public IReadOnlyList<(string PluginId, string PluginName, ShelfActionDefinition Action)> ShelfActions() =>
+        Runners()
+            .Where(r => r.State == PluginState.Running && Config(r.Id).Granted.Contains("shelf"))
+            .SelectMany(r => r.Manifest.ShelfActions.Select(a => (r.Id, r.Manifest.Name, a)))
+            .ToList();
+
     /// <summary>Für die Ablage (Slot <c>shelf.action</c>): Dateien an ein Plugin mit dem Recht „shelf“ geben.</summary>
     public bool SendShelfItems(string pluginId, string actionId, IReadOnlyList<string> paths)
     {

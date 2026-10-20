@@ -271,6 +271,30 @@ public sealed class HostTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Shelf_actions_send_the_files_to_the_plugin()
+    {
+        var dir = Path.Combine(_root, "upload");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, PluginManifest.FileName),
+            $$"""{ "id": "{{PluginId}}", "name": "Upload", "entry": "demo", "permissions": ["shelf"], "shelfActions": [{ "id": "up", "label": "Hochladen" }] }""");
+        var received = new ConcurrentQueue<string>();
+        var launcher = new InProcessLauncher(async (pipe, token) =>
+        {
+            await using var brim = await BrimPlugin.ConnectAsync(pipe, token);
+            brim.ShelfItems += (action, paths) => received.Enqueue(action + ":" + string.Join(",", paths));
+            await brim.RunAsync(token);
+        });
+
+        var host = await StartHost(launcher, true, "shelf");
+        await Until(() => host.StateOf(PluginId) == PluginState.Running);
+
+        var action = Assert.Single(host.ShelfActions());
+        Assert.Equal("Hochladen", action.Action.Label);
+        Assert.True(host.SendShelfItems(PluginId, action.Action.Id, ["C:/a.txt", "C:/b.txt"]));
+        await Until(() => received.Contains("up:C:/a.txt,C:/b.txt"));
+    }
+
+    [Fact]
     public async Task Without_permission_notifications_stay_with_brim()
     {
         var dir = Path.Combine(_root, "messenger");

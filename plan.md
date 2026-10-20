@@ -310,7 +310,7 @@ Kerbe.sln
 | 4 · Plugins | Protokoll, Host, SDK, zwei Beispiel-Plugins | A2 fertig (siehe 7c) |
 | 5 · Spiele | Telemetrie-Dienst, FPS/Latenz, Spielmodus | A8 fertig (siehe 7d) |
 | 6 · Mac-Paket | Timer, Kalender, Benachrichtigungen, Bluetooth, Teilen | A3 vollständig (siehe 7e) |
-| 7 · Auslieferung | MSIX, Signatur, winget, Auto-Update, Einstellungsfenster | Version 1.0 (siehe 7f) |
+| 7 · Auslieferung | MSIX, Signatur, winget, Auto-Update, Einstellungsfenster | Version 1.0 (siehe 7f, 7g) |
 
 ### 7a. Stand Phase 2 (20.10.2026)
 
@@ -422,6 +422,18 @@ Noch offen:
 - „Nicht stören“ von Windows wird bei Benachrichtigungen noch nicht beachtet (die Schnittstelle dafür braucht ein neueres SDK).
 - Klick auf eine Benachrichtigung öffnet die App noch nicht.
 
+### 7g. Version 1.0.0 (20.10.2026)
+
+Zusätzlich für 1.0:
+- **Timer-Knopf im Player**, damit der Timer auch bei laufender Musik erreichbar ist.
+- **Ablage-Aktionen** (Slot `shelf.action`): Plugins mit dem Recht „shelf“ nennen im Manifest `shelfActions`; sie erscheinen im Kontextmenü der Ablage und schicken die Dateien als `shelf.items`.
+- **Plugin-Einstellungen** im Einstellungsfenster (Bereich Plugins), aus den `settings` der Manifeste; Änderungen gehen sofort als `settings.changed` an das Plugin.
+- **Job-Objekt** (`ChildProcessJob`): Plugins und Messdienst enden mit Brim, auch nach einem Absturz.
+- **Datenträger** (aktive Zeit, `\PhysicalDisk(_Total)\% Idle Time`) im Tab System.
+- Version 1.0.0 in `Directory.Build.props` und `CHANGELOG.md`.
+
+Nach 1.0 (bewusst verschoben): Personalisierung (Plan siehe Unterhaltung vom 20.10.), englische Oberfläche, Anzeige-Latenz und Vulkan/OpenGL wie PresentMon, Helligkeit externer Monitore per DDC/CI, Klick auf Benachrichtigungen, „Nicht stören“, `lifecycle.suspend/resume`, VRAM.
+
 Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das fertige Ausblende-System.
 
 ## 8. Risiken
@@ -438,6 +450,8 @@ Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das f
 | Plugins als Sicherheitslücke | Datenabfluss | eigene Prozesse, Rechte im Manifest, Nutzerbestätigung |
 
 ## 9. Offene Entscheidungen
+
+*Stand 1.0:* 1. Hauptmonitor (umschaltbar) · 2. Verweis · 3. Aus · 4. vorerst nur deklarativ · 5. GitHub und winget.
 
 1. **Notch auf allen Monitoren** oder nur Hauptmonitor als Standard?
 2. **Ablage-Standard:** Verweis oder Kopie?

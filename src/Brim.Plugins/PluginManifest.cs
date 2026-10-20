@@ -13,6 +13,9 @@ public sealed record PluginSettingDefinition
     public JsonElement? Default { get; init; }
 }
 
+/// <summary>Eine Aktion für Dateien der Ablage; das Plugin bekommt sie als <c>shelf.items</c> mit dieser <c>id</c>.</summary>
+public sealed record ShelfActionDefinition(string Id, string Label);
+
 /// <summary><c>plugin.json</c> im Ordner des Plugins.</summary>
 public sealed partial record PluginManifest
 {
@@ -46,6 +49,9 @@ public sealed partial record PluginManifest
     /// <c>["Swyx Messenger"]</c>. Verglichen wird mit dem Anzeigenamen, ohne Groß-/Kleinschreibung, als Teilwort.
     /// </summary>
     public List<string> NotificationApps { get; init; } = [];
+
+    /// <summary>Einträge im Kontextmenü der Ablage (Slot <c>shelf.action</c>, Recht „shelf“), z. B. „Hochladen“.</summary>
+    public List<ShelfActionDefinition> ShelfActions { get; init; } = [];
 
     /// <summary>Ordner, aus dem das Manifest stammt (nicht Teil der Datei).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
@@ -97,6 +103,14 @@ public sealed partial record PluginManifest
         if (LooksLikePath(Entry) && ResolveEntry() is null)
         {
             throw new InvalidDataException($"entry „{Entry}“ liegt nicht im Ordner des Plugins");
+        }
+        if (ShelfActions.Count > 0 && !Permissions.Contains("shelf"))
+        {
+            throw new InvalidDataException("shelfActions braucht das Recht „shelf“");
+        }
+        if (ShelfActions.Any(a => string.IsNullOrWhiteSpace(a.Id) || string.IsNullOrWhiteSpace(a.Label) || a.Label.Length > 60))
+        {
+            throw new InvalidDataException("shelfActions braucht je eine id und ein label (höchstens 60 Zeichen)");
         }
         if (NotificationApps.Count > 0 && !Permissions.Contains("notifications"))
         {
