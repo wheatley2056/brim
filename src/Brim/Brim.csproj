@@ -47,6 +47,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Brim.Core\Brim.Core.csproj" />
     <ProjectReference Include="..\Brim.Modules\Brim.Modules.csproj" />
+    <ProjectReference Include="..\Brim.Plugins\Brim.Plugins.csproj" />
   </ItemGroup>
 
   <ItemGroup>

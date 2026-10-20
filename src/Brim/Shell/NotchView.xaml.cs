@@ -339,9 +339,9 @@ public sealed partial class NotchView : UserControl
             _shelfView?.Refresh();
         }
         ShelfPresenter.Visibility = shelfShown ? Visibility.Visible : Visibility.Collapsed;
-        var systemShown = p.Tab == NotchTab.System && UpdateSystem();
-        SystemPanel.Visibility = systemShown ? Visibility.Visible : Visibility.Collapsed;
-        if (p.Tab == NotchTab.Shelf || systemShown)
+        var cardsShown = p.Tab is NotchTab.System or NotchTab.Plugins && UpdateTabViews(p.Tab);
+        TabViewPanel.Visibility = cardsShown ? Visibility.Visible : Visibility.Collapsed;
+        if (p.Tab == NotchTab.Shelf || cardsShown)
         {
             NowPresenter.Visibility = Visibility.Collapsed;
             PlaceholderPanel.Visibility = Visibility.Collapsed;
@@ -376,7 +376,7 @@ public sealed partial class NotchView : UserControl
             (PlaceholderIcon.Glyph, PlaceholderTitle.Text, PlaceholderText.Text) = p.Tab switch
             {
                 NotchTab.System => (Glyphs.Settings, "System", "Keine Messwerte verfügbar."),
-                _ => (Glyphs.Puzzle, "Plugins", "Eigene Inhalte über die Plugin-API – kommt in Phase 4."),
+                _ => (Glyphs.Puzzle, "Plugins", "Plugins sind abgeschaltet."),
             };
         }
         return ExpandedLayer;
@@ -476,10 +476,10 @@ public sealed partial class NotchView : UserControl
             {
                 parts.AddRange(now.Children.Select((c, i) => (c, new Vector3(0, -14 - 6 * i, 0))));
             }
-            else if (SystemPanel.Visibility == Visibility.Visible)
+            else if (TabViewPanel.Visibility == Visibility.Visible)
             {
-                parts.Add((SystemMain, new Vector3(0, -14, 0)));
-                parts.Add((SystemSide, new Vector3(0, -20, 0)));
+                parts.Add((TabViewMain, new Vector3(0, -14, 0)));
+                parts.Add((TabViewSide, new Vector3(0, -20, 0)));
             }
             else
             {

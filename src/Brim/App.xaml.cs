@@ -2,6 +2,7 @@ using Brim.Core;
 using Brim.Modules;
 using Brim.Modules.Audio;
 using Brim.Modules.Nearby;
+using Brim.Plugins;
 using Brim.Shell;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -27,6 +28,7 @@ public partial class App : Application
     private TrayIcon? _tray;
     private NearbyService? _nearby;
     private AutoUpdater? _updater;
+    private PluginHostModule? _plugins;
 
     public App()
     {
@@ -105,6 +107,12 @@ public partial class App : Application
             Log.Error("Audio nicht verfügbar", ex);
         }
         _modules = new ModuleHost(_hub);
+        // Plugins (Plan 4.2): eigene Prozesse, Ordner %LocalAppData%\Brim\Plugins plus eigene Ordner aus den Einstellungen.
+        _plugins = new PluginHostModule(
+            [Path.Combine(DataDirectory, "Plugins"), .. settings.PluginDirectories],
+            new ProcessPluginLauncher(Path.Combine(DataDirectory, "logs", "plugins")),
+            s => _settings.Save(s));
+        _settings.Changed += s => _plugins.ApplySettings(s);
         // Unbemerkte Updates (nur installierte Fassung); kein Neustart, solange jemand arbeitet oder überträgt.
         _updater = new AutoUpdater(_settings, DataDirectory, () =>
             _windows.IsBusy || _hub.Snapshot().Any(a => a.Activity.ModuleId == NearbyModule.ModuleId && a.Priority >= ActivityPriority.Ongoing));
@@ -153,6 +161,10 @@ public partial class App : Application
         }
         yield return new ResourcesModule();
         yield return nearbyModule;
+        if (!IsDemo)
+        {
+            yield return _plugins!;
+        }
         yield return new UpdateModule(DataDirectory, IsDemo ? null : _updater!.CurrentVersion);
     }
 

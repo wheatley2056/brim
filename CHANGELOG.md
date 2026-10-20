@@ -3,6 +3,12 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 0.3.0
+
+- Plugins: Eigene Inhalte für die Notch – kompakt, als HUD oder als Karten im Tab „Plugins“. Plugins laufen als eigene Programme in beliebiger Sprache; abstürzende Plugins starten neu und schalten sich nach drei Abstürzen ab.
+- Neue Plugins sind zunächst aus. Im Tab „Plugins“ siehst du, was sie dürfen, und schaltest sie ein.
+- Zwei Beispiel-Plugins: Serverstatus (.NET) und ein Zähler (Python).
+
 ## 0.2.1
 
 - Neuer Tab „System“: CPU, RAM, GPU und Netzwerk mit Verlauf der letzten Minute und die drei Prozesse mit der meisten Last – mit denselben Werten wie im Task-Manager. Gemessen wird nur, solange der Tab offen ist.

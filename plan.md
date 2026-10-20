@@ -307,7 +307,7 @@ Kerbe.sln
 | 1b · Teilen | Brim-zu-Brim im LAN, danach per Code übers Internet | A10 fertig |
 | 2 · System | Akku, Ressourcen, Helligkeit, Kamera/Mikro | A5–A7 fertig (siehe 7a) |
 | 3 · Ausblenden | Regelwerk, App-Ausnahmen, Animationseinstellungen, Rand-Reveal | A9 fertig (siehe 7b) |
-| 4 · Plugins | Protokoll, Host, SDK, zwei Beispiel-Plugins | A2 fertig |
+| 4 · Plugins | Protokoll, Host, SDK, zwei Beispiel-Plugins | A2 fertig (siehe 7c) |
 | 5 · Spiele | Telemetrie-Dienst, FPS/Latenz, Spielmodus | A8 fertig |
 | 6 · Mac-Paket | Timer, Kalender, Benachrichtigungen, Bluetooth, Teilen | A3 vollständig |
 | 7 · Auslieferung | MSIX, Signatur, winget, Auto-Update, Einstellungsfenster | Version 1.0 |
@@ -343,6 +343,26 @@ Noch offen:
 - Oberfläche für diese Regeln kommt mit dem Einstellungsfenster (Phase 7); bis dahin `settings.json`.
 - Merkmale für die Freigabe sind aus der Erinnerung zusammengestellt und unter Windows zu prüfen, vor allem für das neue Teams und Discord (Discord zeigt keine eigene Leiste).
 - Animationsstil und -dauer sind schon einstellbar (`Animation`), ein Vorschau-Knopf fehlt bis zum Einstellungsfenster.
+
+### 7c. Stand Phase 4 (20.10.2026)
+
+Umgesetzt (Protokoll für Entwickler: `docs/plugins.md`):
+- **Protokoll** in `Brim.Core/Plugins`: JSON-RPC 2.0, eine Nachricht pro Zeile, höchstens 1 MB. Widgets als JSON mit `"type"`. Methoden wie in 4.2, dazu `view.clear`, `log`, `tab.visibility` und `shutdown`.
+- **Pipe** mit zufälligem Namen pro Start (`BRIM_PIPE`), nur für den eigenen Benutzer (`CurrentUserOnly`), genau eine Verbindung. Der Name `\\.\pipe\kerbe-<id>` aus 4.2 wäre erratbar.
+- **Host** (`Brim.Plugins`): findet Plugins in `%LocalAppData%\Brim\Plugins` und `PluginDirectories`, prüft Manifeste (Kennung, API, `entry` nur im eigenen Ordner oder als Befehl im Suchpfad, bekannte Rechte). Startet eingeschaltete Plugins ohne Fenster, Ausgaben in `logs\plugins\<id>.log`.
+- **Prüfung aller Inhalte** (`WidgetValidator`): Farben, Maße, Textlängen, höchstens 400 Bausteine, 16 Ebenen, 1 MB Bilder. Aktionen werden pro Plugin zugeordnet. Rang 0–9, `idle` ist der Uhr vorbehalten, `critical` nur mit dem Recht „alerts“, höchstens 120 Nachrichten pro Sekunde.
+- **Abstürze:** 10 s Zeit für `hello`, Neustart nach 1 s und 5 s, abgeschaltet nach 3 Abstürzen in 10 Minuten. Beim Beenden erst `shutdown`, nach 2 s wird der Prozessbaum beendet. Alles, was das Plugin zeigte, verschwindet.
+- **Zustimmung und Verwaltung** im Tab „Plugins“ (rechte Spalte): jedes Plugin mit Zustand, Rechten und Schalter. Einschalten heißt Zustimmung zu genau diesen Rechten; kommen mit einem Update neue hinzu, bleibt es aus, bis neu zugestimmt wird.
+- **SDK** `Brim.Sdk` (`BrimPlugin`) und Beispiele `samples/ServerStatus` (.NET) und `samples/python-counter` (Python ohne Bibliotheken).
+- Die Tabs „System“ und „Plugins“ teilen sich jetzt dieselbe Kartenansicht in der Shell.
+
+Noch offen:
+- **Slot `shelf.action`:** Host und Protokoll sind fertig (`shelf.items`, `SendShelfItems`), der Knopf in der Ablage fehlt noch.
+- **Einstellungen der Plugins** gibt es bisher nur in `settings.json` (`Plugins.<id>.Values`), eine Oberfläche kommt mit dem Einstellungsfenster.
+- **Abhängigkeit:** Das SDK hängt an Brim.Core; für ein eigenes NuGet-Paket ggf. Protokoll und Widgets in ein schlankes Paket auslagern.
+- **Job-Objekt**, damit Plugins sicher mit Brim enden, auch wenn Brim abstürzt.
+- `lifecycle.suspend/resume` (Bildschirm aus, Energiesparen) noch nicht verschickt; `tab.visibility` deckt den häufigsten Fall ab.
+- Offene Entscheidung 4 (nur deklarativ oder später XAML) bleibt offen; bisher nur deklarativ.
 
 Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das fertige Ausblende-System.
 

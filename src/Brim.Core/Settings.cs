@@ -135,6 +135,18 @@ public sealed class ShareSettings
     public string? ProxyUrl { get; set; }
 }
 
+/// <summary>Ein Plugin aus Sicht des Nutzers (Plan 4.2, Sicherheit).</summary>
+public sealed class PluginConfig
+{
+    public bool Enabled { get; set; }
+
+    /// <summary>Rechte, denen der Nutzer beim Einschalten zugestimmt hat.</summary>
+    public List<string> Granted { get; set; } = [];
+
+    /// <summary>Werte für die Einstellungen aus dem Manifest.</summary>
+    public Dictionary<string, JsonElement> Values { get; set; } = [];
+}
+
 public sealed class BatterySettings
 {
     /// <summary>Beim Laden Akkustand in der kompakten Notch zeigen (Plan 4.6).</summary>
@@ -170,6 +182,12 @@ public sealed class BrimSettings
     public AnimationSettings Animation { get; set; } = new();
     public InteractionSettings Interaction { get; set; } = new();
     public ClockSettings Clock { get; set; } = new();
+
+    /// <summary>Plugins nach Kennung.</summary>
+    public Dictionary<string, PluginConfig> Plugins { get; set; } = [];
+
+    /// <summary>Weitere Ordner mit Plugins, z. B. beim Entwickeln (zusätzlich zu %LocalAppData%\Brim\Plugins).</summary>
+    public List<string> PluginDirectories { get; set; } = [];
 
     /// <summary>Module, die der Nutzer abgeschaltet hat (Modul-IDs).</summary>
     public List<string> DisabledModules { get; set; } = [];

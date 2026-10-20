@@ -72,6 +72,9 @@ Brim updates itself from GitHub releases in the background, downloads only what 
   <img src="docs/assets/update.png" alt="Changelog in the notch after an update, with a Got it button" width="760">
 </p>
 
+### 🧩 Plugins
+Add your own content to the notch: a compact status, a HUD, or cards in the Plugins tab. Plugins run as separate processes in any language and describe their UI as data, so they can't break the notch or freeze it. A plugin that crashes is restarted and switched off after the third crash. New plugins start switched off, and the Plugins tab shows what each one may do. See [`docs/plugins.md`](docs/plugins.md) and the [samples](samples).
+
 ### ♿ Built for everyone
 UI Automation names for everything, screen reader announcements for HUDs, keyboard access with <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd>, and a gentle fade instead of motion when Windows animations are turned off.
 
@@ -132,6 +135,8 @@ Network and interoperability tests against the original Magic Wormhole run when 
 |---|---|
 | `src/Brim.Core` | Activities and the activity hub, the notch state machine, declarative widgets, shape geometry, spring physics, shelf store, settings. No Windows dependencies, fully unit-tested. |
 | `src/Brim.Modules` | Built-in modules — clock, media, audio, battery, resources, brightness, camera/mic, sharing (LAN and Magic Wormhole), updates. They describe their UI as widgets; no WinUI. |
+| `src/Brim.Plugins` | Plugin host: finds plugins, starts them as processes, speaks JSON-RPC over named pipes, validates their widgets, restarts after crashes. |
+| `src/Brim.Sdk` | SDK for .NET plugins. The protocol itself is documented in [`docs/plugins.md`](docs/plugins.md). |
 | `src/Brim` | The WinUI 3 shell: one window per monitor, the compositor-driven morph engine, widget renderer, shelf, auto-hide, tray and updater. |
 | `tests/` | State machine, springs, geometry, shelf, sharing protocol, SPAKE2 test vectors from the reference implementation, live interop with the original Magic Wormhole. |
 
@@ -146,7 +151,7 @@ Built-in features are modules that use the same interface plugins will: they pos
 - [x] **Silent updates** with in-notch changelog
 - [x] **Auto-hide** — fullscreen, maximized, overlap, desktop-only, idle, per-app rules, screen-sharing detection, top-edge peek *(settings window comes with 1.0)*
 - [x] **System** — battery, CPU, RAM, GPU, network, brightness, camera/mic indicators *(disk and external monitors via DDC/CI still to come)*
-- [ ] **Plugins** — open protocol and SDK for your own notch content
+- [x] **Plugins** — open protocol and SDK for your own notch content *(shelf actions and a plugin gallery still to come)*
 - [ ] **Games** — FPS and latency in a mini pill
 - [ ] **More** — timer, calendar, notifications, Bluetooth battery, settings window, code signing, winget
 

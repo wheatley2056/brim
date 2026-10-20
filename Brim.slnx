@@ -7,6 +7,8 @@
   <Folder Name="/src/">
     <Project Path="src/Brim.Core/Brim.Core.csproj" />
     <Project Path="src/Brim.Modules/Brim.Modules.csproj" />
+    <Project Path="src/Brim.Plugins/Brim.Plugins.csproj" />
+    <Project Path="src/Brim.Sdk/Brim.Sdk.csproj" />
     <Project Path="src/Brim/Brim.csproj">
       <!-- WinUI-App gibt es nur pro Architektur; "Any CPU" baut x64. -->
       <Platform Solution="*|Any CPU" Project="x64" />
@@ -15,5 +17,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/Brim.Core.Tests/Brim.Core.Tests.csproj" />
     <Project Path="tests/Brim.Modules.Tests/Brim.Modules.Tests.csproj" />
+    <Project Path="tests/Brim.Plugins.Tests/Brim.Plugins.Tests.csproj" />
   </Folder>
 </Solution>

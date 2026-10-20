@@ -1,0 +1,12 @@
+{
+  "id": "de.brim.serverstatus",
+  "name": "Serverstatus",
+  "version": "1.0.0",
+  "entry": "ServerStatus.exe",
+  "api": "1",
+  "slots": ["compact.trailing", "expanded.tab"],
+  "permissions": ["network"],
+  "settings": [
+    { "key": "server", "type": "string", "label": "Server (Host:Port)", "default": "github.com:443" }
+  ]
+}

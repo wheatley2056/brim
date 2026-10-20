@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- SDK für Plugin-Entwickler (Plan 4.2): verbindet sich mit Brim und bietet das Protokoll typisiert an. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Brim.Sdk</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <PackageId>Brim.Sdk</PackageId>
+    <Description>Build plugins for Brim, the notch for Windows: post activities, HUDs and tab content as declarative widgets.</Description>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/wheatley2056/brim</PackageProjectUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Brim.Core\Brim.Core.csproj" />
+  </ItemGroup>
+</Project>
