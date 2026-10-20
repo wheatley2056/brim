@@ -21,6 +21,24 @@ public sealed partial class NotchView
 
     public bool IsSettingsOpen => _settingsOpen;
 
+    /// <summary>Abstand der Einstellungsseite zum Rand der Notch, links, rechts und unten gleich.</summary>
+    private const double SettingsInset = 18;
+
+    /// <summary>
+    /// Ecken der Einstellungsseite parallel zu den Ecken der Notch: innerer Radius = äußerer minus Abstand.
+    /// So folgen sie der Form aus Einstellungen → Aussehen (Notch, Insel, Kante, Tab), statt fest zu sein.
+    /// </summary>
+    private double SettingsHostRadius => Math.Max(NotchGeometry.Styled(LargeShape, _form).Radius - SettingsInset, 3);
+
+    /// <summary>Nach einer Formänderung die Ecken der Einstellungsseite nachziehen.</summary>
+    private void UpdateSettingsCorners()
+    {
+        if (_settingsHost is not null)
+        {
+            _settingsHost.CornerRadius = new CornerRadius(SettingsHostRadius);
+        }
+    }
+
     private (double Width, double Height) _available = (double.MaxValue, double.MaxValue);
 
     /// <summary>
@@ -75,7 +93,7 @@ public sealed partial class NotchView
         {
             Width = width,
             Height = height,
-            Padding = new Thickness(20, 12, 20, 18),
+            Padding = new Thickness(SettingsInset, 12, SettingsInset, SettingsInset),
             RowSpacing = 8,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Top,
@@ -100,7 +118,7 @@ public sealed partial class NotchView
         close.Click += (_, _) => SetSettingsOpen(false);
         header.Children.Add(close);
         _settingsLayer.Children.Add(header);
-        _settingsHost = new Border { CornerRadius = new CornerRadius(14), Background = Brushes.Get(BrimColors.Graphite) };
+        _settingsHost = new Border { CornerRadius = new CornerRadius(SettingsHostRadius), Background = Brushes.Get(BrimColors.Graphite) };
         Grid.SetRow(_settingsHost, 1);
         _settingsLayer.Children.Add(_settingsHost);
         _settingsLayer.KeyDown += (_, e) =>

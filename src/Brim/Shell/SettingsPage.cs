@@ -39,7 +39,8 @@ internal sealed class SettingsPage : UserControl
         IsSettingsVisible = false,
         PaneDisplayMode = NavigationViewPaneDisplayMode.Left,
         IsPaneToggleButtonVisible = false,
-        OpenPaneLength = 280,
+        // Breit genug für „Kalender und Benachrichtigungen“; mit breiterer Schrift bricht der Eintrag um statt abzuschneiden.
+        OpenPaneLength = 320,
     };
     private readonly ScrollViewer _page = new() { Padding = new Thickness(32, 24, 32, 32) };
     private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(400) };
@@ -84,7 +85,12 @@ internal sealed class SettingsPage : UserControl
 
         foreach (var (tag, label, glyph) in Sections)
         {
-            _navigation.MenuItems.Add(new NavigationViewItem { Content = label, Tag = tag, Icon = new FontIcon { Glyph = glyph } });
+            _navigation.MenuItems.Add(new NavigationViewItem
+            {
+                Content = new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap },
+                Tag = tag,
+                Icon = new FontIcon { Glyph = glyph },
+            });
         }
         _navigation.SelectionChanged += (_, e) =>
         {

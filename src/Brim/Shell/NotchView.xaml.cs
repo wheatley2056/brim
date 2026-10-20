@@ -224,6 +224,7 @@ public sealed partial class NotchView : UserControl
     public void ApplyAppearance(AppearanceSettings appearance)
     {
         _form = appearance.Form;
+        UpdateSettingsCorners();
         // Die Insel schwebt: Alles rückt um den Abstand nach unten; die Zeichenfläche hat dafür Platz.
         CanvasRoot.Padding = new Thickness(0, NotchGeometry.Gap(_form), 0, 0);
         CanvasRoot.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0);
