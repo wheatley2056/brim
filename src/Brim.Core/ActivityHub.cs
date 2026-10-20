@@ -4,7 +4,7 @@ namespace Brim.Core;
 /// Sammelstelle aller Aktivitäten. Module melden hier von beliebigen Threads,
 /// die Shell liest Schnappschüsse und reagiert auf <see cref="Changed"/>.
 /// </summary>
-public sealed class ActivityHub
+public sealed partial class ActivityHub
 {
     /// <summary>Standarddauer für HUDs (Plan 3: 1,6 s).</summary>
     public static readonly TimeSpan DefaultTransientDuration = TimeSpan.FromSeconds(1.6);

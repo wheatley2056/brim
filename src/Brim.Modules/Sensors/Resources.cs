@@ -19,10 +19,37 @@ public sealed record ResourceSample(
     /// <summary>Aktive Zeit aller Datenträger in Prozent, wie im Task-Manager.</summary>
     double? Disk = null);
 
+/// <summary>Ein Prozess (gleichnamige zusammengefasst) mit seinem privaten Arbeitsspeicher.</summary>
+public sealed record MemoryUsage(string Name, ulong Bytes);
+
+/// <summary>
+/// Mehr Werte für die Detailansichten (nach einem Klick auf CPU, RAM …). <c>null</c> = nicht messbar.
+/// Nur gemessen, solange eine Detailansicht offen ist.
+/// </summary>
+public sealed record ResourceDetail(
+    int? Processes,
+    int? Threads,
+    int? Handles,
+    double? CpuMhz,
+    ulong? Committed,
+    ulong? CommitLimit,
+    ulong? Cached,
+    ulong? GpuDedicated,
+    double? DiskRead,
+    double? DiskWrite,
+    IReadOnlyList<ProcessUsage> TopCpu,
+    IReadOnlyList<MemoryUsage> TopMemory)
+{
+    public static ResourceDetail Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, [], []);
+}
+
 public interface IResourceSampler : IDisposable
 {
     /// <summary>Misst seit dem letzten Aufruf. Der erste Aufruf nach dem Start liefert für Raten noch keine Werte.</summary>
     ResourceSample Sample();
+
+    /// <summary>Zusätzliche Werte, direkt nach <see cref="Sample"/> aufgerufen.</summary>
+    ResourceDetail Detail() => ResourceDetail.Empty;
 }
 
 /// <summary>Rechenregeln, die der Task-Manager für zusammengesetzte Werte nutzt.</summary>
@@ -48,6 +75,28 @@ public static class ResourceMath
             perEngine[key] = perEngine.GetValueOrDefault(key) + value;
         }
         return perEngine.Count == 0 ? null : Math.Clamp(perEngine.Values.Max(), 0, 100);
+    }
+
+    /// <summary>Größte Prozesse nach privatem Arbeitsspeicher; gleichnamige Instanzen zählen zusammen.</summary>
+    public static IReadOnlyList<MemoryUsage> TopMemory(IEnumerable<(string Name, double Value)> processes, int count)
+    {
+        var perName = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (instance, value) in processes)
+        {
+            var hash = instance.IndexOf('#');
+            var name = hash >= 0 ? instance[..hash] : instance;
+            if (name is "_Total" or "Idle" or "" || value <= 0)
+            {
+                continue;
+            }
+            perName[name] = perName.GetValueOrDefault(name) + value;
+        }
+        return perName
+            .OrderByDescending(p => p.Value)
+            .ThenBy(p => p.Key, StringComparer.OrdinalIgnoreCase)
+            .Take(count)
+            .Select(p => new MemoryUsage(p.Key, (ulong)p.Value))
+            .ToList();
     }
 
     /// <summary>
@@ -90,6 +139,10 @@ internal sealed partial class PdhResourceSampler : IResourceSampler
     private readonly Pdh.Counter? _diskIdle;
     private readonly Dictionary<string, string> _displayNames = new(StringComparer.OrdinalIgnoreCase);
 
+    // Zähler für die Detailansichten: erst beim ersten Bedarf angelegt.
+    private Pdh.Query? _detailQuery;
+    private Pdh.Counter? _processCount, _threads, _handles, _frequency, _performance, _committed, _commitLimit, _cache, _gpuMemory, _diskRead, _diskWrite, _privateBytes;
+
     public PdhResourceSampler()
     {
         // „Processor Utility“ entspricht dem Task-Manager seit Windows 8 (berücksichtigt den Turbotakt).
@@ -123,6 +176,50 @@ internal sealed partial class PdhResourceSampler : IResourceSampler
                 _sent?.Values().Sum(v => v.Value) ?? 0,
                 top,
                 _diskIdle?.Value() is { } idle ? Math.Clamp(100 - idle, 0, 100) : null);
+        }
+    }
+
+    public ResourceDetail Detail()
+    {
+        lock (_gate)
+        {
+            if (_detailQuery is null)
+            {
+                var q = _detailQuery = new Pdh.Query();
+                _processCount = q.TryAdd(@"\System\Processes");
+                _threads = q.TryAdd(@"\System\Threads");
+                _handles = q.TryAdd(@"\Process(_Total)\Handle Count");
+                _frequency = q.TryAdd(@"\Processor Information(_Total)\Processor Frequency");
+                _performance = q.TryAdd(@"\Processor Information(_Total)\% Processor Performance");
+                _committed = q.TryAdd(@"\Memory\Committed Bytes");
+                _commitLimit = q.TryAdd(@"\Memory\Commit Limit");
+                _cache = q.TryAdd(@"\Memory\Cache Bytes");
+                _gpuMemory = q.TryAdd(@"\GPU Adapter Memory(*)\Dedicated Usage");
+                _diskRead = q.TryAdd(@"\PhysicalDisk(_Total)\Disk Read Bytes/sec");
+                _diskWrite = q.TryAdd(@"\PhysicalDisk(_Total)\Disk Write Bytes/sec");
+                _privateBytes = q.TryAdd(@"\Process(*)\Working Set - Private");
+                q.Collect();
+            }
+            _detailQuery.Collect();
+            static ulong? Bytes(Pdh.Counter? c) => c?.Value() is { } v and >= 0 ? (ulong)v : null;
+            // Aktueller Takt wie im Task-Manager: Nenntakt × Leistung in Prozent.
+            var mhz = _frequency?.Value() is { } f && _performance?.Value() is { } p ? f * p / 100 : (double?)null;
+            var gpuMemory = _gpuMemory?.Values() is { Count: > 0 } adapters ? (ulong)adapters.Sum(a => a.Value) : (ulong?)null;
+            return new ResourceDetail(
+                (int?)_processCount?.Value(),
+                (int?)_threads?.Value(),
+                (int?)_handles?.Value(),
+                mhz,
+                Bytes(_committed),
+                Bytes(_commitLimit),
+                Bytes(_cache),
+                gpuMemory,
+                _diskRead?.Value(),
+                _diskWrite?.Value(),
+                _processes is null ? [] : ResourceMath.TopProcesses(_processes.Values(), Environment.ProcessorCount, 6)
+                    .Select(x => x with { Name = DisplayName(x.Name) }).ToList(),
+                _privateBytes is null ? [] : ResourceMath.TopMemory(_privateBytes.Values(), 6)
+                    .Select(x => x with { Name = DisplayName(x.Name) }).ToList());
         }
     }
 
@@ -205,6 +302,7 @@ internal sealed partial class PdhResourceSampler : IResourceSampler
         lock (_gate)
         {
             _query.Dispose();
+            _detailQuery?.Dispose();
         }
     }
 }

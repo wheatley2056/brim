@@ -100,6 +100,27 @@ internal sealed partial class NotchWindow : WindowEx
         };
         View.DropTargetChanged += OnDropTargetChanged;
         View.Dropped += OnDropped;
+        View.BirthFinished += OnBirthFinished;
+        View.OnboardingFinished += OnOnboardingFinished;
+        View.HintChanged += OnHintChanged;
+        View.OnboardingStarted += OnOnboardingStarted;
+        View.SettingsOpenChanged += open =>
+        {
+            // Einstellungen: offen bleiben wie bei einem Menü, und Tastatur annehmen.
+            Win32.SetActivatable(Handle, open);
+            _popupOpen = open;
+            if (open)
+            {
+                _collapseTimer.Stop();
+            }
+            else if (!CursorInside())
+            {
+                SetInside(false);
+                StartCollapse();
+            }
+            // Nicht mitten in Present (Zuklappen schließt die Einstellungen) neu zeichnen.
+            DispatcherQueue.TryEnqueue(Refresh);
+        };
         View.PopupChanged += open =>
         {
             _popupOpen = open;
@@ -197,6 +218,8 @@ internal sealed partial class NotchWindow : WindowEx
             var x = bounds.X + (bounds.Width - width) / 2;
             AppWindow.MoveAndResize(new RectInt32(x, top, width, height));
         }
+        // Platz für Einstellungen und Einführung: Monitor in DIP der Zeichenfläche, unter der Notch-Oberkante.
+        View.SetAvailableSize(bounds.Width / _scale, (bounds.Y + bounds.Height - top) / _scale);
         ApplyRegion(_region == default ? CurrentHitArea() : _region);
         _top = top;
 
@@ -216,6 +239,64 @@ internal sealed partial class NotchWindow : WindowEx
         UpdateRegion(animation);
         ScheduleExpiry();
     }
+
+    // ───────── Einführung ─────────
+
+    /// <summary>Erster Start: Die Notch wird aus der Kante geboren und ruht dann; die Schritte kommen beim ersten Aufklappen.</summary>
+    public void StartOnboarding()
+    {
+        // Naht, Begrüßung und Schimmer liegen oben in der Mitte; daneben gehen Klicks weiter durch.
+        ApplyRegion((NotchGeometry.Canvas.Width / 2 - 260, 0, 520, 180));
+        _regionTarget = default;
+        _popupOpen = true;
+        View.StartOnboarding(_settings.Current.Animation.Clamped(), reducedMotion: !_uiSettings.AnimationsEnabled);
+    }
+
+    private void OnBirthFinished()
+    {
+        // Geboren: ruhen wie sonst auch, ohne Fokus zu nehmen.
+        _popupOpen = false;
+        _regionTarget = default;
+        Refresh();
+    }
+
+    private void OnHintChanged(bool show)
+    {
+        if (!show)
+        {
+            _regionTarget = default;
+            ApplyRegion(CurrentHitArea());
+            return;
+        }
+        // Die Sprechblase unter der Notch muss sichtbar sein (die Region schneidet auch das Zeichnen ab).
+        var notch = CurrentHitArea();
+        var hint = View.HintArea;
+        var left = Math.Min(notch.X, hint.X);
+        var top = Math.Min(notch.Y, hint.Y);
+        var right = Math.Max(notch.X + notch.Width, hint.X + hint.Width);
+        var bottom = Math.Max(notch.Y + notch.Height, hint.Y + hint.Height);
+        ApplyRegion((left, top, right - left, bottom - top));
+    }
+
+    private void OnOnboardingStarted()
+    {
+        // Tastatur für die Schritte (z. B. Rückfrage beim Einrichten), offen bis „Loslegen“.
+        Win32.SetActivatable(Handle, true);
+        _popupOpen = true;
+        _tab = NotchTab.Now;
+        SetExpanded(true, pinned: true);
+    }
+
+    private void OnOnboardingFinished(bool restart)
+    {
+        Win32.SetActivatable(Handle, false);
+        _popupOpen = false;
+        SetExpanded(false, pinned: false);
+        OnboardingFinished?.Invoke(restart);
+    }
+
+    /// <summary>Einführung beendet (an die App: speichern, ggf. neu starten).</summary>
+    public event Action<bool>? OnboardingFinished;
 
     /// <summary>Per Tastenkürzel oder zweiter Instanz auf- und zuklappen.</summary>
     public void ToggleFromKeyboard()
@@ -425,7 +506,7 @@ internal sealed partial class NotchWindow : WindowEx
         {
             return (0, 0, 0, 0);
         }
-        var shape = NotchGeometry.SwellsOnHover(mode) ? NotchGeometry.Swell(NotchGeometry.For(mode, View.Form)) : View.TargetShape;
+        var shape = View.HitShape(mode);
         return NotchGeometry.HitArea(shape, View.BeadCount, NotchGeometry.Gap(View.Form));
     }
 

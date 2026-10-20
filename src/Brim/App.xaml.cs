@@ -32,13 +32,17 @@ public partial class App : Application
     private List<IBrimModule> _allModules = [];
 
     /// <summary>Einstellungsfenster (Tray-Menü). Module ohne eigene Oberfläche (Uhr, Updates) stehen nicht zur Wahl.</summary>
-    private void OpenSettings() => SettingsWindow.Show(
+    private void OpenSettings() => SettingsWindow.Show();
+
+    /// <summary>Einstellungsseite für das Fenster und für die Notch (Zahnrad).</summary>
+    private SettingsPage CreateSettingsPage(Func<nint> window) => new(
         _settings!,
         _allModules.Where(m => m.Id is not (ClockModule.ModuleId or UpdateModule.ModuleId)).Select(m => (m.Id, m.DisplayName)).ToList(),
         _updater?.CurrentVersion,
         () => _windows?.ToggleExpanded(),
         () => PackageIdentity.Restart(ExitApp),
-        () => _plugins?.Installed ?? []);
+        () => _plugins?.Installed ?? [],
+        window);
 
     public App()
     {
@@ -103,6 +107,32 @@ public partial class App : Application
         _windows = new NotchWindowManager(_hub, _settings, shelf, nearbyModule, dispatcher);
         _windows.Build();
 
+        SettingsPage.Create = CreateSettingsPage;
+        SettingsPage.ShowOnboarding = () => _windows?.StartOnboarding();
+        _windows.OnboardingFinished += restart =>
+        {
+            _settings.Current.Onboarded = true;
+            _settings.Save(_settings.Current);
+            if (restart)
+            {
+                PackageIdentity.Restart(ExitApp);
+            }
+        };
+        // Erster Start einer frischen Installation: Einführung, sobald die Notch steht.
+        var wasOnboarded = settings.Onboarded;
+        if (Onboarding.ShouldRun(settings, _settings.Existed) && !IsDemo)
+        {
+            var intro = dispatcher.CreateTimer();
+            intro.Interval = TimeSpan.FromMilliseconds(800);
+            intro.IsRepeating = false;
+            intro.Tick += (_, _) => _windows.StartOnboarding();
+            intro.Start();
+        }
+        else if (!wasOnboarded && settings.Onboarded)
+        {
+            // Bestehende Installation: Einführung als gesehen merken, damit sie auch künftig nicht kommt.
+            _settings.Save(settings);
+        }
         _tray = new TrayIcon(_settings, ExitApp, () => _windows.ToggleExpanded(), OpenSettings);
 
         // Eine zweite gestartete Instanz klappt die Notch auf, statt eine weitere zu öffnen.
@@ -117,12 +147,24 @@ public partial class App : Application
             Log.Error("Audio nicht verfügbar", ex);
         }
         _modules = new ModuleHost(_hub);
+        // Die laufende Aktivität als Kachel für „Jetzt“ (Standard: über die ganze Seite).
+        _hub.DefineTile(new TileDefinition
+        {
+            ModuleId = "brim",
+            Id = "activity",
+            Name = "Laufende Aktivität",
+            Description = "Musik, Anruf, Timer – was gerade läuft",
+            Category = "Brim",
+            Glyph = Brim.Core.Widgets.Glyphs.Play,
+            Sizes = [TileSize.Full],
+        });
         // Plugins (Plan 4.2): eigene Prozesse, Ordner %LocalAppData%\Brim\Plugins plus eigene Ordner aus den Einstellungen.
         _plugins = new PluginHostModule(
             [Path.Combine(DataDirectory, "Plugins"), .. settings.PluginDirectories],
             new ProcessPluginLauncher(Path.Combine(DataDirectory, "logs", "plugins")),
             s => _settings.Save(s));
         _settings.Changed += s => _plugins.ApplySettings(s);
+        _settings.Changed += _ => _modules?.NotifySettingsChanged();
         ShelfPluginActions.List = () => _plugins.ShelfActions().Select(a => (a.PluginId, a.PluginName, a.Action.Id, a.Action.Label)).ToList();
         ShelfPluginActions.Invoke = (plugin, action, paths) => _plugins.SendShelfItems(plugin, action, paths);
         // Unbemerkte Updates (nur installierte Fassung); kein Neustart, solange jemand arbeitet oder überträgt.

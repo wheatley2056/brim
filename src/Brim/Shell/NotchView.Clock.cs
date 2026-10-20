@@ -49,7 +49,8 @@ public sealed partial class NotchView
             AutomationProperties.SetName(SharedClock, text);
         }
 
-        var visible = p.Mode is NotchMode.Idle or NotchMode.Expanded && text.Length > 0;
+        // Beim Bearbeiten von „Jetzt“ steht oben rechts „Fertig“ statt der Uhr.
+        var visible = p.Mode is NotchMode.Idle or NotchMode.Expanded && text.Length > 0 && _board?.IsEditing != true && !_settingsOpen && !_onboarding;
         if (!visible)
         {
             FadeClock(false);
@@ -71,7 +72,9 @@ public sealed partial class NotchView
         {
             var shape = ShapeFor(NotchMode.Idle);
             scale = _hovering ? HoverContentScale : 1;
-            x = center - width * scale / 2;
+            // Uhr mittig, links oder rechts (IdleLayout); beim Anschwellen wächst sie um ihre Mitte.
+            var left = center - _idle.Width / 2;
+            x = left + IdleClockX + width * (1 - scale) / 2;
             y = shape.Height / 2 - height * scale / 2;
         }
 

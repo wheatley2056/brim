@@ -25,6 +25,7 @@ public static class PluginProtocol
     public const string ViewSet = "view.set";
     public const string ViewClear = "view.clear";
     public const string LogMessage = "log";
+    public const string WidgetSet = "widget.set";
 
     // Brim → Plugin (Benachrichtigungen)
     public const string ActionInvoked = "action.invoked";
@@ -38,6 +39,9 @@ public static class PluginProtocol
     /// <summary>Eine Windows-Benachrichtigung einer App aus <c>notificationApps</c> (Recht „notifications“).</summary>
     public const string NotificationPosted = "notification.posted";
     public const string Shutdown = "shutdown";
+
+    /// <summary>Welche Widgets des Plugins auf „Jetzt“ liegen (oder in der Galerie zu sehen sind), in welchen Größen.</summary>
+    public const string WidgetsPlaced = "widget.placed";
 }
 
 public sealed record HelloParams
@@ -118,3 +122,16 @@ public sealed record ExpandedParams(bool Expanded);
 
 /// <summary>Eine Windows-Benachrichtigung: App, Titel (erste Zeile) und Text.</summary>
 public sealed record NotificationParams(string App, string Title, string Body);
+
+/// <summary>Inhalt eines Widgets (aus <c>widgets</c> im Manifest) in einer Größe.</summary>
+public sealed record WidgetSetParams
+{
+    public required string Id { get; init; }
+    public TileSize Size { get; init; } = TileSize.Medium;
+    public required Widget Content { get; init; }
+}
+
+public sealed record PlacedWidget(string Id, IReadOnlyList<TileSize> Sizes);
+
+/// <summary>Alle Widgets des Plugins, die gerade gebraucht werden; nur für diese lohnt sich <c>widget.set</c>.</summary>
+public sealed record WidgetsPlacedParams(IReadOnlyList<PlacedWidget> Widgets);

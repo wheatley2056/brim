@@ -139,6 +139,23 @@ internal sealed class NotchWindowManager : IDisposable
 
     public bool IsBusy => _windows.Any(w => w.IsBusy);
 
+    /// <summary>Einführung auf dem Hauptmonitor (erster Start oder „Einführung erneut zeigen“).</summary>
+    public void StartOnboarding()
+    {
+        if (_windows.FirstOrDefault() is not { } window)
+        {
+            return;
+        }
+        window.OnboardingFinished -= OnOnboardingFinished;
+        window.OnboardingFinished += OnOnboardingFinished;
+        window.StartOnboarding();
+    }
+
+    private void OnOnboardingFinished(bool restart) => OnboardingFinished?.Invoke(restart);
+
+    /// <summary>Einführung beendet; <c>true</c>, wenn Brim neu starten soll.</summary>
+    public event Action<bool>? OnboardingFinished;
+
     public void ToggleExpanded()
     {
         var window = _windows.FirstOrDefault(w => w.IsExpanded) ?? _windows.FirstOrDefault();

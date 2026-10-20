@@ -281,6 +281,68 @@ internal sealed class PluginRunner : IAsyncDisposable
         {
             _context.RemoveView(id);
         }
+        if (Manifest.Widgets.Count > 0)
+        {
+            _context.TilePlacementsChanged -= SendPlacedWidgets;
+            _context.RemoveTiles(Id + "/");
+            _placedWidgets = null;
+        }
+    }
+
+    // ───────── Widgets für „Jetzt“ ─────────
+
+    private string? _placedWidgets;
+
+    /// <summary>Nach „hello“: Widgets aus dem Manifest in die Galerie, dann melden, welche liegen.</summary>
+    private void DefineWidgets()
+    {
+        if (Manifest.Widgets.Count == 0)
+        {
+            return;
+        }
+        foreach (var widget in Manifest.Widgets)
+        {
+            _context.DefineTile(Scoped(widget.Id), widget.Name, widget.Sizes, Manifest.Name, widget.Glyph, widget.Description);
+        }
+        _context.TilePlacementsChanged -= SendPlacedWidgets;
+        _context.TilePlacementsChanged += SendPlacedWidgets;
+        // Erst nach der Antwort auf „hello“ senden: Das Plugin wartet noch darauf.
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(50);
+            SendPlacedWidgets();
+        });
+    }
+
+    private void SendPlacedWidgets()
+    {
+        var placed = Manifest.Widgets
+            .Select(w => new PlacedWidget(w.Id, _context.PlacedSizes(Scoped(w.Id)).Where(w.Sizes.Contains).OrderBy(s => s).ToList()))
+            .Where(w => w.Sizes.Count > 0)
+            .ToList();
+        var signature = string.Join(";", placed.Select(w => w.Id + ":" + string.Join(",", w.Sizes)));
+        lock (_gate)
+        {
+            if (signature == _placedWidgets)
+            {
+                return;
+            }
+            _placedWidgets = signature;
+        }
+        Notify(PluginProtocol.WidgetsPlaced, new WidgetsPlacedParams(placed));
+    }
+
+    private object? SetWidget(WidgetSetParams p)
+    {
+        CheckId(p.Id);
+        var definition = Manifest.Widgets.FirstOrDefault(w => w.Id == p.Id)
+            ?? throw new JsonRpcException(JsonRpcException.InvalidParams, $"Widget „{p.Id}“ steht nicht in widgets im Manifest");
+        if (!definition.Sizes.Contains(p.Size))
+        {
+            throw new JsonRpcException(JsonRpcException.InvalidParams, $"Widget „{p.Id}“ hat die Größe {p.Size} nicht im Manifest");
+        }
+        _context.SetTile(Scoped(p.Id), p.Size, Prepare(p.Content, "content")!);
+        return null;
     }
 
     private void SetState(PluginState state, string? detail)
@@ -342,6 +404,7 @@ internal sealed class PluginRunner : IAsyncDisposable
             PluginProtocol.ViewSet => SetView(Parse<ViewParams>(parameters)!),
             PluginProtocol.ViewClear => ClearView(Parse<IdParams>(parameters)!),
             PluginProtocol.LogMessage => WriteLog(Parse<LogParams>(parameters)!),
+            PluginProtocol.WidgetSet => SetWidget(Parse<WidgetSetParams>(parameters)!),
             _ => throw new JsonRpcException(JsonRpcException.MethodNotFound, $"Unbekannte Methode {method}"),
         };
         return Task.FromResult(result);
@@ -377,6 +440,7 @@ internal sealed class PluginRunner : IAsyncDisposable
             throw new JsonRpcException(JsonRpcException.InvalidParams, $"API {hello.Api} wird nicht unterstützt, Brim spricht {PluginProtocol.ApiVersion}");
         }
         var config = _config();
+        DefineWidgets();
         var result = new HelloResult
         {
             Id = Id,

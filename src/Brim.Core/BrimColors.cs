@@ -17,6 +17,8 @@ public static class BrimColors
     public const string Slate = "#9A9EA8";
     /// <summary>Laden, Erfolg.</summary>
     public const string Charge = "#5BD98A";
+    /// <summary>Akku lädt (mit Blitz).</summary>
+    public const string Charging = "#4FA3FF";
     /// <summary>Warnung, Timer.</summary>
     public const string Warning = "#FFB547";
     /// <summary>Kamera in Benutzung (wie der grüne Punkt am Mac).</summary>

@@ -129,6 +129,15 @@ public sealed class BatteryModule : IBrimModule
         }
 
         context.SetView("card", Card(state), column: TabColumn.Side, order: 0);
+        context.SetStatus("status", state.Present && context.Settings.Display.Battery ? StatusWidget(state) : null);
+    }
+
+    public void OnSettingsChanged()
+    {
+        if (_context is { } context && _last is { } state)
+        {
+            context.SetStatus("status", state.Present && context.Settings.Display.Battery ? StatusWidget(state) : null);
+        }
     }
 
     /// <summary>Kompakt nur beim Laden (einstellbar) oder wenn der Akku zur Neige geht (Plan 4.6).</summary>
@@ -137,11 +146,12 @@ public sealed class BatteryModule : IBrimModule
 
     public static string Glyph(BatteryState state) => Glyphs.Battery(state.Percent, state.Charging, state.EnergySaver && !state.Charging);
 
+    /// <summary>Lädt: blau (mit Blitz). Fast leer: rot. Energiesparmodus: orange. Sonst grün.</summary>
     public static string ColorFor(BatteryState state, BatterySettings settings) =>
-        state.PluggedIn ? BrimColors.Charge
-        : state.Percent <= settings.CriticalPercent ? BrimColors.Danger
-        : state.Percent <= settings.LowPercent ? BrimColors.Warning
-        : BrimColors.Fog;
+        state.Charging ? BrimColors.Charging
+        : !state.PluggedIn && state.Percent <= settings.LowPercent ? BrimColors.Danger
+        : state.EnergySaver ? BrimColors.Warning
+        : BrimColors.Charge;
 
     /// <summary>„voll in 1 h 5 min“, „noch 3 h 10 min“, „Angeschlossen“ – plus Energiesparmodus.</summary>
     public static string StatusText(BatteryState state)
@@ -164,6 +174,15 @@ public sealed class BatteryModule : IBrimModule
     }
 
     // ───────── Darstellung ─────────
+
+    /// <summary>Neben der Uhr in der ruhenden Notch: Symbol und Prozent in den Akku-Farben.</summary>
+    private Widget StatusWidget(BatteryState state) => new StackWidget(
+        new IconWidget(Glyph(state)) { Size = 13, Color = ColorFor(state, Settings) },
+        new TextWidget($"{state.Percent} %") { Style = TextStyle.Mono, Color = ColorFor(state, Settings) })
+    {
+        Spacing = 4,
+        AccessibleName = $"Akku {state.Percent} %, {StatusText(state)}",
+    };
 
     private Widget Card(BatteryState state) => new StackWidget(
         new IconWidget(Glyph(state)) { Size = 18, Color = ColorFor(state, Settings) },

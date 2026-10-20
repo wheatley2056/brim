@@ -20,8 +20,13 @@ public sealed partial class NotchView
     private bool UpdateTabViews(NotchTab tab)
     {
         var views = _hub.Views(tab);
-        var main = views.Where(v => v.Column == TabColumn.Main).ToList();
-        var side = views.Where(v => v.Column == TabColumn.Side).ToList();
+        // Eine Detailansicht verdrängt alle anderen Karten und nimmt die volle Breite.
+        if (views.FirstOrDefault(v => v.IsDetail) is { } detail)
+        {
+            views = [detail];
+        }
+        var main = views.Where(v => v.Column == TabColumn.Main || v.IsDetail).ToList();
+        var side = views.Where(v => v.Column == TabColumn.Side && !v.IsDetail).ToList();
         Fill(TabViewMain, main);
         Fill(TabViewSide, side);
 

@@ -20,6 +20,7 @@ namespace Brim.Core.Widgets;
 [JsonDerivedType(typeof(StackWidget), "stack")]
 [JsonDerivedType(typeof(ListWidget), "list")]
 [JsonDerivedType(typeof(SpacerWidget), "spacer")]
+[JsonDerivedType(typeof(ClockFaceWidget), "clockface")]
 public abstract record Widget
 {
     /// <summary>Optionaler Schlüssel; hilft dem Renderer, Elemente zwischen Aktualisierungen wiederzuverwenden.</summary>
@@ -193,6 +194,9 @@ public sealed record StackWidget(params IReadOnlyList<Widget> Children) : Widget
     public string? Background { get; init; }
 
     public double CornerRadius { get; init; }
+
+    /// <summary>Macht die ganze Fläche klickbar (z. B. eine Karte, die Details öffnet); kommt wie ein Knopf zurück.</summary>
+    public string? ActionId { get; init; }
 }
 
 public sealed record ListWidget(IReadOnlyList<Widget> Items) : Widget
@@ -207,4 +211,35 @@ public sealed record ListWidget(IReadOnlyList<Widget> Items) : Widget
 public sealed record SpacerWidget : Widget
 {
     public double Size { get; init; }
+}
+
+public enum ClockFaceStyle
+{
+    /// <summary>Zifferblatt mit Minuten- und Stundenstrichen.</summary>
+    Classic,
+    /// <summary>Nur Zeiger und vier Punkte.</summary>
+    Minimal,
+    /// <summary>Ziffern 12, 3, 6 und 9.</summary>
+    Numbers,
+}
+
+/// <summary>
+/// Analoge Uhr. Die Zeit kommt vom Modul (z. B. jede Sekunde); die Shell dreht nur die Zeiger.
+/// </summary>
+public sealed record ClockFaceWidget(double Hour, double Minute, double Second) : Widget
+{
+    /// <summary>Durchmesser in DIP.</summary>
+    public double Size { get; init; } = 80;
+
+    public ClockFaceStyle Style { get; init; } = ClockFaceStyle.Classic;
+    public bool ShowSeconds { get; init; } = true;
+
+    /// <summary>Zeiger und Striche (Standard Fog).</summary>
+    public string? Color { get; init; }
+
+    /// <summary>Sekundenzeiger (Standard Warning).</summary>
+    public string? AccentColor { get; init; }
+
+    /// <summary>Fläche des Zifferblatts; ohne Wert durchsichtig.</summary>
+    public string? Background { get; init; }
 }

@@ -139,6 +139,48 @@ public class ResourcesModuleTests
     }
 
     [Fact]
+    public async Task A_click_on_a_card_opens_its_detail_and_back_closes_it()
+    {
+        await Start();
+        _module.OnTabVisibilityChanged(NotchTab.System, true);
+        _time.Advance(TimeSpan.FromSeconds(1));
+        var meters = _hub.Views(NotchTab.System)[0].Content;
+        Assert.Contains("detail:cpu", WidgetTree.All(meters).OfType<StackWidget>().Select(w => w.ActionId));
+        Assert.Contains("detail:disk", WidgetTree.All(meters).OfType<StackWidget>().Select(w => w.ActionId));
+
+        _module.OnAction(new ActionInvocation(ResourcesModule.ModuleId, "detail:cpu"));
+        var detail = Assert.Single(_hub.Views(NotchTab.System), v => v.IsDetail);
+        Assert.Contains("Prozessor", Texts(detail.Content));
+        Assert.Contains("taskmgr", WidgetTree.All(detail.Content).OfType<ButtonWidget>().Select(b => b.ActionId));
+
+        _module.OnAction(new ActionInvocation(ResourcesModule.ModuleId, "detail:close"));
+        Assert.DoesNotContain(_hub.Views(NotchTab.System), v => v.IsDetail);
+
+        // Zuklappen schließt die Detailansicht ebenfalls.
+        _module.OnAction(new ActionInvocation(ResourcesModule.ModuleId, "detail:memory"));
+        _module.OnExpandedChanged(false);
+        Assert.DoesNotContain(_hub.Views(NotchTab.System), v => v.IsDetail);
+    }
+
+    [Fact]
+    public void Every_detail_view_is_valid()
+    {
+        var sample = new ResourceSample(37, 6UL << 30, 16UL << 30, 12, 2048, 512, [], 4);
+        var detail = new ResourceDetail(250, 3200, 120_000, 3400, 9UL << 30, 24UL << 30, 2UL << 30, 1UL << 30, 1_000_000, 50_000,
+            [new ProcessUsage("Brim", 2.5)], [new MemoryUsage("Edge", 800UL << 20)]);
+        var history = new ResourcesModule.DetailHistory([1, 2], [30, 31], [5], [1], [100, 200], [50]);
+        foreach (var kind in ResourcesModule.DetailTitles.Keys)
+        {
+            foreach (var (s, d) in new[] { (sample, detail), ((ResourceSample?)null, ResourceDetail.Empty) })
+            {
+                var view = ResourcesModule.DetailView(kind, s, d, history, System.Globalization.CultureInfo.GetCultureInfo("de-DE"), TimeSpan.FromHours(30));
+                Assert.Null(WidgetValidator.Validate(view));
+            }
+        }
+        Assert.Equal("1 d 6 h", ResourcesModule.Uptime(TimeSpan.FromHours(30)));
+    }
+
+    [Fact]
     public async Task Other_tabs_do_not_start_measuring()
     {
         await Start();
@@ -179,6 +221,19 @@ public class BatteryModuleTests
 
     private static BatteryState OnBattery(int percent, TimeSpan? left = null) => new(true, percent, false, false, left, null, false);
     private static BatteryState Charging(int percent) => new(true, percent, true, true, null, TimeSpan.FromMinutes(65), false);
+
+    [Fact]
+    public void Colors_charging_blue_low_red_saver_orange_otherwise_green()
+    {
+        var settings = new BatterySettings();
+        Assert.Equal(BrimColors.Charging, BatteryModule.ColorFor(Charging(10), settings));
+        Assert.Equal(BrimColors.Danger, BatteryModule.ColorFor(OnBattery(settings.LowPercent), settings));
+        Assert.Equal(BrimColors.Danger, BatteryModule.ColorFor(OnBattery(settings.CriticalPercent), settings));
+        Assert.Equal(BrimColors.Warning, BatteryModule.ColorFor(OnBattery(60) with { EnergySaver = true }, settings));
+        Assert.Equal(BrimColors.Charge, BatteryModule.ColorFor(OnBattery(60), settings));
+        // Voll und angesteckt, lädt nicht mehr: grün.
+        Assert.Equal(BrimColors.Charge, BatteryModule.ColorFor(new BatteryState(true, 100, false, true, null, null, false), settings));
+    }
 
     private readonly FakeTimeProvider _time = new();
     private readonly ActivityHub _hub;

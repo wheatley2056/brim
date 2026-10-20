@@ -9,7 +9,7 @@ public static class WidgetTree
         ButtonWidget b => b with { ActionId = map(b.ActionId) },
         SwitchWidget s => s with { ActionId = map(s.ActionId) },
         ProgressWidget { SeekActionId: { } id } p => p with { SeekActionId = map(id) },
-        StackWidget s => s with { Children = s.Children.Select(c => MapActions(c, map)).ToList() },
+        StackWidget s => s with { Children = s.Children.Select(c => MapActions(c, map)).ToList(), ActionId = s.ActionId is { } id ? map(id) : null },
         ListWidget l => l with { Items = l.Items.Select(c => MapActions(c, map)).ToList() },
         _ => widget,
     };

@@ -223,6 +223,128 @@ internal sealed class NotchSurface : IDisposable
         }
     }
 
+    // ───────── Geburt (Einführung) ─────────
+    // Nach design/First launch · Birth: eine Naht aus Licht an der Kante, dann tropft die Notch heraus, blüht zur
+    // Begrüßung auf, ein Schimmer probiert einmal alle Akzentfarben, und sie zieht sich in die Ruhe zurück.
+    // Die Form morpht die Ansicht (MorphTo); hier nur Naht und Schimmer.
+
+    /// <summary>Naht: 2 px Licht an der Kante, wächst von 40 auf 170 px (260 ms) und vergeht beim Herauskommen.</summary>
+    public void PlaySeam()
+    {
+        var cx = _root.Size.X / 2;
+        var core = _compositor.CreateSpriteVisual();
+        core.Brush = HorizontalGlow(Color.FromArgb(242, 255, 236, 226));
+        core.Size = new Vector2(170, 2);
+        // Weicher Schein wie box-shadow 0 0 14px 3px rgba(255,170,140,0.5).
+        var halo = _compositor.CreateSpriteVisual();
+        var haloBrush = _compositor.CreateRadialGradientBrush();
+        haloBrush.MappingMode = CompositionMappingMode.Relative;
+        haloBrush.EllipseCenter = new Vector2(0.5f, 0);
+        haloBrush.EllipseRadius = new Vector2(0.5f, 1);
+        haloBrush.ColorStops.Add(_compositor.CreateColorGradientStop(0, Color.FromArgb(128, 255, 170, 140)));
+        haloBrush.ColorStops.Add(_compositor.CreateColorGradientStop(1, Color.FromArgb(0, 255, 170, 140)));
+        halo.Brush = haloBrush;
+        halo.Size = new Vector2(206, 18);
+        foreach (var visual in new[] { halo, core })
+        {
+            visual.Offset = new Vector3(cx - visual.Size.X / 2, 0, 0);
+            visual.CenterPoint = new Vector3(visual.Size.X / 2, 0, 0);
+            visual.Opacity = 0;
+            var grow = _compositor.CreateVector3KeyFrameAnimation();
+            grow.InsertKeyFrame(0, new Vector3(40f / 170, 1, 1));
+            grow.InsertKeyFrame(1, Vector3.One, EaseOutCubic);
+            grow.Duration = TimeSpan.FromMilliseconds(260);
+            visual.StartAnimation("Scale", grow);
+            var fade = _compositor.CreateScalarKeyFrameAnimation();
+            fade.InsertKeyFrame(0, 0);
+            fade.InsertKeyFrame(260f / 500, 1, EaseOutCubic);
+            fade.InsertKeyFrame(1, 0);
+            fade.Duration = TimeSpan.FromMilliseconds(500);
+            visual.StartAnimation("Opacity", fade);
+            _root.Children.InsertAtTop(visual);
+        }
+        Remove(TimeSpan.FromMilliseconds(600), core, halo);
+    }
+
+    /// <summary>
+    /// Schimmer am unteren Rand der Begrüßung (24 px, oben weich ausgeblendet): ein Verlauf durch die geliehenen
+    /// Farben gleitet 1,8 s einmal hindurch; 250 ms ein-, 300 ms ausgeblendet.
+    /// </summary>
+    public void PlaySheen(NotchShape shape, TimeSpan delay)
+    {
+        var width = (float)(shape.Width - 2 * shape.Radius);
+        var sheen = _compositor.CreateSpriteVisual();
+        sheen.Size = new Vector2(width, 24);
+        sheen.Offset = new Vector3(_root.Size.X / 2 - width / 2, (float)shape.Height - 24, 0);
+        sheen.Opacity = 0;
+
+        var colors = _compositor.CreateLinearGradientBrush();
+        colors.MappingMode = CompositionMappingMode.Relative;
+        foreach (var (offset, a, r, g, b) in new[] { (0f, 0, 255, 138, 102), (0.18f, 128, 255, 138, 102), (0.40f, 128, 140, 123, 255), (0.62f, 128, 79, 195, 232), (0.82f, 128, 232, 210, 106), (1f, 0, 232, 210, 106) })
+        {
+            colors.ColorStops.Add(_compositor.CreateColorGradientStop(offset, Color.FromArgb((byte)a, (byte)r, (byte)g, (byte)b)));
+        }
+        // Der Verlauf ist dreimal so breit wie der Streifen und gleitet von −2 bis 0.
+        colors.StartPoint = new Vector2(-2, 0.5f);
+        colors.EndPoint = new Vector2(1, 0.5f);
+        var mask = _compositor.CreateLinearGradientBrush();
+        mask.StartPoint = new Vector2(0.5f, 0);
+        mask.EndPoint = new Vector2(0.5f, 1);
+        mask.ColorStops.Add(_compositor.CreateColorGradientStop(0, Color.FromArgb(0, 0, 0, 0)));
+        mask.ColorStops.Add(_compositor.CreateColorGradientStop(1, Colors.Black));
+        var brush = _compositor.CreateMaskBrush();
+        brush.Source = colors;
+        brush.Mask = mask;
+        sheen.Brush = brush;
+
+        var slide = TimeSpan.FromMilliseconds(1800);
+        foreach (var (property, from, to) in new[] { ("StartPoint", new Vector2(-2, 0.5f), new Vector2(0, 0.5f)), ("EndPoint", new Vector2(1, 0.5f), new Vector2(3, 0.5f)) })
+        {
+            var move = _compositor.CreateVector2KeyFrameAnimation();
+            move.InsertKeyFrame(0, from);
+            move.InsertKeyFrame(1, to, _compositor.CreateLinearEasingFunction());
+            move.Duration = slide;
+            move.DelayTime = delay;
+            colors.StartAnimation(property, move);
+        }
+        var fade = _compositor.CreateScalarKeyFrameAnimation();
+        fade.InsertKeyFrame(0, 0);
+        fade.InsertKeyFrame(250f / 1800, 1, EaseOutCubic);
+        fade.InsertKeyFrame(1500f / 1800, 1);
+        fade.InsertKeyFrame(1, 0, EaseOutCubic);
+        fade.Duration = slide;
+        fade.DelayTime = delay;
+        sheen.StartAnimation("Opacity", fade);
+        _root.Children.InsertAtTop(sheen);
+        Remove(delay + slide + TimeSpan.FromMilliseconds(100), sheen);
+    }
+
+    private CompositionEasingFunction EaseOutCubic => _compositor.CreateCubicBezierEasingFunction(new Vector2(0.33f, 1), new Vector2(0.68f, 1));
+
+    private CompositionLinearGradientBrush HorizontalGlow(Color center)
+    {
+        var brush = _compositor.CreateLinearGradientBrush();
+        brush.StartPoint = new Vector2(0, 0.5f);
+        brush.EndPoint = new Vector2(1, 0.5f);
+        var clear = Color.FromArgb(0, center.R, center.G, center.B);
+        brush.ColorStops.Add(_compositor.CreateColorGradientStop(0, clear));
+        brush.ColorStops.Add(_compositor.CreateColorGradientStop(0.5f, center));
+        brush.ColorStops.Add(_compositor.CreateColorGradientStop(1, clear));
+        return brush;
+    }
+
+    private void Remove(TimeSpan after, params Visual[] visuals)
+    {
+        _ = Task.Delay(after).ContinueWith(_ =>
+        {
+            foreach (var visual in visuals)
+            {
+                _root.Children.Remove(visual);
+                visual.Dispose();
+            }
+        }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
     /// <summary>Blendet die ganze Notch aus (nach dem Zurückziehen) oder wieder ein.</summary>
     public void SetVisible(bool visible, TimeSpan delay)
     {

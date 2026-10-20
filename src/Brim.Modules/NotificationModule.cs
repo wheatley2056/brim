@@ -150,7 +150,15 @@ public sealed class NotificationModule : IBrimModule
             var texts = binding?.GetTextElements().Select(t => t.Text).Where(t => !string.IsNullOrWhiteSpace(t)).ToList() ?? [];
             if (Preview(app, texts) is { } preview && Route?.Invoke(preview) != true)
             {
-                Show(preview);
+                if (_context?.Settings.Notifications.Style == NotificationStyle.Dot)
+                {
+                    // Die Uhr bleibt; ein blauer Punkt zeigt, dass etwas gekommen ist, bis die Notch aufgeht.
+                    _context.SetStatus("dot", new IconWidget(Glyphs.Dot) { Size = 10, Color = BrimColors.Charging, AccessibleName = $"Neue Benachrichtigung von {preview.App}" });
+                }
+                else
+                {
+                    Show(preview);
+                }
             }
         }
         catch (Exception ex)
@@ -190,6 +198,14 @@ public sealed class NotificationModule : IBrimModule
             Padding = (18, 0, 18, 0),
         },
     });
+
+    public void OnExpandedChanged(bool expanded)
+    {
+        if (expanded)
+        {
+            _context?.SetStatus("dot", null);
+        }
+    }
 
     public ValueTask DisposeAsync()
     {

@@ -27,6 +27,9 @@ public interface IBrimModule : IAsyncDisposable
     /// Abfragen (Ressourcen) messen nur, solange ihr Tab offen ist (Plan 4.7).
     /// </summary>
     void OnTabVisibilityChanged(NotchTab tab, bool visible) { }
+
+    /// <summary>Einstellungen wurden geändert (z. B. was die ruhende Notch zeigt); sofort neu zeichnen.</summary>
+    void OnSettingsChanged() { }
 }
 
 /// <summary>Was ein Modul von der Shell bekommt.</summary>
@@ -63,7 +66,34 @@ public sealed class ModuleContext
 
     public void RemoveView(string id) => _hub.RemoveView(ModuleId, id);
 
+    /// <summary>Detailansicht im Tab (volle Breite, höhere Notch), bis <see cref="RemoveView"/> sie schließt.</summary>
+    public void SetDetail(string id, Widget content, NotchTab tab = NotchTab.System) =>
+        _hub.SetView(new TabView { ModuleId = ModuleId, Id = id, Content = content, Tab = tab, IsDetail = true });
+
     public bool IsTabVisible(NotchTab tab) => _hub.IsTabVisible(tab);
+
+    /// <summary>Statuswert für die ruhende Notch (z. B. „load“); <c>null</c> entfernt ihn.</summary>
+    public void SetStatus(string id, Widget? content) => _hub.SetStatus(ModuleId, id, content);
+
+    /// <summary>Bietet eine Kachel für „Jetzt“ an (Galerie).</summary>
+    public void DefineTile(string id, string name, IReadOnlyList<TileSize> sizes, string category = "Brim", string? glyph = null, string? description = null) =>
+        _hub.DefineTile(new TileDefinition { ModuleId = ModuleId, Id = id, Name = name, Sizes = sizes, Category = category, Glyph = glyph, Description = description });
+
+    /// <summary>Nimmt Kacheln aus der Galerie, deren Kennung so beginnt (z. B. alle eines Plugins).</summary>
+    public void RemoveTiles(string idPrefix) => _hub.RemoveTiles(ModuleId, idPrefix);
+
+    /// <summary>Inhalt einer Kachel in einer Größe.</summary>
+    public void SetTile(string id, TileSize size, Widget content) => _hub.SetTile(ModuleId, id, size, content);
+
+    /// <summary>Größen, in denen die Kachel gerade liegt (oder in der Galerie zu sehen ist); leer = nichts zu tun.</summary>
+    public IReadOnlyList<TileSize> PlacedSizes(string id) => _hub.PlacedSizes(ModuleId, id);
+
+    /// <summary>Gelegte Kacheln haben sich geändert.</summary>
+    public event Action? TilePlacementsChanged
+    {
+        add => _hub.TilePlacementsChanged += value;
+        remove => _hub.TilePlacementsChanged -= value;
+    }
 
     /// <summary>Löst eine Aktion in einem anderen Modul aus, z. B. „Audio-Menü öffnen“ aus dem Player.</summary>
     public void Send(string moduleId, string actionId, double? value = null) =>
@@ -107,6 +137,22 @@ public sealed class ModuleHost : IAsyncDisposable
                 // Ein fehlerhaftes Modul darf die Notch nicht mitreißen.
                 Log.Error($"Modul {module.Id} konnte nicht starten", ex);
                 _hub.EndAll(module.Id);
+            }
+        }
+    }
+
+    /// <summary>Gibt geänderte Einstellungen an alle Module weiter; Fehler einzelner werden protokolliert.</summary>
+    public void NotifySettingsChanged()
+    {
+        foreach (var module in _running)
+        {
+            try
+            {
+                module.OnSettingsChanged();
+            }
+            catch (Exception ex)
+            {
+                Log.Warn($"Modul {module.Id} reagierte fehlerhaft auf neue Einstellungen", ex);
             }
         }
     }

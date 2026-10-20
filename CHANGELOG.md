@@ -3,6 +3,19 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 2.0.0
+
+Brim 2.0 – „Jetzt“ zum Selbstgestalten, Einstellungen in der Notch und eine Einführung beim ersten Start.
+
+- Einführung: Beim ersten Start öffnet sich eine Naht an der Bildschirmkante, die Notch tropft heraus, blüht zur Begrüßung auf (mit Farbschimmer am unteren Rand) und setzt sich dann als ruhende Notch; ein Hinweis zeigt, wo Brim wohnt. Ein Klick überspringt die Animation, bei reduzierten Animationen wird nur überblendet. Beim ersten Aufklappen folgen Kurzanleitung und Einrichtung von Kalender und Benachrichtigungen. Erneut ansehen: Einstellungen → Info.
+- „Jetzt“ selbst gestalten: Die Seite besteht jetzt aus Kacheln. „Jetzt“ lange drücken oder rechts anklicken – die Kacheln bekommen einen Rahmen, du ziehst sie an einen anderen Platz, änderst die Größe, entfernst sie mit „−“ oder fügst mit „+“ neue aus der Galerie hinzu. Bei mehreren Seiten blätterst du mit dem Mausrad.
+- Neue Widgets: acht Uhren (digital, mit Sekunden, mit Datum; analog klassisch, minimal, mit Ziffern, mit Datum) und ein Kalenderblatt, dazu Musik, Termine und die laufende Aktivität. Ohne Änderung sieht „Jetzt“ aus wie bisher.
+- Plugins können eigene Widgets anbieten, zum Beispiel SwyxIt! (Telefon, Chats) und Outlook (nächster Termin, Posteingang, Aufgaben).
+- Einstellungen in der Notch: Das Zahnrad neben den Tabs vergrößert die Notch auf die Größe des Einstellungsfensters (auf kleinen Bildschirmen so weit es geht).
+- In der Notch: Die Uhr steht mittig, links oder rechts, und daneben auf Wunsch Datum, CPU und RAM, Netzwerk und Akku. Benachrichtigungen können statt der Vorschau nur einen blauen Punkt zeigen – die Uhr bleibt stehen. Einstellen unter Aussehen → In der Notch.
+- System: Ein Klick auf CPU, RAM, GPU, Netzwerk oder Disk öffnet eine Detailansicht mit Verlauf, mehr Werten und den größten Prozessen; oben rechts geht es in den Task-Manager.
+- Akku: lädt blau mit Blitz, fast leer rot, Energiesparmodus orange, sonst grün.
+
 ## 1.1.0
 
 - Aussehen (neu in den Einstellungen): Die Notch gibt es jetzt in vier Formen – klassische Notch, schwebende Insel, runde Kante ohne Ohren und eckiger Tab. Die Größe lässt sich von 80 bis 130 % einstellen. Wechsel siehst du sofort.
