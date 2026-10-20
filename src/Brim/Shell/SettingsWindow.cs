@@ -261,8 +261,9 @@ internal sealed class SettingsWindow : Window
             [("Notch – wächst aus der Kante", NotchForm.Notch), ("Insel – schwebende Pille", NotchForm.Island),
              ("Kante – flach, ohne Ohren", NotchForm.Edge), ("Tab – eckig wie ein Reiter", NotchForm.Tab)],
             a.Form, v => a.Form = v));
-        p.Children.Add(Toggle("Glas", "Der Desktop scheint weichgezeichnet durch die Notch, statt Schwarz. Braucht etwas mehr Grafikleistung.",
-            a.Glass, v => a.Glass = v));
+        p.Children.Add(Choice("Material", "Acryl zeigt den Desktop weichgezeichnet, Mica und Mica Alt sind aus dem Hintergrundbild getönt (Windows 11). Braucht etwas mehr Grafikleistung.",
+            [("Schwarz", NotchMaterial.Black), ("Acryl", NotchMaterial.Acrylic), ("Mica", NotchMaterial.Mica), ("Mica Alt", NotchMaterial.MicaAlt)],
+            a.Material, v => a.Material = v));
         p.Children.Add(Choice("Schrift", "Bahnschrift und Cascadia Mono gehören zu Windows 11.",
             [("Segoe UI (Standard)", NotchFont.Standard), ("Bahnschrift – schmal, technisch", NotchFont.Bahnschrift),
              ("Cascadia Mono – alles in Monospace", NotchFont.Mono),

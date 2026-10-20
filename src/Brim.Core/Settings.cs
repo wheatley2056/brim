@@ -35,6 +35,18 @@ public sealed class AnimationSettings
     };
 }
 
+/// <summary>Material des Körpers: Schwarz oder eines der Windows-Materialien, das durch die Notch scheint.</summary>
+public enum NotchMaterial
+{
+    Black,
+    /// <summary>Acryl: der Desktop dahinter, weichgezeichnet.</summary>
+    Acrylic,
+    /// <summary>Mica: getönt aus dem Hintergrundbild (Windows 11).</summary>
+    Mica,
+    /// <summary>Mica Alt: kräftiger getönt, wie Registerkarten in Windows 11.</summary>
+    MicaAlt,
+}
+
 /// <summary>Schrift der Notch: drei mitgelieferte von Windows oder eine eigene Datei.</summary>
 public enum NotchFont
 {
@@ -56,8 +68,7 @@ public sealed class AppearanceSettings
     /// <summary>Faktor auf alle Zustände (0,8–1,3).</summary>
     public double Size { get; set; } = 1.0;
 
-    /// <summary>Glas: Der Desktop scheint weichgezeichnet durch, statt Schwarz.</summary>
-    public bool Glass { get; set; }
+    public NotchMaterial Material { get; set; } = NotchMaterial.Black;
 
     public NotchFont Font { get; set; } = NotchFont.Standard;
 
@@ -69,7 +80,7 @@ public sealed class AppearanceSettings
     public AppearanceSettings Clamped() => new()
     {
         Form = Enum.IsDefined(Form) ? Form : NotchForm.Notch,
-        Glass = Glass,
+        Material = Enum.IsDefined(Material) ? Material : NotchMaterial.Black,
         // Ohne Datei bleibt es bei der Standardschrift.
         Font = Font == NotchFont.Custom && (CustomFontFile is null || CustomFontFamily is null) ? NotchFont.Standard
             : Enum.IsDefined(Font) ? Font : NotchFont.Standard,

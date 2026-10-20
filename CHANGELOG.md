@@ -6,7 +6,7 @@ Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der 
 ## 1.1.0
 
 - Aussehen (neu in den Einstellungen): Die Notch gibt es jetzt in vier Formen – klassische Notch, schwebende Insel, flache Kante und eckiger Tab. Die Größe lässt sich von 80 bis 130 % einstellen. Wechsel siehst du sofort.
-- Glas: Auf Wunsch scheint der Desktop weichgezeichnet durch die Notch, statt Schwarz.
+- Material: Statt Schwarz auf Wunsch die Windows-Materialien Acryl (Desktop weichgezeichnet), Mica oder Mica Alt.
 - Schrift: Segoe UI, Bahnschrift oder Cascadia Mono – oder eine eigene Schriftdatei (.ttf, .otf), ohne sie installieren zu müssen.
 
 ## 1.0.1

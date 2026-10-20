@@ -38,6 +38,7 @@ internal sealed partial class NotchWindow : WindowEx
     private double _scale = 1;
     private double _dpiScale = 1;
     private bool? _glass;
+    private NotchMaterial? _material;
     private double _glassUntil;
 
     public NotchWindow(DisplayArea display, ActivityHub hub, SettingsStore settings, ShelfStore shelf, NearbyModule nearby)
@@ -172,11 +173,16 @@ internal sealed partial class NotchWindow : WindowEx
 
         var appearance = _settings.Current.Appearance.Clamped();
         View.ApplyAppearance(appearance);
-        if (_glass != appearance.Glass)
+        if (_material != appearance.Material)
         {
-            _glass = appearance.Glass;
-            SystemBackdrop = appearance.Glass ? new GlassBackdrop() : new TransparentTintBackdrop { TintColor = Microsoft.UI.Colors.Transparent };
-            View.SetGlass(appearance.Glass);
+            // Jedes Windows-Material scheint nur im Umriss durch (Region wie bei Glas).
+            _material = appearance.Material;
+            _glass = appearance.Material != NotchMaterial.Black;
+            SystemBackdrop = _glass == true
+                ? new MaterialBackdrop(appearance.Material)
+                : new TransparentTintBackdrop { TintColor = Microsoft.UI.Colors.Transparent };
+            View.SetGlass(_glass == true);
+            _regionTarget = default;
         }
         // Neue Form sofort zeigen, nicht erst bei der nächsten Aktivität.
         _regionTarget = default;
