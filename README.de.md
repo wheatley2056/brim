@@ -79,7 +79,7 @@ Brim misst die Bildrate wie PresentMon über die DXGI- und Direct3D-9-Ereignisse
 Timer und Stoppuhr sind im Tab „Jetzt“ einen Klick entfernt, auch neben dem Player. Sie laufen kompakt mit Ring, und ist die Zeit um, klappt die Notch auf. Nach einmaliger Einrichtung steht der nächste Termin aus dem Windows-Kalender unter der Uhr und erscheint 15 Minuten vorher mit Countdown und „Beitreten“. Neue Windows-Benachrichtigungen zeigt die Notch kurz als Vorschau.
 
 ### 🧩 Plugins
-Eigene Inhalte für die Notch: kompakter Status, HUD oder Karten im Tab „Plugins“. Plugins laufen als eigene Programme in beliebiger Sprache und beschreiben ihre Oberfläche als Daten. So können sie die Notch weder verunstalten noch einfrieren. Ein abgestürztes Plugin startet neu und schaltet sich nach dem dritten Absturz ab. Neue Plugins sind zunächst aus, und der Tab „Plugins“ zeigt, was jedes darf. Siehe [`docs/plugins.md`](docs/plugins.md) und die [Beispiele](samples). Ein erstes echtes Plugin ist [`plugins/SwyxIt`](plugins/SwyxIt). Es zeigt eingehende SwyxIt!-Anrufe mit Annehmen und Ablehnen, laufende Gespräche und Chat-Nachrichten.
+Eigene Inhalte für die Notch: kompakter Status, HUD oder Karten im Tab „Plugins“. Plugins laufen als eigene Programme in beliebiger Sprache und beschreiben ihre Oberfläche als Daten. So können sie die Notch weder verunstalten noch einfrieren. Ein abgestürztes Plugin startet neu und schaltet sich nach dem dritten Absturz ab. Neue Plugins sind zunächst aus, und der Tab „Plugins“ zeigt, was jedes darf. Siehe [`docs/plugins.md`](docs/plugins.md) und die [Beispiele](samples).
 
 ### ♿ Für alle gebaut
 Namen für die Windows-Bedienungshilfen überall, Ansagen der Sprachausgabe für HUDs, Tastatur mit <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> und sanftes Überblenden statt Bewegung, wenn die Animationseffekte von Windows aus sind.
@@ -161,7 +161,7 @@ Eingebaute Funktionen sind Module mit derselben Schnittstelle, die Plugins bekom
 - [x] **Unbemerkte Updates** mit Changelog in der Notch
 - [x] **Ausblenden** – Vollbild, maximiert, Überlappung, nur Desktop, Leerlauf, Regeln pro App, Bildschirmfreigabe, Oberkante
 - [x] **System** – Akku, CPU, RAM, GPU, Datenträger, Netzwerk, Helligkeit, Kamera/Mikrofon, Bluetooth mit Akku
-- [x] **Plugins** – offenes Protokoll, SDK, Einstellungen und Ablage-Aktionen; SwyxIt!-Plugin
+- [x] **Plugins** – offenes Protokoll, SDK, Einstellungen und Ablage-Aktionen
 - [x] **Spiele** – FPS, 1 % Low, Frametime und Ping, als Mini-Pille oder auf Abruf
 - [x] **Timer, Stoppuhr, Kalender, Vorschau von Benachrichtigungen**
 - [x] **Einstellungsfenster**, winget-Manifeste
