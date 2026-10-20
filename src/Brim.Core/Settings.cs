@@ -159,6 +159,28 @@ public sealed class BatterySettings
     public int CriticalPercent { get; set; } = 10;
 }
 
+public enum GameOverlay
+{
+    /// <summary>Notch verschwindet im Spiel komplett (Standard).</summary>
+    Off,
+    /// <summary>Schmale Pille mit FPS · ms bleibt, halbtransparent.</summary>
+    Mini,
+    /// <summary>Unsichtbar; Win+Alt+F blendet FPS für 5 s ein.</summary>
+    OnDemand,
+}
+
+/// <summary>FPS und Latenz in Spielen (Plan 4.8).</summary>
+public sealed class GameSettings
+{
+    /// <summary>FPS messen (startet den Messdienst; braucht einmalig die Gruppe „Leistungsprotokollbenutzer“).</summary>
+    public bool Enabled { get; set; }
+
+    public GameOverlay Overlay { get; set; } = GameOverlay.Off;
+
+    /// <summary>Server für die Netzwerklatenz (Ping), z. B. ein Spielserver; leer = aus.</summary>
+    public string PingHost { get; set; } = "";
+}
+
 public sealed class UpdateSettings
 {
     /// <summary>Automatisch aktualisieren (nur in der installierten Fassung).</summary>
@@ -175,6 +197,7 @@ public sealed class BrimSettings
 {
     public UpdateSettings Updates { get; set; } = new();
     public BatterySettings Battery { get; set; } = new();
+    public GameSettings Games { get; set; } = new();
     public ShareSettings Share { get; set; } = new();
     public AutoHideSettings AutoHide { get; set; } = new();
     public ShelfSettings Shelf { get; set; } = new();

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Messdienst für FPS (Plan 4.8): läuft als eigener Prozess (Brim.exe mit Argument telemetry) und liest ETW. -->
+  <PropertyGroup>
+    <TargetFramework>$(BrimWindowsTfm)</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <RootNamespace>Brim.Telemetry</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Brim.Core\Brim.Core.csproj" />
+  </ItemGroup>
+</Project>

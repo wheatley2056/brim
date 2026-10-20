@@ -54,6 +54,12 @@ public sealed record Activity
     /// </summary>
     public bool IsBackground { get; init; }
 
+    /// <summary>
+    /// Bleibt als kleine Pille sichtbar, auch wenn sich die Notch zurückgezogen hat (Spielmodus „Mini“, Plan 4.8).
+    /// Zeigt <see cref="Content"/>.
+    /// </summary>
+    public bool IsOverlay { get; init; }
+
     /// <summary>Text für die Sprachausgabe, wenn die Aktivität erscheint.</summary>
     public string? Announcement { get; init; }
 

@@ -9,6 +9,7 @@
     <Project Path="src/Brim.Modules/Brim.Modules.csproj" />
     <Project Path="src/Brim.Plugins/Brim.Plugins.csproj" />
     <Project Path="src/Brim.Sdk/Brim.Sdk.csproj" />
+    <Project Path="src/Brim.Telemetry/Brim.Telemetry.csproj" />
     <Project Path="src/Brim/Brim.csproj">
       <!-- WinUI-App gibt es nur pro Architektur; "Any CPU" baut x64. -->
       <Platform Solution="*|Any CPU" Project="x64" />

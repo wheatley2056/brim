@@ -72,6 +72,9 @@ Brim updates itself from GitHub releases in the background, downloads only what 
   <img src="docs/assets/update.png" alt="Changelog in the notch after an update, with a Got it button" width="760">
 </p>
 
+### 🎮 Games
+Brim measures FPS the way PresentMon does, from Windows' own DXGI and Direct3D 9 events, for the game in front of you: frame rate, 1 % low, a frametime graph and optionally the ping to your game server. While you play, the notch steps aside. If you like, a small translucent pill with "FPS · ms" stays at the top, or Win+Alt+F shows it for five seconds. Turn it on with `Games.Enabled` in `settings.json`. The first time, Brim asks once for admin rights to add you to the "Performance Log Users" group. After that, measuring runs without admin rights.
+
 ### 🧩 Plugins
 Add your own content to the notch: a compact status, a HUD, or cards in the Plugins tab. Plugins run as separate processes in any language and describe their UI as data, so they can't break the notch or freeze it. A plugin that crashes is restarted and switched off after the third crash. New plugins start switched off, and the Plugins tab shows what each one may do. See [`docs/plugins.md`](docs/plugins.md) and the [samples](samples).
 
@@ -136,6 +139,7 @@ Network and interoperability tests against the original Magic Wormhole run when 
 | `src/Brim.Core` | Activities and the activity hub, the notch state machine, declarative widgets, shape geometry, spring physics, shelf store, settings. No Windows dependencies, fully unit-tested. |
 | `src/Brim.Modules` | Built-in modules — clock, media, audio, battery, resources, brightness, camera/mic, sharing (LAN and Magic Wormhole), updates. They describe their UI as widgets; no WinUI. |
 | `src/Brim.Plugins` | Plugin host: finds plugins, starts them as processes, speaks JSON-RPC over named pipes, validates their widgets, restarts after crashes. |
+| `src/Brim.Telemetry` | FPS measurement via ETW in its own process (`Brim.exe --telemetry`), plus the one-time permission setup. |
 | `src/Brim.Sdk` | SDK for .NET plugins. The protocol itself is documented in [`docs/plugins.md`](docs/plugins.md). |
 | `src/Brim` | The WinUI 3 shell: one window per monitor, the compositor-driven morph engine, widget renderer, shelf, auto-hide, tray and updater. |
 | `tests/` | State machine, springs, geometry, shelf, sharing protocol, SPAKE2 test vectors from the reference implementation, live interop with the original Magic Wormhole. |
@@ -152,7 +156,7 @@ Built-in features are modules that use the same interface plugins will: they pos
 - [x] **Auto-hide** — fullscreen, maximized, overlap, desktop-only, idle, per-app rules, screen-sharing detection, top-edge peek *(settings window comes with 1.0)*
 - [x] **System** — battery, CPU, RAM, GPU, network, brightness, camera/mic indicators *(disk and external monitors via DDC/CI still to come)*
 - [x] **Plugins** — open protocol and SDK for your own notch content *(shelf actions and a plugin gallery still to come)*
-- [ ] **Games** — FPS and latency in a mini pill
+- [x] **Games** — FPS, 1 % low, frametime and ping, as a mini pill or on demand *(display latency like PresentMon and Vulkan/OpenGL titles still to come)*
 - [ ] **More** — timer, calendar, notifications, Bluetooth battery, settings window, code signing, winget
 
 ## Credits

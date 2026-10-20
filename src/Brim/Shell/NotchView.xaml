@@ -40,6 +40,13 @@
                 <ContentPresenter x:Name="AlertPresenter" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" />
             </Grid>
 
+            <!-- Spielmodus „Mini“: schmale Pille mit FPS · ms über dem Spiel -->
+            <Grid x:Name="MiniLayer" Width="124" Height="22"
+                  HorizontalAlignment="Center" VerticalAlignment="Top"
+                  IsHitTestVisible="False" Visibility="Collapsed">
+                <ContentPresenter x:Name="MiniPresenter" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" />
+            </Grid>
+
             <!-- Ablegen: erscheint, während etwas über die Notch gezogen wird -->
             <Grid x:Name="DropLayer" Width="352" Height="88" Padding="14,10,14,14"
                   HorizontalAlignment="Center" VerticalAlignment="Top"

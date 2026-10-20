@@ -22,6 +22,9 @@ public static class NotchGeometry
     public static readonly NotchShape Expanded = new(620, 248, 38, 12);
     public static readonly NotchShape ShelfDrop = new(352, 88, 28, 12);
 
+    /// <summary>Spielmodus „Mini“: schmale Pille mit FPS · ms (Plan 4.8: ca. 120 × 22).</summary>
+    public static readonly NotchShape Mini = new(124, 22, 11, 6);
+
     /// <summary>Zurückgezogen: schmilzt zu einer feinen Linie an der Kante.</summary>
     public static readonly NotchShape Hidden = new(140, 3, 1.5, 0);
 
@@ -55,6 +58,7 @@ public static class NotchGeometry
         NotchMode.Alert => Alert,
         NotchMode.Expanded => Expanded,
         NotchMode.Drop => ShelfDrop,
+        NotchMode.Mini => Mini,
         _ => Idle,
     };
 

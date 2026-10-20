@@ -8,6 +8,7 @@ Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der 
 - Plugins: Eigene Inhalte für die Notch – kompakt, als HUD oder als Karten im Tab „Plugins“. Plugins laufen als eigene Programme in beliebiger Sprache; abstürzende Plugins starten neu und schalten sich nach drei Abstürzen ab.
 - Neue Plugins sind zunächst aus. Im Tab „Plugins“ siehst du, was sie dürfen, und schaltest sie ein.
 - Zwei Beispiel-Plugins: Serverstatus (.NET) und ein Zähler (Python).
+- FPS in Spielen: Bildrate, 1 % Low, Frametime-Verlauf und auf Wunsch der Ping zu einem Server. Im Spiel bleibt nach Wahl eine kleine Pille mit „FPS · ms“ stehen, oder Win+Alt+F blendet sie für 5 Sekunden ein. Einschalten in den Einstellungen unter „Games“; beim ersten Mal richtet Brim nach Rückfrage die nötigen Rechte ein.
 - Behoben: Beim Wechsel des Audio-Ausgabegeräts in der Notch hing Brim sich auf.
 
 ## 0.2.1

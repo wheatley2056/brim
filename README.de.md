@@ -72,6 +72,9 @@ Brim aktualisiert sich im Hintergrund aus den GitHub-Releases, lädt nur, was si
   <img src="docs/assets/update.png" alt="Changelog in der Notch nach einem Update, mit dem Knopf Verstanden" width="760">
 </p>
 
+### 🎮 Spiele
+Brim misst die Bildrate wie PresentMon über die DXGI- und Direct3D-9-Ereignisse von Windows, und zwar für das Spiel im Vordergrund: FPS, 1 % Low, Frametime-Verlauf und auf Wunsch den Ping zu deinem Spielserver. Im Spiel macht die Notch Platz. Nach Wahl bleibt eine kleine, halbtransparente Pille mit „FPS · ms“ stehen, oder Win+Alt+F zeigt sie für fünf Sekunden. Einschalten mit `Games.Enabled` in `settings.json`. Beim ersten Mal fragt Brim einmal nach Adminrechten, um dich in die Gruppe „Leistungsprotokollbenutzer“ aufzunehmen. Danach misst Brim ohne Adminrechte.
+
 ### 🧩 Plugins
 Eigene Inhalte für die Notch: kompakter Status, HUD oder Karten im Tab „Plugins“. Plugins laufen als eigene Programme in beliebiger Sprache und beschreiben ihre Oberfläche als Daten. So können sie die Notch weder verunstalten noch einfrieren. Ein abgestürztes Plugin startet neu und schaltet sich nach dem dritten Absturz ab. Neue Plugins sind zunächst aus, und der Tab „Plugins“ zeigt, was jedes darf. Siehe [`docs/plugins.md`](docs/plugins.md) und die [Beispiele](samples).
 
@@ -136,6 +139,7 @@ Netz- und Kompatibilitätstests gegen das Original-Magic-Wormhole laufen, wenn `
 | `src/Brim.Core` | Aktivitäten und Hub, Zustandsmaschine der Notch, deklarative Widgets, Geometrie, Federphysik, Ablage, Einstellungen. Ohne Windows-Abhängigkeit, vollständig getestet. |
 | `src/Brim.Modules` | Eingebaute Module – Uhr, Musik, Audio, Akku, Ressourcen, Helligkeit, Kamera/Mikrofon, Teilen (LAN und Magic Wormhole), Updates. Sie beschreiben ihre Oberfläche als Widgets, kein WinUI. |
 | `src/Brim.Plugins` | Plugin-Host: findet Plugins, startet sie als Prozesse, spricht JSON-RPC über Named Pipes, prüft ihre Widgets, startet nach Abstürzen neu. |
+| `src/Brim.Telemetry` | FPS-Messung über ETW in eigenem Prozess (`Brim.exe --telemetry`) und die einmalige Einrichtung der Rechte. |
 | `src/Brim.Sdk` | SDK für .NET-Plugins. Das Protokoll selbst steht in [`docs/plugins.md`](docs/plugins.md). |
 | `src/Brim` | Die WinUI-3-Shell: ein Fenster pro Monitor, Morph-Engine im Compositor, Widget-Renderer, Ablage, Ausblenden, Tray und Updater. |
 | `tests/` | Zustandsmaschine, Federn, Geometrie, Ablage, Teilen-Protokoll, SPAKE2-Testvektoren aus der Referenz, Live-Gegenproben mit dem Original-Magic-Wormhole. |
@@ -152,7 +156,7 @@ Eingebaute Funktionen sind Module mit derselben Schnittstelle, die Plugins bekom
 - [x] **Ausblenden** – Vollbild, maximiert, Überlappung, nur Desktop, Leerlauf, Regeln pro App, Bildschirmfreigabe, Oberkante *(Einstellungsfenster kommt mit 1.0)*
 - [x] **System** – Akku, CPU, RAM, GPU, Netzwerk, Helligkeit, Kamera/Mikrofon *(Datenträger und externe Monitore per DDC/CI folgen)*
 - [x] **Plugins** – offenes Protokoll und SDK für eigene Inhalte *(Ablage-Aktionen und Plugin-Galerie folgen)*
-- [ ] **Spiele** – FPS und Latenz als Mini-Pille
+- [x] **Spiele** – FPS, 1 % Low, Frametime und Ping, als Mini-Pille oder auf Abruf *(Anzeige-Latenz wie PresentMon und Vulkan/OpenGL folgen)*
 - [ ] **Mehr** – Timer, Kalender, Benachrichtigungen, Bluetooth-Akku, Einstellungsfenster, Signatur, winget
 
 ## Danke

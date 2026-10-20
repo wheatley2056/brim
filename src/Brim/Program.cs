@@ -19,6 +19,16 @@ public static class Program
             .OnBeforeUninstallFastCallback(_ => Autostart.Disable())
             .Run();
 
+        // Messdienst für FPS (Plan 4.8) und seine einmalige Einrichtung: derselbe Prozess, ohne Oberfläche.
+        if (args is [Brim.Telemetry.TelemetryHost.Argument])
+        {
+            return Brim.Telemetry.TelemetryHost.Run();
+        }
+        if (args is [Brim.Telemetry.PerformanceLogUsers.Argument, var user])
+        {
+            return Brim.Telemetry.PerformanceLogUsers.Add(user);
+        }
+
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
         // Nur eine Instanz: eine zweite meldet sich bei der ersten und beendet sich.

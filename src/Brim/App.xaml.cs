@@ -158,6 +158,7 @@ public partial class App : Application
             yield return new BatteryModule();
             yield return new BrightnessModule();
             yield return new PrivacyModule();
+            yield return new GamesModule(new TelemetryLauncher(Path.Combine(DataDirectory, "logs")));
         }
         yield return new ResourcesModule();
         yield return nearbyModule;

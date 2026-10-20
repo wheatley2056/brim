@@ -46,7 +46,7 @@ public sealed partial class NotchView : UserControl
         InitializeTabs(compositor);
         InitializeClock();
 
-        _layers = [IdleLayer, CompactLayer, HudLayer, AlertLayer, DropLayer, ExpandedLayer];
+        _layers = [IdleLayer, CompactLayer, HudLayer, AlertLayer, DropLayer, ExpandedLayer, MiniLayer];
         foreach (var layer in _layers)
         {
             var visual = ElementCompositionPreview.GetElementVisual(layer);
@@ -146,6 +146,7 @@ public sealed partial class NotchView : UserControl
         {
             _surface.SetVisible(true, TimeSpan.Zero);
         }
+        CanvasRoot.Opacity = p.Mode == NotchMode.Mini ? 0.75 : 1;
         var accent = p.Primary?.Activity.Accent;
         _surface.SetAccent(accent, p.Mode is NotchMode.Compact or NotchMode.Expanded);
 
@@ -158,6 +159,7 @@ public sealed partial class NotchView : UserControl
             NotchMode.Alert => UpdateAlert(p),
             NotchMode.Expanded => UpdateExpanded(p),
             NotchMode.Drop => DropLayerFor(),
+            NotchMode.Mini => UpdateMini(p),
             _ => null,
         };
         UpdateBeads(p, beadCount);
@@ -311,6 +313,13 @@ public sealed partial class NotchView : UserControl
         var a = p.Primary?.Activity;
         Render("hud", HudPresenter, p.Primary, a?.Content ?? CompactFallback(a));
         return HudLayer;
+    }
+
+    /// <summary>Spielmodus „Mini“: halbtransparent, damit sie das Spiel möglichst wenig verdeckt (Plan 4.8).</summary>
+    private FrameworkElement UpdateMini(NotchPresentation p)
+    {
+        Render("mini", MiniPresenter, p.Primary, p.Primary?.Activity.Content);
+        return MiniLayer;
     }
 
     private FrameworkElement UpdateAlert(NotchPresentation p)

@@ -48,6 +48,7 @@
     <ProjectReference Include="..\Brim.Core\Brim.Core.csproj" />
     <ProjectReference Include="..\Brim.Modules\Brim.Modules.csproj" />
     <ProjectReference Include="..\Brim.Plugins\Brim.Plugins.csproj" />
+    <ProjectReference Include="..\Brim.Telemetry\Brim.Telemetry.csproj" />
   </ItemGroup>
 
   <ItemGroup>

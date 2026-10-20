@@ -308,7 +308,7 @@ Kerbe.sln
 | 2 · System | Akku, Ressourcen, Helligkeit, Kamera/Mikro | A5–A7 fertig (siehe 7a) |
 | 3 · Ausblenden | Regelwerk, App-Ausnahmen, Animationseinstellungen, Rand-Reveal | A9 fertig (siehe 7b) |
 | 4 · Plugins | Protokoll, Host, SDK, zwei Beispiel-Plugins | A2 fertig (siehe 7c) |
-| 5 · Spiele | Telemetrie-Dienst, FPS/Latenz, Spielmodus | A8 fertig |
+| 5 · Spiele | Telemetrie-Dienst, FPS/Latenz, Spielmodus | A8 fertig (siehe 7d) |
 | 6 · Mac-Paket | Timer, Kalender, Benachrichtigungen, Bluetooth, Teilen | A3 vollständig |
 | 7 · Auslieferung | MSIX, Signatur, winget, Auto-Update, Einstellungsfenster | Version 1.0 |
 
@@ -363,6 +363,22 @@ Noch offen:
 - **Job-Objekt**, damit Plugins sicher mit Brim enden, auch wenn Brim abstürzt.
 - `lifecycle.suspend/resume` (Bildschirm aus, Energiesparen) noch nicht verschickt; `tab.visibility` deckt den häufigsten Fall ab.
 - Offene Entscheidung 4 (nur deklarativ oder später XAML) bleibt offen; bisher nur deklarativ.
+
+### 7d. Stand Phase 5 (20.10.2026)
+
+Umgesetzt:
+- **Messdienst** (`Brim.Telemetry`) als zweiter Prozess über `Brim.exe --telemetry` statt eigener EXE: Das Release-Paket bleibt unverändert, und ETW-Rechte oder ein Absturz berühren die Notch nicht. Er verbindet sich über eine Pipe mit zufälligem Namen und spricht dasselbe JSON-RPC wie Plugins (`watch`, `frames`, `status`).
+- **ETW wie PresentMon:** Echtzeitsitzung auf Microsoft-Windows-DXGI (Present_Start 42, PresentMultiplaneOverlay_Start 55) und Microsoft-Windows-D3D9 (Present_Start 1), gezählt nur für den Prozess im Vordergrund. FPS (1 s), 1 % Low (10 s), Frametime und ihr Verlauf rechnet `FrameCounter` in Brim.Core (getestet).
+- **Rechte:** Statt eines Dienstes mit Adminrechten genügt die Gruppe „Leistungsprotokollbenutzer“ (SID S-1-5-32-559). Fehlt sie, bietet der Tab „Jetzt“ „Einrichten“ an. Brim startet sich dann einmal erhöht mit `--telemetry-setup <Nutzer>` und ruft `net localgroup` auf; wirksam nach dem nächsten Anmelden.
+- **Spiel erkannt**, wenn das Vordergrundfenster seinen Monitor füllt und Bilder ausgibt. Die Werte stehen im Tab „Jetzt“ (Hintergrund-Aktivität), auf Wunsch mit Ping (`Games.PingHost`) als Netzwerklatenz.
+- **Spielmodus** (`Games.Overlay`): `Off` (Standard, entscheidet offene Frage 3), `Mini` (neuer Zustand `NotchMode.Mini`, Pille 124 × 22, 75 % Deckkraft, ignoriert die Maus) und `OnDemand` (Win+Alt+F zeigt die Pille 5 s). Kritische Hinweise gehen auch im Spiel vor.
+
+Noch offen:
+- **Anzeige-Latenz** (`MsUntilDisplayed`) braucht die DxgKrnl-Ereignisse und die Flip-/VSync-Verfolgung von PresentMon; bisher zeigt Brim Frametime und Ping.
+- **Vulkan und OpenGL** laufen nicht immer über DXGI. Dafür müsste die DxgKrnl-Auswertung von PresentMon nachgebaut werden.
+- Alternative Quelle Intel-PresentMon-Dienst, falls installiert.
+- Die Mini-Pille nimmt Klicks in ihrem kleinen Bereich an (Fensterregion), ohne darauf zu reagieren.
+- Einschalten bisher nur über `settings.json` (`Games.Enabled`), mit Neustart; das Einstellungsfenster folgt in Phase 7.
 
 Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das fertige Ausblende-System.
 
