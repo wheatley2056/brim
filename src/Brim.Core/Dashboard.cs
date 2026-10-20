@@ -50,10 +50,40 @@ public readonly record struct TileSlot(int Index, int Page, int Column, int Row,
 /// <summary>Aufbau der Seite „Jetzt“ (Einstellungen; Bearbeiten in der Notch).</summary>
 public sealed class NowSettings
 {
-    /// <summary>Die laufende Aktivität (Musik, Anruf, Timer …) – wie „Jetzt“ vor den Kacheln.</summary>
+    /// <summary>Die laufende Aktivität (Musik, Anruf, Timer …); läuft nichts, zeigt sie „Heute“.</summary>
     public const string ActivityTile = "brim/activity";
 
-    public List<TilePlacement> Tiles { get; set; } = [new(ActivityTile, TileSize.Full)];
+    /// <summary>Stand des Standardaufbaus; ältere Einstellungen mit dem alten Standard bekommen den neuen.</summary>
+    public const int CurrentRevision = 1;
+
+    /// <summary>
+    /// Standard: links die Aktivität als halbe Seite, rechts Termine, eine Uhr und die Systemlast. Fehlt ein
+    /// Widget (z. B. Kalender ohne Paketidentität), zeigt seine Kachel, wie man es einrichtet.
+    /// </summary>
+    public static List<TilePlacement> DefaultTiles() =>
+    [
+        new(ActivityTile, TileSize.Large),
+        new("calendar/agenda", TileSize.Medium),
+        new("clock/analog", TileSize.Small),
+        new("resources/load", TileSize.Small),
+    ];
+
+    public List<TilePlacement> Tiles { get; set; } = DefaultTiles();
+
+    public int Revision { get; set; }
+
+    /// <summary>
+    /// Nach dem Laden: Wer noch den Standard von 2.0 hat (nur die Aktivität über die ganze Seite), bekommt den
+    /// neuen Standard – einmal, danach bleibt jeder Aufbau, wie er ist.
+    /// </summary>
+    public void Upgrade()
+    {
+        if (Revision < 1 && Tiles is [{ Key: ActivityTile, Size: TileSize.Full }])
+        {
+            Tiles = DefaultTiles();
+        }
+        Revision = CurrentRevision;
+    }
 }
 
 /// <summary>Raster der Seite „Jetzt“: 4 × 2 Felder pro Seite, Kacheln in Lesereihenfolge.</summary>
@@ -128,6 +158,34 @@ public static class Dashboard
     }
 
     public static int PageCount(IReadOnlyList<TileSlot> slots) => slots.Count == 0 ? 1 : slots.Max(s => s.Page) + 1;
+
+    /// <summary>Freie Felder einer Seite (Bearbeiten: gestrichelt, Klick öffnet die Galerie), in Lesereihenfolge.</summary>
+    public static IReadOnlyList<(int Column, int Row)> FreeCells(IReadOnlyList<TileSlot> slots, int page)
+    {
+        var used = new bool[Columns, Rows];
+        foreach (var slot in slots.Where(s => s.Page == page))
+        {
+            for (var c = slot.Column; c < slot.Column + slot.Width; c++)
+            {
+                for (var r = slot.Row; r < slot.Row + slot.Height; r++)
+                {
+                    used[c, r] = true;
+                }
+            }
+        }
+        var free = new List<(int, int)>();
+        for (var row = 0; row < Rows; row++)
+        {
+            for (var column = 0; column < Columns; column++)
+            {
+                if (!used[column, row])
+                {
+                    free.Add((column, row));
+                }
+            }
+        }
+        return free;
+    }
 
     private static (int Column, int Row)? Find(bool[,] used, int w, int h)
     {

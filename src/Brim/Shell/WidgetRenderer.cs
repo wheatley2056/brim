@@ -719,6 +719,12 @@ internal sealed class WidgetRenderer
                 button.Background = Brushes.Get(w.Selected ? BrimColors.Graphite : "#00000000");
                 button.Content = RowContent(w);
                 break;
+            case ButtonKind.Round:
+                button.Width = button.Height = w.Size;
+                button.CornerRadius = new CornerRadius(w.Size / 2);
+                button.Background = Brushes.Get(w.Selected ? BrimColors.DefaultAccent : BrimColors.Track);
+                button.Content = Glyph(w.Glyph, w.GlyphSize, w.GlyphColor ?? (w.Selected ? BrimColors.Obsidian : BrimColors.Fog));
+                break;
             case ButtonKind.Secondary:
                 button.Width = double.NaN;
                 button.Height = 32;

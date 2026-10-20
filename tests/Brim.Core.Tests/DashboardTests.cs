@@ -7,12 +7,43 @@ public class DashboardTests
     private static TilePlacement T(TileSize size, string key = "m/x") => new(key, size);
 
     [Fact]
-    public void Default_is_the_activity_over_the_whole_page()
+    public void Default_puts_the_activity_left_and_widgets_right()
     {
         var now = new NowSettings();
-        var slot = Assert.Single(Dashboard.Pack(now.Tiles));
+        var slots = Dashboard.Pack(now.Tiles);
         Assert.Equal(NowSettings.ActivityTile, now.Tiles[0].Key);
-        Assert.Equal(new TileSlot(0, 0, 0, 0, 4, 2), slot);
+        Assert.Equal(new TileSlot(0, 0, 0, 0, 2, 2), slots[0]);
+        Assert.Equal(new TileSlot(1, 0, 2, 0, 2, 1), slots[1]);
+        Assert.Equal(new TileSlot(2, 0, 2, 1, 1, 1), slots[2]);
+        Assert.Equal(new TileSlot(3, 0, 3, 1, 1, 1), slots[3]);
+        Assert.Equal(1, Dashboard.PageCount(slots));
+    }
+
+    [Fact]
+    public void The_old_default_is_upgraded_once_and_own_layouts_stay()
+    {
+        var old = new NowSettings { Tiles = [new(NowSettings.ActivityTile, TileSize.Full)] };
+        old.Upgrade();
+        Assert.Equal(NowSettings.DefaultTiles(), old.Tiles);
+        Assert.Equal(NowSettings.CurrentRevision, old.Revision);
+
+        // Wer danach wieder nur die Aktivität über die ganze Seite will, behält das.
+        old.Tiles = [new(NowSettings.ActivityTile, TileSize.Full)];
+        old.Upgrade();
+        Assert.Single(old.Tiles);
+
+        var own = new NowSettings { Tiles = [T(TileSize.Small)] };
+        own.Upgrade();
+        Assert.Equal([T(TileSize.Small)], own.Tiles);
+    }
+
+    [Fact]
+    public void Free_cells_are_listed_in_reading_order()
+    {
+        var slots = Dashboard.Pack([T(TileSize.Large), T(TileSize.Small)]);
+        Assert.Equal([(3, 0), (2, 1), (3, 1)], Dashboard.FreeCells(slots, 0));
+        Assert.Equal(8, Dashboard.FreeCells(slots, 1).Count);
+        Assert.Empty(Dashboard.FreeCells(Dashboard.Pack([T(TileSize.Full)]), 0));
     }
 
     [Fact]

@@ -39,7 +39,48 @@ public sealed class BatteryModule : IBrimModule
         _source = _createSource();
         _source.Changed += Update;
         Update();
+        // Kachel „Akku“ für „Jetzt“, nur wenn es einen Akku gibt (Desktop-PCs sehen sie nicht in der Galerie).
+        if (_last is { Present: true })
+        {
+            context.DefineTile(TileId, "Akku", [TileSize.Small, TileSize.Medium], "System", Glyphs.Battery(80, false, false), "Ladung und Restzeit");
+            context.TilePlacementsChanged += () =>
+            {
+                if (_last is { } state)
+                {
+                    PublishTile(context, state);
+                }
+            };
+        }
         return Task.CompletedTask;
+    }
+
+    public const string TileId = "battery";
+
+    private void PublishTile(ModuleContext context, BatteryState state)
+    {
+        foreach (var size in context.PlacedSizes(TileId))
+        {
+            context.SetTile(TileId, size, TileContent(size, state, Settings));
+        }
+    }
+
+    /// <summary>Ring mit der Ladung, daneben Prozent und Restzeit; mittel mit Kopfzeile.</summary>
+    public static Widget TileContent(TileSize size, BatteryState state, BatterySettings settings)
+    {
+        var color = ColorFor(state, settings);
+        var ring = new RingWidget(state.Percent / 100.0) { Size = size == TileSize.Small ? 44 : 32, Thickness = 4, Color = color, TrackColor = BrimColors.Track };
+        var text = new StackWidget(
+            new TextWidget($"{state.Percent} %") { Style = TextStyle.Title, FontSize = 18 },
+            new TextWidget(StatusText(state)) { Style = TextStyle.Caption })
+        {
+            Orientation = StackOrientation.Vertical,
+            Align = CrossAlign.Start,
+            Grow = 1,
+        };
+        var body = new StackWidget(ring, text) { Spacing = 10, AccessibleName = $"Akku {state.Percent} %, {StatusText(state)}" };
+        return size == TileSize.Small
+            ? body with { Grow = 1 }
+            : TileCard.Card(TileCard.Header(Glyph(state), color, "Akku"), body with { Spacing = 12 });
     }
 
     private BatterySettings Settings => _context!.Settings.Battery;
@@ -129,6 +170,7 @@ public sealed class BatteryModule : IBrimModule
         }
 
         context.SetView("card", Card(state), column: TabColumn.Side, order: 0);
+        PublishTile(context, state);
         context.SetStatus("status", state.Present && context.Settings.Display.Battery ? StatusWidget(state) : null);
     }
 

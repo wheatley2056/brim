@@ -401,6 +401,7 @@ public sealed class SettingsStore
             {
                 Current = JsonSerializer.Deserialize<BrimSettings>(File.ReadAllText(_path), Options) ?? new BrimSettings();
             }
+            Current.Now.Upgrade();
         }
         catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
         {

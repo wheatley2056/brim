@@ -402,3 +402,51 @@ public class PrivacyModuleTests
         Assert.Empty(hub.Snapshot());
     }
 }
+
+/// <summary>Kacheln aus dem Entwurf „Jetzt neu“: System, Akku, Schnellzugriff.</summary>
+public class NowTileTests
+{
+    private static IEnumerable<Widget> All(Widget widget) => widget switch
+    {
+        StackWidget stack => [stack, .. stack.Children.SelectMany(All)],
+        _ => [widget],
+    };
+
+    private static List<string> Texts(Widget widget) => All(widget).OfType<TextWidget>().Select(t => t.Text).ToList();
+
+    [Fact]
+    public void System_tile_shows_cpu_and_memory_and_gpu_only_when_medium()
+    {
+        var culture = CultureInfo.GetCultureInfo("de-DE");
+        var sample = new ResourceSample(37, 4UL << 30, 16UL << 30, 12, 0, 0, []);
+
+        var small = Texts(ResourcesModule.LoadTileContent(TileSize.Small, sample, culture));
+        Assert.Contains("System", small);
+        Assert.Contains("37 %", small);
+        Assert.Contains("25 %", small);
+        Assert.DoesNotContain("GPU", small);
+
+        Assert.Contains("GPU", Texts(ResourcesModule.LoadTileContent(TileSize.Medium, sample, culture)));
+        Assert.Contains("–", Texts(ResourcesModule.LoadTileContent(TileSize.Small, null, culture)));
+    }
+
+    [Fact]
+    public void Battery_tile_shows_percent_and_status()
+    {
+        var state = new BatteryState(true, 82, false, false, TimeSpan.FromMinutes(220), null, false);
+        var widget = BatteryModule.TileContent(TileSize.Small, state, new BatterySettings());
+        Assert.Equal(0.82, All(widget).OfType<RingWidget>().Single().Value, 3);
+        Assert.Equal(["82 %", "noch 3 h 40 min"], Texts(widget));
+        Assert.Contains("Akku", Texts(BatteryModule.TileContent(TileSize.Medium, state, new BatterySettings())));
+    }
+
+    [Fact]
+    public void Quick_actions_open_timer_output_and_mixer()
+    {
+        foreach (var size in new[] { TileSize.Small, TileSize.Medium })
+        {
+            var actions = All(ClockModule.QuickTileContent(size)).OfType<ButtonWidget>().Select(b => b.ActionId);
+            Assert.Equal(["timer", "output", "mixer"], actions);
+        }
+    }
+}

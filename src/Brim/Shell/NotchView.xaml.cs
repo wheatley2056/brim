@@ -145,6 +145,8 @@ public sealed partial class NotchView : UserControl
         // Detailansicht (z. B. CPU) im Tab: Die Notch wird höher.
         _tall = p.Mode == NotchMode.Expanded && !_settingsOpen && p.Tab is NotchTab.System or NotchTab.Plugins
             && _hub.Views(p.Tab).Any(v => v.IsDetail);
+        // Die Galerie von „Jetzt“ braucht ebenfalls die hohe Notch.
+        _tall |= p.Mode == NotchMode.Expanded && !_settingsOpen && p.Tab == NotchTab.Now && _board?.IsGalleryOpen == true;
 
         // 1. Form
         var shape = ShapeFor(p.Mode);
@@ -448,7 +450,9 @@ public sealed partial class NotchView : UserControl
         else if (p.Tab == NotchTab.Now)
         {
             var source = p.Primary ?? p.Idle;
-            Render("now", NowPresenter, source, source?.Activity.Expanded);
+            // Als halbe Seite zeigt die Aktivität ihren Kachel-Inhalt (Player kompakt), sonst den großen.
+            var content = _board!.ActivitySize == TileSize.Large ? source?.Activity.Tile ?? source?.Activity.Expanded : source?.Activity.Expanded;
+            Render("now", NowPresenter, source, content);
             NowPresenter.Visibility = Visibility.Visible;
             PlaceholderPanel.Visibility = Visibility.Collapsed;
             _board!.Visibility = Visibility.Visible;
@@ -760,7 +764,55 @@ public sealed partial class NotchView : UserControl
     // ───────── Kacheln auf „Jetzt“ ─────────
 
     private NowBoard? _board;
+    private Grid? _editHeader;
+    private TextBlock? _editTitle;
+    private TextBlock? _editHint;
+    private TextBox? _gallerySearch;
+    private Button? _boardAdd;
     private Button? _boardDone;
+
+    /// <summary>Galerie von „Jetzt“ auf oder zu: Die Notch wird höher und nimmt Tastatur an (Suche).</summary>
+    public event Action<bool>? GalleryChanged;
+
+    private static Button HeaderButton(string label, string? glyph, string background, string foreground)
+    {
+        var button = new Button
+        {
+            Style = (Style)Application.Current.Resources["NotchButtonStyle"],
+            Height = 28,
+            Padding = new Thickness(12, 0, 12, 1),
+            CornerRadius = new CornerRadius(14),
+        };
+        SetHeaderButton(button, label, background, foreground, glyph);
+        return button;
+    }
+
+    private static void SetHeaderButton(Button button, string label, string background, string foreground, string? glyph = null)
+    {
+        button.Background = Brushes.Get(background);
+        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        if (glyph is not null)
+        {
+            content.Children.Add(new FontIcon
+            {
+                Glyph = glyph,
+                FontSize = 11,
+                FontFamily = (Microsoft.UI.Xaml.Media.FontFamily)Application.Current.Resources["NotchIconFont"],
+                Foreground = Brushes.Get(foreground),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+        }
+        content.Children.Add(new TextBlock
+        {
+            Text = label,
+            FontSize = 12,
+            FontWeight = foreground == BrimColors.Obsidian ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal,
+            Foreground = Brushes.Get(foreground),
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        button.Content = content;
+        AutomationProperties.SetName(button, label);
+    }
 
     /// <summary>
     /// Das Raster ersetzt den einfachen Inhalt von „Jetzt“; der bisherige Inhalt (NowPresenter) wird zur Kachel
@@ -775,26 +827,80 @@ public sealed partial class NotchView : UserControl
         _board = new NowBoard(hub, settings, NowPresenter);
         host.Children.Insert(index, _board);
 
-        _boardDone = new Button
+        // Kopfzeile beim Bearbeiten: Titel statt Tabs, rechts „+ Widget“ und „Fertig“ statt der Uhr; in der Galerie
+        // stattdessen Suche und „Abbrechen“ (Entwurf „Jetzt neu“).
+        _editHeader = new Grid { Visibility = Visibility.Collapsed, ColumnSpacing = 12 };
+        _editHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        _editHeader.ColumnDefinitions.Add(new ColumnDefinition());
+        _editHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
+        _editTitle = new TextBlock { Text = "Jetzt anpassen", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Brushes.Get(BrimColors.Fog) };
+        _editHint = new TextBlock { Text = "Ziehen zum Verschieben", FontSize = 11.5, Foreground = Brushes.Get(BrimColors.Slate), VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 1) };
+        title.Children.Add(_editTitle);
+        title.Children.Add(_editHint);
+        _editHeader.Children.Add(title);
+
+        _gallerySearch = new TextBox
         {
-            Content = "Fertig",
-            HorizontalAlignment = HorizontalAlignment.Right,
+            PlaceholderText = "Suchen",
+            Height = 28,
+            MinHeight = 28,
+            MaxWidth = 220,
+            Padding = new Thickness(10, 4, 10, 4),
+            FontSize = 12,
+            CornerRadius = new CornerRadius(14),
             VerticalAlignment = VerticalAlignment.Center,
-            Padding = new Thickness(12, 2, 12, 3),
-            CornerRadius = new CornerRadius(12),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
             Visibility = Visibility.Collapsed,
         };
-        _boardDone.Click += (_, _) => _board.SetEditing(false);
-        HeaderRow.Children.Add(_boardDone);
+        AutomationProperties.SetName(_gallerySearch, "Widgets suchen");
+        _gallerySearch.TextChanged += (_, _) => _board.Filter(_gallerySearch.Text);
+        Grid.SetColumn(_gallerySearch, 1);
+        _editHeader.Children.Add(_gallerySearch);
+
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        _boardAdd = HeaderButton("Widget", "\uE710", BrimColors.Track, BrimColors.Fog);
+        AutomationProperties.SetName(_boardAdd, "Widget hinzufügen");
+        _boardAdd.Click += (_, _) => _board.OpenGallery();
+        _boardDone = HeaderButton("Fertig", null, BrimColors.DefaultAccent, BrimColors.Obsidian);
+        _boardDone.Click += (_, _) =>
+        {
+            // In der Galerie heißt der Knopf „Abbrechen“ und führt zurück zum Bearbeiten.
+            if (_board.IsGalleryOpen)
+            {
+                _board.CloseGallery();
+            }
+            else
+            {
+                _board.SetEditing(false);
+            }
+        };
+        actions.Children.Add(_boardAdd);
+        actions.Children.Add(_boardDone);
+        Grid.SetColumn(actions, 2);
+        _editHeader.Children.Add(actions);
+        HeaderRow.Children.Add(_editHeader);
+        var tabs = HeaderRow.Children.OfType<Border>().First();
 
         _board.EditingChanged += editing =>
         {
-            _boardDone.Visibility = editing ? Visibility.Visible : Visibility.Collapsed;
+            _editHeader.Visibility = editing ? Visibility.Visible : Visibility.Collapsed;
+            tabs.Visibility = editing ? Visibility.Collapsed : Visibility.Visible;
             PopupChanged?.Invoke(editing);
             if (_current is { } current)
             {
                 UpdateClock(current, new Spring(_animation.ExpandMs / 1000.0, _animation.Damping), modeChanged: false);
             }
+        };
+        _board.GalleryChanged += open =>
+        {
+            _editTitle.Text = open ? "Widget hinzufügen" : "Jetzt anpassen";
+            _editHint.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
+            _gallerySearch.Text = "";
+            _gallerySearch.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+            _boardAdd.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
+            SetHeaderButton(_boardDone, open ? "Abbrechen" : "Fertig", open ? BrimColors.Track : BrimColors.DefaultAccent, open ? BrimColors.Fog : BrimColors.Obsidian);
+            GalleryChanged?.Invoke(open);
         };
     }
 }

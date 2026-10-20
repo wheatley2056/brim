@@ -162,7 +162,7 @@ Content is a tree of widgets, each with a `"type"`. Names are camelCase. Colors 
 | `chart` | `values`, `max`, `capacity`, `height`, `color`: a line, newest value on the right |
 | `level` | `active`, `color`, `height`: five animated bars |
 | `wave` | `values` (0–1, at most 200, newest on the right), `height`, `color`, `barWidth`: a real waveform. Brim glides between updates, so 10–20 updates per second look fluid. |
-| `button` | `actionId`, `glyph`, `label`, `kind` (`subtle`, `primary`, `secondary`, `row`), `size`, `glyphSize`, `glyphColor`, `selected` |
+| `button` | `actionId`, `glyph`, `label`, `kind` (`subtle`, `primary`, `secondary`, `row`, `round`), `size`, `glyphSize`, `glyphColor`, `selected` |
 | `switch` | `actionId`, `isOn`, `label` |
 | `stack` | `children`, `orientation` (`horizontal`/`vertical`), `spacing`, `justify`, `align`, `padding` (number, `[x, y]` or `[l, t, r, b]`), `background`, `cornerRadius` |
 | `list` | `items`, `spacing`, `scrollable` |

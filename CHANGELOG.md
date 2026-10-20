@@ -3,6 +3,17 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 2.2.0
+
+„Jetzt“ neu gestaltet: neue Anordnung, einheitliche Widgets und ein Editor, der sich wie Windows anfühlt.
+
+- Neue Anordnung: Links liegt die laufende Aktivität als halbe Seite, rechts Termine, eine Uhr und die Systemlast. Wer noch den alten Standard hatte (nur die Aktivität über die ganze Seite), bekommt einmalig den neuen; eigene Anordnungen bleiben.
+- Läuft nichts, zeigt die Aktivität „Heute“: Wochentag, Datum, Kalenderwoche und den nächsten Termin, darunter runde Knöpfe für Timer, Audioausgabe und Lautstärke. Musik erscheint dort als kompakter Player.
+- Einheitliche Widgets: Jede Karte hat oben eine Zeile mit farbigem Symbol und Namen. Neu sind „Schnellzugriff“, „System“ (CPU, RAM, GPU) und „Akku“ (Ring mit Restzeit).
+- Bearbeiten: Oben stehen „Jetzt anpassen“, „+ Widget“ und „Fertig“. Kacheln werden gedämpft und umrandet, freie Felder sind gestrichelt und lassen sich anklicken. Die Größe wählst du unter der Kachel über kleine Rasterbilder.
+- Galerie: Sie öffnet sich in der hohen Notch, mit Gruppen links, Suche oben und Vorschau-Kacheln. Nach der Wahl siehst du das Widget in echter Größe, wählst die Größe und tippst auf „Hinzufügen“.
+- Plugins: neuer Knopfstil `round` für runde Symbolknöpfe.
+
 ## 2.1.0
 
 Feinschliff nach dem Review: ruhigere, aufgeräumte Notch und Einstellungen, die zu Windows passen.

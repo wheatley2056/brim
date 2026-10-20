@@ -452,6 +452,17 @@ Entscheidungen: eigenes Widget-System statt Adaptive Cards (Microsofts WinUI- un
 - **Widgets:** `ClockTiles` (acht Uhren, neuer Baustein `clockface`), Musik, Termine, laufende Aktivität.
 - **Plugins:** `widgets` im Manifest, `widget.placed` → `widget.set`; SwyxIt! 1.3 (Telefon, Chats), Outlook 1.2 (Termin, Posteingang, Aufgaben).
 
+### 7j. „Jetzt“ neu gestaltet (20.10.2026, Brim 2.2)
+
+Entwurf: Artifact „Brim – Jetzt neu“ (sechs Ansichten). Entschieden: Die Aktivität hat einen festen Platz und verschiebt nichts.
+
+- **Anordnung:** `NowSettings.DefaultTiles` = Aktivität groß (2 × 2) links, Termine mittel, Uhr analog klein, System klein. `NowSettings.Upgrade` (beim Laden) ersetzt einmalig den alten Standard (nur Aktivität über die ganze Seite), `Revision` merkt sich das.
+- **Aktivität:** Größen groß und ganze Seite. Als halbe Seite zeigt sie `Activity.Tile` (Musik: kompakter Player), sonst `Expanded`. Läuft nichts, steht dort „Heute“ (`ClockModule`): Wochentag in Akzentfarbe, Datum, KW und nächster Termin, darunter Schnellzugriff als runde Knöpfe (`ButtonKind.Round`).
+- **Widgets:** `TileCard` (Kopfzeile mit farbigem Symbol und Name, leerer Zustand). Neu: Schnellzugriff (`clock/quick`), System (`resources/load`, misst im 2-s-Takt nur, solange die Kachel auf einem offenen „Jetzt“ liegt), Akku (`battery/battery`, nur mit Akku).
+- **Editor** (`NowBoard`): Kopfzeile „Jetzt anpassen · + Widget · Fertig“ statt Tabs und Uhr; Kacheln gedämpft mit Rahmen, „−“ und Größenwahl als Rasterbildchen auf einer eigenen Ebene (Border beschneidet), freie Felder gestrichelt (`Dashboard.FreeCells`), nach voller letzter Seite eine leere.
+- **Galerie:** hohe Notch (`ExpandedTall`), Fenster nimmt Tastatur an; Gruppen links (Brim, Uhren, Kalender, Medien, System, dann Plugins), Suche in der Kopfzeile, Karten mit verkleinerter Vorschau. Danach Vorschau in echter Größe, Größen als Rasterbildchen, „Hinzufügen“.
+- **Offen:** „Nicht stören“ im Schnellzugriff (wartet auf B9), Ziehen auf eine andere Seite.
+
 ### 8a. Einführung (Brim 2.0, 20.10.2026)
 
 - **Wann:** nur beim ersten Start einer frischen Installation (`Onboarding.ShouldRun`: keine Einstellungsdatei); bestehende Installationen gelten als eingeführt. Erneut über Einstellungen → Info.

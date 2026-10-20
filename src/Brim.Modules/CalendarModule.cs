@@ -192,17 +192,12 @@ public sealed class CalendarModule : IBrimModule
         }
         if (upcoming.Count == 0)
         {
-            return new StackWidget(
-                new IconWidget(Glyphs.Calendar) { Size = 18, Color = BrimColors.Slate },
-                new TextWidget(available ? "Keine Termine mehr" : "Kalender einrichten (Einstellungen)") { Style = TextStyle.Secondary })
-            {
-                Spacing = 10,
-                Justify = Justify.Center,
-                Grow = 1,
-            };
+            return TileCard.Card(
+                TileCard.Header(Glyphs.Calendar, BrimColors.Danger, "Termine"),
+                TileCard.Empty(Glyphs.Calendar, available ? "Heute keine Termine mehr" : "Kalender einrichten (Einstellungen)"));
         }
         var culture = CultureInfo.CurrentCulture;
-        var rows = size switch { TileSize.Large => 4, _ => 1 };
+        var rows = size switch { TileSize.Large => 3, _ => 1 };
         var items = new List<Widget>();
         foreach (var entry in upcoming.Take(rows))
         {
@@ -227,14 +222,14 @@ public sealed class CalendarModule : IBrimModule
             line.Add(new TextWidget(countdown) { Style = TextStyle.Mono, Color = soon ? BrimColors.Warning : BrimColors.Slate });
             items.Add(new StackWidget(line) { Spacing = 10 });
         }
-        return new StackWidget(items)
-        {
-            Orientation = StackOrientation.Vertical,
-            Align = CrossAlign.Stretch,
-            Justify = Justify.Center,
-            Spacing = 8,
-            Grow = 1,
-        };
+        return TileCard.Card(
+            TileCard.Header(Glyphs.Calendar, BrimColors.Danger, "Termine", upcoming.Count > rows ? $"+{upcoming.Count - rows}" : null),
+            new StackWidget(items)
+            {
+                Orientation = StackOrientation.Vertical,
+                Align = CrossAlign.Stretch,
+                Spacing = 8,
+            });
     }
 
     private void Publish(DateTimeOffset now)

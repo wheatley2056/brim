@@ -216,6 +216,7 @@ public sealed class MediaModule : IBrimModule
             Bead = new ImageWidget(_cover) { Width = 20, Height = 20, CornerRadius = 5, Placeholder = placeholder },
             Announcement = $"{_title}, {subtitle}",
             Expanded = PlayerView(accent, placeholder, subtitle, position, progress),
+            Tile = PlayerTile(TileSize.Large),
         });
     }
 
@@ -237,14 +238,7 @@ public sealed class MediaModule : IBrimModule
     {
         if (string.IsNullOrWhiteSpace(_title))
         {
-            return new StackWidget(
-                new IconWidget(Glyphs.Play) { Size = 18, Color = BrimColors.Slate },
-                new TextWidget("Keine Musik") { Style = TextStyle.Secondary })
-            {
-                Spacing = 10,
-                Justify = Justify.Center,
-                Grow = 1,
-            };
+            return TileCard.Empty(Glyphs.MusicNote, "Gerade keine Musik");
         }
         var accent = _accent ?? BrimColors.DefaultAccent;
         (string, string) placeholder = (accent, "#6C5CFF");
