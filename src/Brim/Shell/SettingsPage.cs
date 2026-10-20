@@ -20,6 +20,9 @@ internal sealed class SettingsPage : UserControl
     /// <summary>Baut eine Seite mit allem, was die App dafür kennt (von <see cref="App"/> gesetzt).</summary>
     public static Func<Func<nint>, SettingsPage>? Create { get; set; }
 
+    /// <summary>Zeigt die Einführung noch einmal (Info → „Einführung erneut zeigen“).</summary>
+    public static Action? ShowOnboarding { get; set; }
+
     private readonly Func<nint> _window;
 
     private readonly SettingsStore _store;
@@ -602,6 +605,9 @@ internal sealed class SettingsPage : UserControl
         logs.Click += (_, _) => Open(Path.Combine(App.DataDirectory, "logs"));
         p.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { json, logs } });
         p.Children.Add(new HyperlinkButton { Content = "Brim auf GitHub", NavigateUri = new Uri(AutoUpdater.RepositoryUrl) });
+        var intro = new Button { Content = "Einführung erneut zeigen" };
+        intro.Click += (_, _) => ShowOnboarding?.Invoke();
+        p.Children.Add(Card("Einführung", "Intro, Kurzanleitung und Einrichtung wie beim ersten Start.", intro));
     }
 
     // ───────── Bausteine ─────────

@@ -9,6 +9,8 @@
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="CommunityToolkit.WinUI.Animations" Version="8.2.251219" />
     <PackageVersion Include="CommunityToolkit.WinUI.Extensions" Version="8.2.251219" />
+    <!-- Lottie-Animationen der Einführung (MIT, Lottie-Windows). -->
+    <PackageVersion Include="CommunityToolkit.WinUI.Lottie" Version="8.2.250604" />
     <PackageVersion Include="WinUIEx" Version="2.9.3" />
     <PackageVersion Include="H.NotifyIcon.WinUI" Version="2.4.1" />
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.4.0" />

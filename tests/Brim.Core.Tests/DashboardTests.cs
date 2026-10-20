@@ -81,3 +81,18 @@ public class DashboardTests
         Assert.Null(hub.TileContent("clock/analog", TileSize.Large));
     }
 }
+
+public class OnboardingTests
+{
+    [Fact]
+    public void Runs_only_on_a_fresh_install()
+    {
+        Assert.True(Onboarding.ShouldRun(new BrimSettings(), settingsExisted: false));
+
+        var updated = new BrimSettings();
+        Assert.False(Onboarding.ShouldRun(updated, settingsExisted: true));
+        Assert.True(updated.Onboarded);
+
+        Assert.False(Onboarding.ShouldRun(new BrimSettings { Onboarded = true }, settingsExisted: false));
+    }
+}

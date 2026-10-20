@@ -108,6 +108,31 @@ public partial class App : Application
         _windows.Build();
 
         SettingsPage.Create = CreateSettingsPage;
+        SettingsPage.ShowOnboarding = () => _windows?.StartOnboarding();
+        _windows.OnboardingFinished += restart =>
+        {
+            _settings.Current.Onboarded = true;
+            _settings.Save(_settings.Current);
+            if (restart)
+            {
+                PackageIdentity.Restart(ExitApp);
+            }
+        };
+        // Erster Start einer frischen Installation: Einführung, sobald die Notch steht.
+        var wasOnboarded = settings.Onboarded;
+        if (Onboarding.ShouldRun(settings, _settings.Existed) && !IsDemo)
+        {
+            var intro = dispatcher.CreateTimer();
+            intro.Interval = TimeSpan.FromMilliseconds(800);
+            intro.IsRepeating = false;
+            intro.Tick += (_, _) => _windows.StartOnboarding();
+            intro.Start();
+        }
+        else if (!wasOnboarded && settings.Onboarded)
+        {
+            // Bestehende Installation: Einführung als gesehen merken, damit sie auch künftig nicht kommt.
+            _settings.Save(settings);
+        }
         _tray = new TrayIcon(_settings, ExitApp, () => _windows.ToggleExpanded(), OpenSettings);
 
         // Eine zweite gestartete Instanz klappt die Notch auf, statt eine weitere zu öffnen.

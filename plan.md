@@ -452,6 +452,12 @@ Entscheidungen: eigenes Widget-System statt Adaptive Cards (Microsofts WinUI- un
 - **Widgets:** `ClockTiles` (acht Uhren, neuer Baustein `clockface`), Musik, Termine, laufende Aktivität.
 - **Plugins:** `widgets` im Manifest, `widget.placed` → `widget.set`; SwyxIt! 1.3 (Telefon, Chats), Outlook 1.2 (Termin, Posteingang, Aufgaben).
 
+### 8a. Einführung (Brim 2.0, 20.10.2026)
+
+- **Wann:** nur beim ersten Start einer frischen Installation (`Onboarding.ShouldRun`: keine Einstellungsdatei); bestehende Installationen gelten als eingeführt. Erneut über Einstellungen → Info.
+- **Geburt:** im Compositor (`NotchSurface.PlayBirth`): Lichtlinie an der Kante, Glühen in der Akzentfarbe, 18 Funken mit Schwerkraft; die Notch tropft aus der Kante (Feder mit Dämpfung 0,42) und wächst auf 720 × 480. Solange zeigt die Fensterregion die ganze Zeichenfläche.
+- **Schritte:** Willkommen, Kurzanleitung mit drei Lottie-Animationen (CommunityToolkit.WinUI.Lottie, MIT; erzeugt von `build/onboarding/make_lottie.py`), Kalender und Benachrichtigungen einrichten (Paketidentität, Rückfrage nach Adminrechten), Fertig – mit Neustart, wenn die Identität gerade eingerichtet wurde.
+
 ## 8. Risiken
 
 | Risiko | Auswirkung | Gegenmaßnahme |

@@ -255,6 +255,12 @@ public sealed class BrimSettings
     /// <summary>Weitere Ordner mit Plugins, z. B. beim Entwickeln (zusätzlich zu %LocalAppData%\Brim\Plugins).</summary>
     public List<string> PluginDirectories { get; set; } = [];
 
+    /// <summary>
+    /// Einführung (Intro, Kurzanleitung, Einrichtung) gesehen. Neu installiert ist es <c>false</c>; wer schon
+    /// Einstellungen hat, gilt als eingeführt (siehe <see cref="Onboarding.ShouldRun"/>).
+    /// </summary>
+    public bool Onboarded { get; set; }
+
     /// <summary>Module, die der Nutzer abgeschaltet hat (Modul-IDs).</summary>
     public List<string> DisabledModules { get; set; } = [];
 }
@@ -279,11 +285,15 @@ public sealed class SettingsStore
 
     public event Action<BrimSettings>? Changed;
 
+    /// <summary>Gab es beim Laden schon eine Einstellungsdatei? Wenn nicht, startet Brim zum ersten Mal.</summary>
+    public bool Existed { get; private set; }
+
     public BrimSettings Load()
     {
         try
         {
-            if (File.Exists(_path))
+            Existed = File.Exists(_path);
+            if (Existed)
             {
                 Current = JsonSerializer.Deserialize<BrimSettings>(File.ReadAllText(_path), Options) ?? new BrimSettings();
             }
@@ -304,5 +314,20 @@ public sealed class SettingsStore
         File.WriteAllText(temp, JsonSerializer.Serialize(settings, Options));
         File.Move(temp, _path, overwrite: true);
         Changed?.Invoke(settings);
+    }
+}
+
+/// <summary>Wann die Einführung läuft.</summary>
+public static class Onboarding
+{
+    /// <summary>Nur beim ersten Start einer frischen Installation, nicht nach einem Update.</summary>
+    public static bool ShouldRun(BrimSettings settings, bool settingsExisted)
+    {
+        if (settingsExisted && !settings.Onboarded)
+        {
+            // Bestehende Installation (Update von vor der Einführung): nicht nachträglich zeigen.
+            settings.Onboarded = true;
+        }
+        return !settings.Onboarded;
     }
 }

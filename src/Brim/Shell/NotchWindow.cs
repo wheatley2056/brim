@@ -100,6 +100,8 @@ internal sealed partial class NotchWindow : WindowEx
         };
         View.DropTargetChanged += OnDropTargetChanged;
         View.Dropped += OnDropped;
+        View.BirthFinished += OnBirthFinished;
+        View.OnboardingFinished += OnOnboardingFinished;
         View.SettingsOpenChanged += open =>
         {
             // Einstellungen: offen bleiben wie bei einem Menü, und Tastatur annehmen.
@@ -233,6 +235,38 @@ internal sealed partial class NotchWindow : WindowEx
         UpdateRegion(animation);
         ScheduleExpiry();
     }
+
+    // ───────── Einführung ─────────
+
+    /// <summary>Erster Start: Die Notch wird geboren, klappt auf und zeigt die Einführung, bis sie beendet ist.</summary>
+    public void StartOnboarding()
+    {
+        // Glühen und Funken reichen über die Notch hinaus: solange die ganze Zeichenfläche zeigen.
+        ApplyRegion((0, 0, NotchGeometry.Canvas.Width, NotchGeometry.Canvas.Height));
+        _regionTarget = default;
+        _popupOpen = true;
+        View.StartOnboarding(_settings.Current.Animation.Clamped(), reducedMotion: !_uiSettings.AnimationsEnabled);
+    }
+
+    private void OnBirthFinished()
+    {
+        // Tastatur für die Schritte (z. B. Rückfrage beim Einrichten), offen bis „Loslegen“.
+        Win32.SetActivatable(Handle, true);
+        _tab = NotchTab.Now;
+        SetExpanded(true, pinned: true);
+        Refresh();
+    }
+
+    private void OnOnboardingFinished(bool restart)
+    {
+        Win32.SetActivatable(Handle, false);
+        _popupOpen = false;
+        SetExpanded(false, pinned: false);
+        OnboardingFinished?.Invoke(restart);
+    }
+
+    /// <summary>Einführung beendet (an die App: speichern, ggf. neu starten).</summary>
+    public event Action<bool>? OnboardingFinished;
 
     /// <summary>Per Tastenkürzel oder zweiter Instanz auf- und zuklappen.</summary>
     public void ToggleFromKeyboard()

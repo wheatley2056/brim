@@ -125,6 +125,12 @@ public sealed partial class NotchView : UserControl
         _reducedMotion = reducedMotion;
         var modeChanged = previous?.Mode != p.Mode;
 
+        // Während der Geburt (Einführung) gehört die Form der Animation.
+        if (_birth)
+        {
+            return;
+        }
+
         // Zugeklappt: Bearbeiten von „Jetzt“ und die Einstellungen enden.
         if (p.Mode != NotchMode.Expanded)
         {
@@ -245,7 +251,7 @@ public sealed partial class NotchView : UserControl
     private NotchShape ShapeFor(NotchMode mode)
     {
         var shape = mode != NotchMode.Expanded ? NotchGeometry.For(mode, _form)
-            : _settingsOpen ? NotchGeometry.Styled(NotchGeometry.Settings, _form)
+            : _settingsOpen || _onboarding ? NotchGeometry.Styled(NotchGeometry.Settings, _form)
             : _tall ? NotchGeometry.Styled(NotchGeometry.ExpandedTall, _form)
             : NotchGeometry.For(mode, _form);
         return _hovering && NotchGeometry.SwellsOnHover(mode) ? NotchGeometry.Swell(shape) : shape;
@@ -391,6 +397,10 @@ public sealed partial class NotchView : UserControl
 
     private FrameworkElement UpdateExpanded(NotchPresentation p)
     {
+        if (_onboarding && _onboardingLayer is not null)
+        {
+            return _onboardingLayer;
+        }
         if (_settingsOpen && _settingsLayer is not null)
         {
             return _settingsLayer;
