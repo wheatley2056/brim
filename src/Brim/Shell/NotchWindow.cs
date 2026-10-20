@@ -41,6 +41,15 @@ internal sealed partial class NotchWindow : WindowEx
     private NotchMaterial? _material;
     private double _glassUntil;
 
+    /// <summary>Material als geglättete Vektorform; null bei Schwarz oder im Rückfall über die Fensterregion.</summary>
+    private MaterialLayer? _materialLayer;
+
+    /// <summary>Einmal fehlgeschlagen: für diese Sitzung beim alten Weg bleiben.</summary>
+    private bool _vectorMaterialFailed;
+
+    /// <summary>Material über die Fensterregion zugeschnitten (treppige Kanten) – nur noch als Rückfall.</summary>
+    private bool RegionGlass => _glass == true && _materialLayer is null;
+
     public NotchWindow(DisplayArea display, ActivityHub hub, SettingsStore settings, ShelfStore shelf, NearbyModule nearby)
     {
         Display = display;
@@ -143,6 +152,12 @@ internal sealed partial class NotchWindow : WindowEx
         };
         View.Loaded += (_, _) =>
         {
+            // Vor dem Laden gibt es keine Insel für das Material; jetzt nachholen.
+            if (_material is { } material && material != NotchMaterial.Black && _materialLayer is null && !_vectorMaterialFailed)
+            {
+                UseMaterial(material);
+                ApplyRegion(_region == default ? CurrentHitArea() : _region);
+            }
             View.XamlRoot.Changed += (_, _) =>
             {
                 if (Math.Abs(View.XamlRoot.RasterizationScale - _dpiScale) > 0.001)
@@ -154,6 +169,8 @@ internal sealed partial class NotchWindow : WindowEx
 
         Closed += (_, _) =>
         {
+            _materialLayer?.Dispose();
+            _materialLayer = null;
             _hub.NotifyVisibleTab(this, null);
             _hub.NotifyIdleShown(this, false);
             Microsoft.UI.Xaml.Media.CompositionTarget.Rendering -= TrackGlass;
@@ -200,9 +217,7 @@ internal sealed partial class NotchWindow : WindowEx
             // Jedes Windows-Material scheint nur im Umriss durch (Region wie bei Glas).
             _material = appearance.Material;
             _glass = appearance.Material != NotchMaterial.Black;
-            SystemBackdrop = _glass == true
-                ? new MaterialBackdrop(appearance.Material)
-                : new TransparentTintBackdrop { TintColor = Microsoft.UI.Colors.Transparent };
+            UseMaterial(appearance.Material);
             View.SetMaterial(appearance.Material);
             _regionTarget = default;
         }
@@ -572,11 +587,69 @@ internal sealed partial class NotchWindow : WindowEx
         {
             Microsoft.UI.Xaml.Media.CompositionTarget.Rendering -= TrackGlass;
         }
-        if (_glass == true && _region.Width > 0)
+        if (_materialLayer is not null)
+        {
+            UpdateMaterialLayer();
+        }
+        else if (_glass == true && _region.Width > 0)
         {
             ApplyGlassRegion();
         }
     }
+
+    /// <summary>
+    /// Material wählen: bei Acryl und Mica als Vektorform im Umriss (<see cref="MaterialLayer"/>), sonst – und wenn
+    /// das System das nicht kann – als Fensterhintergrund, den die Region zuschneidet.
+    /// </summary>
+    private void UseMaterial(NotchMaterial material)
+    {
+        _materialLayer?.Dispose();
+        _materialLayer = null;
+        var transparent = new TransparentTintBackdrop { TintColor = Microsoft.UI.Colors.Transparent };
+        if (material == NotchMaterial.Black)
+        {
+            SystemBackdrop = transparent;
+            return;
+        }
+        if (!_vectorMaterialFailed && View.XamlRoot?.ContentIsland is { } island)
+        {
+            Microsoft.UI.Composition.ContainerVisual? host = null;
+            try
+            {
+                host = View.CreateMaterialHost();
+                Win32.UseHostBackdrop(Handle);
+                var (width, height) = NotchGeometry.Canvas;
+                var layer = new MaterialLayer(material, island, host, new System.Numerics.Vector2((float)width, (float)height), DispatcherQueue);
+                layer.Failed += () => DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (_materialLayer == layer)
+                    {
+                        _vectorMaterialFailed = true;
+                        UseMaterial(material);
+                        ApplyRegion(_region);
+                    }
+                });
+                _materialLayer = layer;
+                SystemBackdrop = transparent;
+                UpdateMaterialLayer();
+                return;
+            }
+            catch (Exception ex)
+            {
+                Log.Info($"Material als Vektorform nicht möglich ({ex.Message}), Rückfall auf die Fensterregion");
+                _vectorMaterialFailed = true;
+                if (host?.Parent is { } parent)
+                {
+                    parent.Children.Remove(host);
+                }
+            }
+        }
+        SystemBackdrop = new MaterialBackdrop(material);
+    }
+
+    /// <summary>Material auf die Form in diesem Moment legen (ohne Abstand der Insel: der steckt im Rand der Zeichenfläche).</summary>
+    private void UpdateMaterialLayer() =>
+        _materialLayer?.Update(NotchGeometry.Outline(View.CurrentShape, View.BeadCount, 0));
 
     /// <summary>Bei Glas genau der gezeichnete Umriss, sonst schiene das Acryl um die Notch herum durch.</summary>
     private void ApplyGlassRegion() =>
@@ -585,7 +658,8 @@ internal sealed partial class NotchWindow : WindowEx
     private void ApplyRegion((double X, double Y, double Width, double Height) area)
     {
         _region = area;
-        if (_glass == true && area.Width > 0)
+        UpdateMaterialLayer();
+        if (RegionGlass && area.Width > 0)
         {
             ApplyGlassRegion();
             return;

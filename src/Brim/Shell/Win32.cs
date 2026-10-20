@@ -47,6 +47,19 @@ internal static class Win32
     }
 
     /// <summary>
+    /// Erlaubt Pinseln des System-Compositors, den Hintergrund hinter dem Fenster zu lesen (Acryl als Vektorform,
+    /// <see cref="MaterialLayer"/>). Ohne das bliebe der Pinsel in einem Win32-Fenster leer.
+    /// </summary>
+    public static void UseHostBackdrop(nint hwnd)
+    {
+        unsafe
+        {
+            BOOL on = true;
+            _ = PInvoke.DwmSetWindowAttribute(new HWND(hwnd), DWMWINDOWATTRIBUTE.DWMWA_USE_HOSTBACKDROPBRUSH, &on, (uint)sizeof(BOOL));
+        }
+    }
+
+    /// <summary>
     /// Für Eingaben in der Notch (Einstellungen): Das Fenster darf aktiv werden und bekommt den Fokus, damit
     /// Textfelder Tastatur annehmen. Danach wieder wie ein Overlay, das nie den Fokus stiehlt.
     /// </summary>

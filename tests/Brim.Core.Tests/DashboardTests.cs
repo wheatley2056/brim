@@ -229,3 +229,21 @@ public class IdleLayoutTests
         Assert.Equal(4, changes);
     }
 }
+
+public class ClockWidthTests
+{
+    [Fact]
+    public void Every_digit_becomes_the_widest_and_separators_stay()
+    {
+        Assert.Equal("00:00:00", ClockWidth.Widest("16:15:53", '0'));
+        Assert.Equal("8:88 Uhr", ClockWidth.Widest("9:41 Uhr", '8'));
+    }
+
+    [Theory]
+    [InlineData(13, 13)]
+    [InlineData(4, ClockSettings.MinIdleSize)]
+    [InlineData(99, ClockSettings.MaxIdleSize)]
+    [InlineData(double.NaN, ClockSettings.DefaultIdleSize)]
+    public void Clock_size_in_the_pill_stays_within_bounds(double stored, double expected) =>
+        Assert.Equal(expected, new ClockSettings { IdleSize = stored }.ClampedIdleSize);
+}

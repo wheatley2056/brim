@@ -224,6 +224,7 @@ public sealed partial class NotchView : UserControl
     public void ApplyAppearance(AppearanceSettings appearance)
     {
         _form = appearance.Form;
+        UpdateSettingsCorners();
         // Die Insel schwebt: Alles rückt um den Abstand nach unten; die Zeichenfläche hat dafür Platz.
         CanvasRoot.Padding = new Thickness(0, NotchGeometry.Gap(_form), 0, 0);
         CanvasRoot.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0);
@@ -241,6 +242,9 @@ public sealed partial class NotchView : UserControl
     }
 
     public NotchForm Form => _form;
+
+    /// <summary>Platz für das Material unter der Form (siehe <see cref="NotchSurface.CreateMaterialHost"/>).</summary>
+    internal Microsoft.UI.Composition.ContainerVisual CreateMaterialHost() => _surface.CreateMaterialHost();
 
     public void SetMaterial(NotchMaterial material) => _surface.SetGlass(material != NotchMaterial.Black,
         material is NotchMaterial.Mica or NotchMaterial.MicaAlt ? (byte)0x28 : NotchSurface.GlassTint);

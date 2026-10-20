@@ -86,6 +86,14 @@ public sealed class InteractionSettings
 public sealed class ClockSettings
 {
     public bool ShowSeconds { get; set; }
+
+    /// <summary>Schriftgröße der Uhr in der ruhenden Notch (DIP), unabhängig von den Werten daneben.</summary>
+    public double IdleSize { get; set; } = DefaultIdleSize;
+
+    public const double DefaultIdleSize = 13, MinIdleSize = 10, MaxIdleSize = 20;
+
+    /// <summary>Größe in den Grenzen, die in die Pille passen; Unsinn aus der Datei wird zur Standardgröße.</summary>
+    public double ClampedIdleSize => double.IsFinite(IdleSize) ? Math.Clamp(IdleSize, MinIdleSize, MaxIdleSize) : DefaultIdleSize;
 }
 
 public enum ShelfStorage

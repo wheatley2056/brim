@@ -131,6 +131,18 @@ internal sealed class NotchSurface : IDisposable
         }
     }
 
+    /// <summary>
+    /// Leeres Visual ganz unten in der Form, für das Material (<see cref="MaterialLayer"/>): Es liegt unter Körper,
+    /// Ohren und Tönung und bewegt sich mit der Zeichenfläche.
+    /// </summary>
+    public ContainerVisual CreateMaterialHost()
+    {
+        var host = _compositor.CreateContainerVisual();
+        host.Size = _root.Size;
+        _root.Children.InsertAtBottom(host);
+        return host;
+    }
+
     /// <summary>Die Wurzel, die in den XAML-Baum gehängt wird.</summary>
     public Visual Root => _root;
 
