@@ -165,6 +165,7 @@ Built-in features are modules that use the same interface plugins will: they pos
 - [x] **Games** — FPS, 1 % low, frametime and ping, as a mini pill or on demand
 - [x] **Timer, stopwatch, calendar, notification preview**
 - [x] **Settings window**, winget manifests
+- [x] **Now page from tiles** — clocks (digital and analog), music, calendar, plugin widgets; edit right in the notch
 - [x] **Appearance** — four shapes (notch, island, edge, tab), size, acrylic/Mica/Mica Alt, fonts (including your own)
 - [ ] **Next** — colors and themes, English interface, display latency like PresentMon, Vulkan/OpenGL, external monitor brightness (DDC/CI), code signing
 
