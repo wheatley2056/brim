@@ -30,6 +30,7 @@ public sealed class ClockModule : IBrimModule
         {
             context.DefineTile(id, name, sizes, ClockTiles.Category, Glyphs.Clock, description);
         }
+        context.DefineTile(QuickTile, "Schnellzugriff", [TileSize.Medium, TileSize.Small], "Brim", Glyphs.LightningBolt, "Timer, Audioausgabe und Lautstärke");
         context.TilePlacementsChanged += () =>
         {
             PublishTiles();
@@ -77,6 +78,10 @@ public sealed class ClockModule : IBrimModule
         {
             return;
         }
+        foreach (var size in context.PlacedSizes(QuickTile))
+        {
+            context.SetTile(QuickTile, size, QuickTileContent(size));
+        }
         var now = context.Time.GetLocalNow();
         foreach (var (id, _, _, _) in ClockTiles.All)
         {
@@ -119,7 +124,9 @@ public sealed class ClockModule : IBrimModule
             ? new TextWidget(now.ToString(DateFormats.Pattern(display.DateFormat), culture)) { Style = TextStyle.Status, AccessibleName = now.ToString("D", culture) }
             : null);
         var week = ISOWeek.GetWeekOfYear(now.DateTime);
-        var date = now.ToString("dddd", culture) + ", " + now.ToString(culture.DateTimeFormat.MonthDayPattern, culture);
+        var weekday = now.ToString("dddd", culture);
+        var date = now.ToString(culture.DateTimeFormat.MonthDayPattern, culture);
+        var agenda = _agenda?.Invoke();
 
         context.Post(new Activity
         {
@@ -127,23 +134,37 @@ public sealed class ClockModule : IBrimModule
             Id = "time",
             Priority = ActivityPriority.Idle,
             Content = new TextWidget(time) { Style = TextStyle.Mono, AccessibleName = time },
-            // Die Uhrzeit selbst wandert beim Aufklappen in die Kopfzeile; hier steht groß das Datum.
+            // Die Uhrzeit selbst wandert beim Aufklappen in die Kopfzeile. Hier steht „Heute“: Wochentag, Datum,
+            // Woche und nächster Termin, unten der Schnellzugriff (Entwurf „Jetzt neu“).
             Expanded = new StackWidget(
-                new TextWidget(date) { Style = TextStyle.Display, FontSize = 30 },
-                new TextWidget($"Kalenderwoche {week}") { Style = TextStyle.Secondary, FontSize = 14 },
+                new TextWidget(weekday.ToUpper(culture)) { Style = TextStyle.Caption, FontSize = 11, Color = BrimColors.DefaultAccent },
+                new TextWidget(date) { Style = TextStyle.Display, FontSize = 30, AccessibleName = $"{weekday}, {date}" },
+                new TextWidget(agenda is null ? $"Kalenderwoche {week}" : $"KW {week} · {agenda}") { Style = TextStyle.Secondary, FontSize = 12 },
                 new SpacerWidget { Grow = 1 },
-                new StackWidget(
-                    new TextWidget(_agenda?.Invoke() ?? "Gerade läuft nichts.") { Style = TextStyle.Secondary, Grow = 1 },
-                    new ButtonWidget("timer") { Glyph = Glyphs.Stopwatch, GlyphColor = BrimColors.Slate, AccessibleName = "Timer und Stoppuhr" },
-                    new ButtonWidget("output") { Glyph = Glyphs.Speakers, GlyphColor = BrimColors.Slate, AccessibleName = "Audioausgabe wählen" },
-                    new ButtonWidget("mixer") { Glyph = Glyphs.Volume, GlyphColor = BrimColors.Slate, AccessibleName = "Lautstärke" }))
+                QuickActions(40, 18))
             {
                 Orientation = StackOrientation.Vertical,
-                Spacing = 4,
+                Spacing = 2,
                 Align = CrossAlign.Stretch,
             },
         });
     }
+
+    public const string QuickTile = "quick";
+
+    /// <summary>Timer, Audioausgabe und Lautstärke als runde Knöpfe – in „Heute“ und als Kachel „Schnellzugriff“.</summary>
+    public static StackWidget QuickActions(double size, double glyphSize) =>
+        new(new ButtonWidget("timer") { Glyph = Glyphs.Stopwatch, Kind = ButtonKind.Round, Size = size, GlyphSize = glyphSize, AccessibleName = "Timer und Stoppuhr" },
+            new ButtonWidget("output") { Glyph = Glyphs.Speakers, Kind = ButtonKind.Round, Size = size, GlyphSize = glyphSize, AccessibleName = "Audioausgabe wählen" },
+            new ButtonWidget("mixer") { Glyph = Glyphs.Volume, Kind = ButtonKind.Round, Size = size, GlyphSize = glyphSize, AccessibleName = "Lautstärke" })
+        {
+            Spacing = 8,
+        };
+
+    /// <summary>Kachel „Schnellzugriff“: klein nur die Knöpfe, mittel mit Kopfzeile.</summary>
+    public static Widget QuickTileContent(TileSize size) => size == TileSize.Small
+        ? new StackWidget(QuickActions(34, 15) with { Spacing = 5 }) { Justify = Justify.Center, Grow = 1 }
+        : TileCard.Card(TileCard.Header(Glyphs.LightningBolt, BrimColors.DefaultAccent, "Schnellzugriff"), QuickActions(36, 16) with { Spacing = 12 });
 
     /// <summary>Audio-Menüs sind auch ohne laufende Musik erreichbar.</summary>
     public void OnAction(ActionInvocation invocation)

@@ -57,6 +57,9 @@ public sealed partial class ResourcesModule : IBrimModule
         // jemand sie sieht; sonst ruht die Messung.
         _statusTimer = context.Time.CreateTimer(_ => StatusTick(), null, StatusInterval, StatusInterval);
         context.StatusVisibilityChanged += StatusTick;
+        // Kachel „System“ für „Jetzt“: misst im selben 2-s-Takt, solange sie liegt und „Jetzt“ offen ist.
+        context.DefineTile(LoadTile, "System", [TileSize.Small, TileSize.Medium], "System", Glyphs.Cpu, "Auslastung von CPU und Arbeitsspeicher");
+        context.TilePlacementsChanged += StatusTick;
         if (context.IsTabVisible(NotchTab.System))
         {
             OnTabVisibilityChanged(NotchTab.System, true);
@@ -135,6 +138,10 @@ public sealed partial class ResourcesModule : IBrimModule
                 Push(_upHistory, sample.NetworkUp);
             }
             Publish();
+            if (TileWanted)
+            {
+                PublishTiles(sample, CultureInfo.CurrentCulture);
+            }
         }
         finally
         {
@@ -377,6 +384,7 @@ public sealed partial class ResourcesModule : IBrimModule
         if (_context is { } context)
         {
             context.StatusVisibilityChanged -= StatusTick;
+            context.TilePlacementsChanged -= StatusTick;
         }
         lock (_gate)
         {
@@ -399,6 +407,10 @@ public sealed partial class ResourcesModule : IBrimModule
 
     private bool StatusWanted => _context?.Settings.Display is { } d && (d.Load || d.Network);
 
+    public const string LoadTile = "load";
+
+    private bool TileWanted => _context is { } context && context.PlacedSizes(LoadTile).Count > 0 && context.IsTabVisible(NotchTab.Now);
+
     /// <summary>Misst selbst nur, wenn der Tab zu ist; sonst kommen die Werte mit seinem Takt.</summary>
     private void StatusTick()
     {
@@ -406,13 +418,16 @@ public sealed partial class ResourcesModule : IBrimModule
         {
             return;
         }
-        if (!StatusWanted || _unavailable)
+        var tiles = TileWanted;
+        if ((!StatusWanted && !tiles) || _unavailable)
         {
             PublishStatus(null, CultureInfo.CurrentCulture);
             return;
         }
-        // Niemand sieht die Werte (versteckt, aufgeklappt, gesperrt, Bildschirm aus): nicht messen, die letzten bleiben.
-        if (!context.IsStatusVisible || _timer is not null || Interlocked.Exchange(ref _sampling, 1) == 1)
+        // Niemand sieht die Werte (versteckt, aufgeklappt, gesperrt, Bildschirm aus) und keine Kachel liegt offen:
+        // nicht messen, die letzten bleiben.
+        var seen = (StatusWanted && context.IsStatusVisible) || tiles;
+        if (!seen || _timer is not null || Interlocked.Exchange(ref _sampling, 1) == 1)
         {
             return;
         }
@@ -429,6 +444,7 @@ public sealed partial class ResourcesModule : IBrimModule
                 _last = sample;
             }
             PublishStatus(sample, CultureInfo.CurrentCulture);
+            PublishTiles(sample, CultureInfo.CurrentCulture);
         }
         catch (Exception ex)
         {
@@ -461,4 +477,43 @@ public sealed partial class ResourcesModule : IBrimModule
             }
             : null);
     }
+
+    private void PublishTiles(ResourceSample? s, CultureInfo culture)
+    {
+        if (_context is not { } context)
+        {
+            return;
+        }
+        foreach (var size in context.PlacedSizes(LoadTile))
+        {
+            context.SetTile(LoadTile, size, LoadTileContent(size, s, culture));
+        }
+    }
+
+    /// <summary>Kachel „System“: Kopfzeile und je ein Balken für CPU und RAM (mittel: auch GPU).</summary>
+    public static Widget LoadTileContent(TileSize size, ResourceSample? s, CultureInfo culture)
+    {
+        var memory = s is { MemoryTotal: > 0 } ? 100.0 * s.MemoryUsed / s.MemoryTotal : (double?)null;
+        var rows = new List<Widget>
+        {
+            Bar("CPU", s?.Cpu, BrimColors.Cpu, culture),
+            Bar("RAM", memory, BrimColors.Memory, culture),
+        };
+        if (size != TileSize.Small && s?.Gpu is { } gpu)
+        {
+            rows.Add(Bar("GPU", gpu, BrimColors.Gpu, culture));
+        }
+        return TileCard.Card(
+            TileCard.Header(Glyphs.Cpu, BrimColors.Cpu, "System"),
+            new StackWidget(rows) { Orientation = StackOrientation.Vertical, Align = CrossAlign.Stretch, Spacing = 5 });
+    }
+
+    private static StackWidget Bar(string name, double? value, string color, CultureInfo culture) =>
+        new(new TextWidget(name) { Style = TextStyle.Caption, FixedWidth = 30 },
+            new ProgressWidget(Math.Clamp((value ?? 0) / 100, 0, 1)) { Color = color, Grow = 1, AccessibleName = name },
+            new TextWidget(Percent(value, culture, small: true)) { Style = TextStyle.Caption, Color = BrimColors.Fog, FixedWidth = 34 })
+        {
+            Spacing = 6,
+            AccessibleName = $"{name} {Percent(value, culture, small: true)}",
+        };
 }

@@ -147,16 +147,16 @@ public partial class App : Application
             Log.Error("Audio nicht verfügbar", ex);
         }
         _modules = new ModuleHost(_hub);
-        // Die laufende Aktivität als Kachel für „Jetzt“ (Standard: über die ganze Seite).
+        // Die laufende Aktivität als Kachel für „Jetzt“ (Standard: halbe Seite links).
         _hub.DefineTile(new TileDefinition
         {
             ModuleId = "brim",
             Id = "activity",
             Name = "Laufende Aktivität",
-            Description = "Musik, Anruf, Timer – was gerade läuft",
+            Description = "Musik, Anruf, Timer – läuft nichts: Datum und Schnellzugriff",
             Category = "Brim",
             Glyph = Brim.Core.Widgets.Glyphs.Play,
-            Sizes = [TileSize.Full],
+            Sizes = [TileSize.Large, TileSize.Full],
         });
         // Plugins (Plan 4.2): eigene Prozesse, Ordner %LocalAppData%\Brim\Plugins plus eigene Ordner aus den Einstellungen.
         _plugins = new PluginHostModule(

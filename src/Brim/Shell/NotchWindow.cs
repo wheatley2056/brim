@@ -130,6 +130,12 @@ internal sealed partial class NotchWindow : WindowEx
             // Nicht mitten in Present (Zuklappen schließt die Einstellungen) neu zeichnen.
             DispatcherQueue.TryEnqueue(Refresh);
         };
+        View.GalleryChanged += open =>
+        {
+            // Galerie von „Jetzt“: Suche braucht die Tastatur; die Notch wird höher (Form und Region neu).
+            Win32.SetActivatable(Handle, open);
+            DispatcherQueue.TryEnqueue(Refresh);
+        };
         View.PopupChanged += open =>
         {
             _popupOpen = open;

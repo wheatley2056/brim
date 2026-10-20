@@ -156,6 +156,8 @@ public enum ButtonKind
     Secondary,
     /// <summary>Volle Breite, Symbol und Text links, Haken rechts (Listen wie die Geräteauswahl).</summary>
     Row,
+    /// <summary>Runder Symbolknopf auf eigener Fläche (Schnellzugriff); <c>Selected</c> füllt ihn in der Akzentfarbe.</summary>
+    Round,
 }
 
 public sealed record ButtonWidget(string ActionId) : Widget
@@ -167,7 +169,7 @@ public sealed record ButtonWidget(string ActionId) : Widget
     public double GlyphSize { get; init; } = 18;
     public string? GlyphColor { get; init; }
 
-    /// <summary>Für <see cref="ButtonKind.Row"/>: ausgewählt (hervorgehoben, mit Haken).</summary>
+    /// <summary>Für <see cref="ButtonKind.Row"/>: ausgewählt (hervorgehoben, mit Haken); für <see cref="ButtonKind.Round"/>: eingeschaltet.</summary>
     public bool Selected { get; init; }
 }
 

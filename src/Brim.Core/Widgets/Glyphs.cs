@@ -38,6 +38,8 @@ public static class Glyphs
     public static readonly string Stopwatch = G(0xE916);
     public static readonly string Bluetooth = G(0xE702);
     public static readonly string Bell = G(0xEA8F);
+    /// <summary>Prozessor (Processing), Kachel „System“.</summary>
+    public static readonly string Cpu = G(0xE9F5);
 
     /// <summary>Akkusymbol in elf Stufen (MobBattery0–10), beim Laden mit Blitz, im Energiesparmodus mit Blatt.</summary>
     public static string Battery(int percent, bool charging, bool saver)

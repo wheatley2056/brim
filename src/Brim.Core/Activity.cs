@@ -36,6 +36,12 @@ public sealed record Activity
     /// <summary>Großer Inhalt für den erweiterten Zustand (Tab „Jetzt“).</summary>
     public Widget? Expanded { get; init; }
 
+    /// <summary>
+    /// Inhalt der Kachel „Laufende Aktivität“, wenn sie als halbe Seite liegt (Inhalt 258 × 146 DIP).
+    /// Fehlt er, steht dort <see cref="Expanded"/>.
+    /// </summary>
+    public Widget? Tile { get; init; }
+
     /// <summary>Inhalt, wenn die Aktivität als Perle neben der Notch erscheint (zweite Aktivität).</summary>
     public Widget? Bead { get; init; }
 
