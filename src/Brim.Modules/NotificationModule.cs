@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Brim.Core;
 using Brim.Core.Widgets;
 using Brim.Modules.Sensors;
@@ -287,7 +286,7 @@ public sealed class NotificationModule : IBrimModule
         _context?.End("preview");
         try
         {
-            Process.Start(new ProcessStartInfo("explorer.exe", $"shell:AppsFolder\\{appId}") { UseShellExecute = true })?.Dispose();
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"shell:AppsFolder\\{appId}") { UseShellExecute = true })?.Dispose();
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
