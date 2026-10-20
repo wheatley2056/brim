@@ -53,6 +53,8 @@ public sealed partial class ResourcesModule : IBrimModule
     {
         _context = context;
         Publish();
+        // Werte neben der Uhr (wenn eingeschaltet) auch bei geschlossenem Tab, alle 2 Sekunden.
+        _statusTimer = context.Time.CreateTimer(_ => StatusTick(), null, StatusInterval, StatusInterval);
         if (context.IsTabVisible(NotchTab.System))
         {
             OnTabVisibilityChanged(NotchTab.System, true);
@@ -178,6 +180,7 @@ public sealed partial class ResourcesModule : IBrimModule
         }
 
         var culture = CultureInfo.CurrentCulture;
+        PublishStatus(s, culture);
         var memoryValue = s is { MemoryTotal: > 0 }
             ? $"{FormatGigabytes(s.MemoryUsed, culture)} / {FormatGigabytes(s.MemoryTotal, culture)}"
             : "–";
@@ -361,11 +364,88 @@ public sealed partial class ResourcesModule : IBrimModule
     {
         lock (_gate)
         {
+            _statusTimer?.Dispose();
+            _statusTimer = null;
             _timer?.Dispose();
             _timer = null;
             _sampler?.Dispose();
             _sampler = null;
         }
         return ValueTask.CompletedTask;
+    }
+
+    // ───────── Neben der Uhr ─────────
+
+    private static readonly TimeSpan StatusInterval = TimeSpan.FromSeconds(2);
+    private ITimer? _statusTimer;
+
+    public void OnSettingsChanged() => StatusTick();
+
+    private bool StatusWanted => _context?.Settings.Display is { } d && (d.Load || d.Network);
+
+    /// <summary>Misst selbst nur, wenn der Tab zu ist; sonst kommen die Werte mit seinem Takt.</summary>
+    private void StatusTick()
+    {
+        if (_context is not { } context)
+        {
+            return;
+        }
+        if (!StatusWanted || _unavailable)
+        {
+            PublishStatus(null, CultureInfo.CurrentCulture);
+            return;
+        }
+        if (_timer is not null || Interlocked.Exchange(ref _sampling, 1) == 1)
+        {
+            return;
+        }
+        try
+        {
+            IResourceSampler sampler;
+            lock (_gate)
+            {
+                sampler = _sampler ??= _createSampler();
+            }
+            var sample = sampler.Sample();
+            lock (_gate)
+            {
+                _last = sample;
+            }
+            PublishStatus(sample, CultureInfo.CurrentCulture);
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("Werte für die Notch nicht messbar", ex);
+            _unavailable = true;
+        }
+        finally
+        {
+            Volatile.Write(ref _sampling, 0);
+        }
+    }
+
+    private void PublishStatus(ResourceSample? s, CultureInfo culture)
+    {
+        if (_context is not { } context)
+        {
+            return;
+        }
+        var display = context.Settings.Display;
+        context.SetStatus("load", display.Load && s is not null
+            ? new TextWidget($"CPU {Percent(s.Cpu, culture)} · RAM {(s.MemoryTotal > 0 ? Percent(100.0 * s.MemoryUsed / s.MemoryTotal, culture) : "–")}")
+            {
+                Style = TextStyle.Mono,
+                FontSize = 12,
+                Color = BrimColors.Slate,
+            }
+            : null);
+        context.SetStatus("network", display.Network && s is not null
+            ? new TextWidget($"↓ {FormatRate(s.NetworkDown, culture)}  ↑ {FormatRate(s.NetworkUp, culture)}")
+            {
+                Style = TextStyle.Mono,
+                FontSize = 12,
+                Color = BrimColors.Slate,
+            }
+            : null);
     }
 }

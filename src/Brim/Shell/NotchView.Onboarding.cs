@@ -98,8 +98,8 @@ public sealed partial class NotchView
         }
         _onboardingLayer = new Grid
         {
-            Width = NotchGeometry.Settings.Width,
-            Height = NotchGeometry.Settings.Height,
+            Width = LargeShape.Width,
+            Height = LargeShape.Height,
             Padding = new Thickness(36, 28, 36, 24),
             RowSpacing = 12,
             HorizontalAlignment = HorizontalAlignment.Center,

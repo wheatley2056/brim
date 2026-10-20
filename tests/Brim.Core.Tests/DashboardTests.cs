@@ -96,3 +96,59 @@ public class OnboardingTests
         Assert.False(Onboarding.ShouldRun(new BrimSettings { Onboarded = true }, settingsExisted: false));
     }
 }
+
+public class IdleLayoutTests
+{
+    [Fact]
+    public void Without_extras_the_notch_keeps_its_size_and_the_clock_its_place()
+    {
+        var center = IdleLayout.Arrange(ClockAlignment.Center, 60, []);
+        Assert.Equal(NotchGeometry.Idle.Width, center.Width);
+        Assert.Equal((center.Width - 60) / 2, center.ClockX);
+        Assert.Equal(IdleLayout.Padding, IdleLayout.Arrange(ClockAlignment.Left, 60, []).ClockX);
+    }
+
+    [Fact]
+    public void Centered_clock_stays_in_the_middle_with_values_on_both_sides()
+    {
+        var a = IdleLayout.Arrange(ClockAlignment.Center, 60, [80, 50, 40]);
+        Assert.Equal([0, 2], a.Right);
+        Assert.Equal([1], a.Left);
+        // Breiteste Seite: 80 + 10 + 40 = 130 → 2 × 14 + 60 + 2 × (130 + 10).
+        Assert.Equal(368, a.Width);
+        Assert.Equal((a.Width - 60) / 2, a.ClockX);
+    }
+
+    [Fact]
+    public void Left_and_right_put_all_values_beside_the_clock()
+    {
+        var left = IdleLayout.Arrange(ClockAlignment.Left, 60, [80, 50]);
+        Assert.Equal([0, 1], left.Right);
+        Assert.Equal(2 * 14 + 60 + 10 + 80 + 10 + 50, left.Width);
+        Assert.Equal(14, left.ClockX);
+
+        var right = IdleLayout.Arrange(ClockAlignment.Right, 60, [80, 50]);
+        Assert.Equal([0, 1], right.Left);
+        Assert.Equal(right.Width - 14 - 60, right.ClockX);
+
+        Assert.Equal(IdleLayout.MaxWidth, IdleLayout.Arrange(ClockAlignment.Left, 60, [300, 300]).Width);
+    }
+
+    [Fact]
+    public void Status_values_come_and_go()
+    {
+        var hub = new ActivityHub();
+        var changes = 0;
+        hub.Changed += () => changes++;
+        hub.SetStatus("clock", "date", new Brim.Core.Widgets.TextWidget("Di. 20."));
+        hub.SetStatus("clock", "date", new Brim.Core.Widgets.TextWidget("Di. 20."));
+        Assert.Equal(1, changes);
+        Assert.NotNull(hub.Status(StatusKeys.Date));
+        hub.SetStatus("clock", "date", null);
+        hub.SetStatus("clock", "date", null);
+        Assert.Equal(2, changes);
+        Assert.Null(hub.Status(StatusKeys.Date));
+
+        Assert.Equal([StatusKeys.Load, StatusKeys.Battery, StatusKeys.NotificationDot], new NotchDisplaySettings { Load = true, Battery = true }.EnabledStatus());
+    }
+}

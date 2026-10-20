@@ -93,6 +93,7 @@ public sealed partial class NotchView : UserControl
 
         InitializeShelf(shelf, settings, nearby, window);
         InitializeSettings(window);
+        InitializeIdle(settings);
         KeyDown += OnKeyDown;
     }
 
@@ -137,6 +138,9 @@ public sealed partial class NotchView : UserControl
             _board?.SetEditing(false);
             SetSettingsOpen(false);
         }
+        // Ruhezustand: Werte neben der Uhr bestimmen die Breite, also vor der Form.
+        ArrangeIdle();
+
         // Detailansicht (z. B. CPU) im Tab: Die Notch wird höher.
         _tall = p.Mode == NotchMode.Expanded && !_settingsOpen && p.Tab is NotchTab.System or NotchTab.Plugins
             && _hub.Views(p.Tab).Any(v => v.IsDetail);
@@ -250,8 +254,9 @@ public sealed partial class NotchView : UserControl
 
     private NotchShape ShapeFor(NotchMode mode)
     {
-        var shape = mode != NotchMode.Expanded ? NotchGeometry.For(mode, _form)
-            : _settingsOpen || _onboarding ? NotchGeometry.Styled(NotchGeometry.Settings, _form)
+        var shape = mode == NotchMode.Idle ? NotchGeometry.For(mode, _form) with { Width = _idle.Width }
+            : mode != NotchMode.Expanded ? NotchGeometry.For(mode, _form)
+            : _settingsOpen || _onboarding ? NotchGeometry.Styled(LargeShape, _form)
             : _tall ? NotchGeometry.Styled(NotchGeometry.ExpandedTall, _form)
             : NotchGeometry.For(mode, _form);
         return _hovering && NotchGeometry.SwellsOnHover(mode) ? NotchGeometry.Swell(shape) : shape;
@@ -356,7 +361,7 @@ public sealed partial class NotchView : UserControl
 
     private FrameworkElement UpdateIdle(NotchPresentation p)
     {
-        // Die Uhr selbst ist ein gemeinsames Element über den Ebenen (NotchView.Clock.cs).
+        // Die Uhr selbst ist ein gemeinsames Element über den Ebenen (NotchView.Clock.cs); daneben die Werte.
         return IdleLayer;
     }
 

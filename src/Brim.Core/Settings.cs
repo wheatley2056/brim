@@ -215,8 +215,67 @@ public sealed class GameSettings
     public string PingHost { get; set; } = "";
 }
 
+/// <summary>Wie neue Benachrichtigungen in der ruhenden Notch erscheinen.</summary>
+public enum NotificationStyle
+{
+    /// <summary>Kurz als Vorschau mit App, Titel und Text.</summary>
+    Preview,
+    /// <summary>Die Uhr bleibt; nur ein blauer Punkt, bis die Notch aufgeklappt wird.</summary>
+    Dot,
+}
+
+/// <summary>Uhr in der ruhenden Notch.</summary>
+public enum ClockAlignment { Center, Left, Right }
+
+/// <summary>Was die ruhende Notch zeigt (Einstellungen → Aussehen → In der Notch).</summary>
+public sealed class NotchDisplaySettings
+{
+    public ClockAlignment Clock { get; set; } = ClockAlignment.Center;
+    public bool Load { get; set; }
+    public bool Date { get; set; }
+    public bool Battery { get; set; }
+    public bool Network { get; set; }
+
+    /// <summary>Statuswerte im Hub (Modul/Kennung), die gerade eingeschaltet sind, in fester Reihenfolge.</summary>
+    public IReadOnlyList<string> EnabledStatus()
+    {
+        var keys = new List<string>();
+        if (Date)
+        {
+            keys.Add(StatusKeys.Date);
+        }
+        if (Load)
+        {
+            keys.Add(StatusKeys.Load);
+        }
+        if (Network)
+        {
+            keys.Add(StatusKeys.Network);
+        }
+        if (Battery)
+        {
+            keys.Add(StatusKeys.Battery);
+        }
+        // Der Punkt für Benachrichtigungen erscheint immer, wenn es ihn gibt.
+        keys.Add(StatusKeys.NotificationDot);
+        return keys;
+    }
+}
+
+/// <summary>Kennungen der Statuswerte für die ruhende Notch.</summary>
+public static class StatusKeys
+{
+    public const string Date = "clock/date";
+    public const string Load = "resources/load";
+    public const string Network = "resources/network";
+    public const string Battery = "battery/status";
+    public const string NotificationDot = "notifications/dot";
+}
+
 public sealed class NotificationSettings
 {
+    public NotificationStyle Style { get; set; } = NotificationStyle.Preview;
+
     /// <summary>Apps (Anzeigename wie in den Windows-Benachrichtigungen), deren Benachrichtigungen die Notch nicht zeigt.</summary>
     public List<string> MutedApps { get; set; } = [];
 }
@@ -246,6 +305,7 @@ public sealed class BrimSettings
     public AnimationSettings Animation { get; set; } = new();
     public AppearanceSettings Appearance { get; set; } = new();
     public NowSettings Now { get; set; } = new();
+    public NotchDisplaySettings Display { get; set; } = new();
     public InteractionSettings Interaction { get; set; } = new();
     public ClockSettings Clock { get; set; } = new();
 

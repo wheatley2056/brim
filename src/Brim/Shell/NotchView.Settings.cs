@@ -21,6 +21,33 @@ public sealed partial class NotchView
 
     public bool IsSettingsOpen => _settingsOpen;
 
+    private (double Width, double Height) _available = (double.MaxValue, double.MaxValue);
+
+    /// <summary>
+    /// Einstellungen und Einführung: so groß wie das Einstellungsfenster, auf kleinen Monitoren so groß, wie
+    /// der Bildschirm (in DIP, ohne Ränder) zulässt.
+    /// </summary>
+    private NotchShape LargeShape => NotchGeometry.Settings with
+    {
+        Width = Math.Min(NotchGeometry.Settings.Width, _available.Width - 48),
+        Height = Math.Min(NotchGeometry.Settings.Height, _available.Height - 48),
+    };
+
+    /// <summary>Platz auf dem Monitor in DIP der Zeichenfläche (vom Fenster beim Platzieren).</summary>
+    public void SetAvailableSize(double width, double height)
+    {
+        _available = (width, height);
+        var shape = LargeShape;
+        foreach (var layer in new[] { _settingsLayer, _onboardingLayer })
+        {
+            if (layer is not null)
+            {
+                layer.Width = shape.Width;
+                layer.Height = shape.Height;
+            }
+        }
+    }
+
     private void InitializeSettings(Func<nint> window)
     {
         _window = window;
@@ -43,7 +70,7 @@ public sealed partial class NotchView
         row.Children.Add(gear);
         HeaderRow.Children.Insert(0, row);
 
-        var (width, height) = (NotchGeometry.Settings.Width, NotchGeometry.Settings.Height);
+        var (width, height) = (LargeShape.Width, LargeShape.Height);
         _settingsLayer = new Grid
         {
             Width = width,

@@ -27,6 +27,9 @@ public interface IBrimModule : IAsyncDisposable
     /// Abfragen (Ressourcen) messen nur, solange ihr Tab offen ist (Plan 4.7).
     /// </summary>
     void OnTabVisibilityChanged(NotchTab tab, bool visible) { }
+
+    /// <summary>Einstellungen wurden geändert (z. B. was die ruhende Notch zeigt); sofort neu zeichnen.</summary>
+    void OnSettingsChanged() { }
 }
 
 /// <summary>Was ein Modul von der Shell bekommt.</summary>
@@ -68,6 +71,9 @@ public sealed class ModuleContext
         _hub.SetView(new TabView { ModuleId = ModuleId, Id = id, Content = content, Tab = tab, IsDetail = true });
 
     public bool IsTabVisible(NotchTab tab) => _hub.IsTabVisible(tab);
+
+    /// <summary>Statuswert für die ruhende Notch (z. B. „load“); <c>null</c> entfernt ihn.</summary>
+    public void SetStatus(string id, Widget? content) => _hub.SetStatus(ModuleId, id, content);
 
     /// <summary>Bietet eine Kachel für „Jetzt“ an (Galerie).</summary>
     public void DefineTile(string id, string name, IReadOnlyList<TileSize> sizes, string category = "Brim", string? glyph = null, string? description = null) =>
@@ -131,6 +137,22 @@ public sealed class ModuleHost : IAsyncDisposable
                 // Ein fehlerhaftes Modul darf die Notch nicht mitreißen.
                 Log.Error($"Modul {module.Id} konnte nicht starten", ex);
                 _hub.EndAll(module.Id);
+            }
+        }
+    }
+
+    /// <summary>Gibt geänderte Einstellungen an alle Module weiter; Fehler einzelner werden protokolliert.</summary>
+    public void NotifySettingsChanged()
+    {
+        foreach (var module in _running)
+        {
+            try
+            {
+                module.OnSettingsChanged();
+            }
+            catch (Exception ex)
+            {
+                Log.Warn($"Modul {module.Id} reagierte fehlerhaft auf neue Einstellungen", ex);
             }
         }
     }

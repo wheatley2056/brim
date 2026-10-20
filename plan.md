@@ -455,7 +455,7 @@ Entscheidungen: eigenes Widget-System statt Adaptive Cards (Microsofts WinUI- un
 ### 8a. Einführung (Brim 2.0, 20.10.2026)
 
 - **Wann:** nur beim ersten Start einer frischen Installation (`Onboarding.ShouldRun`: keine Einstellungsdatei); bestehende Installationen gelten als eingeführt. Erneut über Einstellungen → Info.
-- **Geburt:** im Compositor (`NotchSurface.PlayBirth`): Lichtlinie an der Kante, Glühen in der Akzentfarbe, 18 Funken mit Schwerkraft; die Notch tropft aus der Kante (Feder mit Dämpfung 0,42) und wächst auf 720 × 480. Solange zeigt die Fensterregion die ganze Zeichenfläche.
+- **Geburt:** im Compositor (`NotchSurface.PlayBirth`): Lichtlinie an der Kante, Glühen in der Akzentfarbe, 18 Funken mit Schwerkraft; die Notch tropft aus der Kante (Feder mit Dämpfung 0,42) und wächst auf die Größe der Einstellungen (bis 960 × 640). Solange zeigt die Fensterregion die ganze Zeichenfläche.
 - **Schritte:** Willkommen, Kurzanleitung mit drei Lottie-Animationen (CommunityToolkit.WinUI.Lottie, MIT; erzeugt von `build/onboarding/make_lottie.py`), Kalender und Benachrichtigungen einrichten (Paketidentität, Rückfrage nach Adminrechten), Fertig – mit Neustart, wenn die Identität gerade eingerichtet wurde.
 
 ## 8. Risiken

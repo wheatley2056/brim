@@ -216,6 +216,8 @@ internal sealed partial class NotchWindow : WindowEx
             var x = bounds.X + (bounds.Width - width) / 2;
             AppWindow.MoveAndResize(new RectInt32(x, top, width, height));
         }
+        // Platz für Einstellungen und Einführung: Monitor in DIP der Zeichenfläche, unter der Notch-Oberkante.
+        View.SetAvailableSize(bounds.Width / _scale, (bounds.Y + bounds.Height - top) / _scale);
         ApplyRegion(_region == default ? CurrentHitArea() : _region);
         _top = top;
 
@@ -476,7 +478,7 @@ internal sealed partial class NotchWindow : WindowEx
         {
             return (0, 0, 0, 0);
         }
-        var shape = NotchGeometry.SwellsOnHover(mode) ? NotchGeometry.Swell(NotchGeometry.For(mode, View.Form)) : View.TargetShape;
+        var shape = View.HitShape(mode);
         return NotchGeometry.HitArea(shape, View.BeadCount, NotchGeometry.Gap(View.Form));
     }
 

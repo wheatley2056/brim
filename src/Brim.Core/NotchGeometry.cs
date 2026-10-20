@@ -47,8 +47,8 @@ public static class NotchGeometry
     /// <summary>Aufgeklappt mit Detailansicht (z. B. CPU im Tab „System“): gleiche Breite, mehr Höhe.</summary>
     public static readonly NotchShape ExpandedTall = new(620, 420, 38, 12);
 
-    /// <summary>Einstellungen in der Notch.</summary>
-    public static readonly NotchShape Settings = new(720, 480, 38, 12);
+    /// <summary>Einstellungen (und Einführung) in der Notch: so groß wie das Einstellungsfenster, damit alles lesbar ist.</summary>
+    public static readonly NotchShape Settings = new(960, 640, 38, 12);
     public static readonly NotchShape ShelfDrop = new(352, 88, 28, 12);
 
     /// <summary>Spielmodus „Mini“: schmale Pille mit FPS · ms (Plan 4.8: ca. 120 × 22).</summary>

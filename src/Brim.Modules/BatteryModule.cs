@@ -129,6 +129,15 @@ public sealed class BatteryModule : IBrimModule
         }
 
         context.SetView("card", Card(state), column: TabColumn.Side, order: 0);
+        context.SetStatus("status", state.Present && context.Settings.Display.Battery ? StatusWidget(state) : null);
+    }
+
+    public void OnSettingsChanged()
+    {
+        if (_context is { } context && _last is { } state)
+        {
+            context.SetStatus("status", state.Present && context.Settings.Display.Battery ? StatusWidget(state) : null);
+        }
     }
 
     /// <summary>Kompakt nur beim Laden (einstellbar) oder wenn der Akku zur Neige geht (Plan 4.6).</summary>
@@ -165,6 +174,15 @@ public sealed class BatteryModule : IBrimModule
     }
 
     // ───────── Darstellung ─────────
+
+    /// <summary>Neben der Uhr in der ruhenden Notch: Symbol und Prozent in den Akku-Farben.</summary>
+    private Widget StatusWidget(BatteryState state) => new StackWidget(
+        new IconWidget(Glyph(state)) { Size = 13, Color = ColorFor(state, Settings) },
+        new TextWidget($"{state.Percent} %") { Style = TextStyle.Mono, Color = ColorFor(state, Settings) })
+    {
+        Spacing = 4,
+        AccessibleName = $"Akku {state.Percent} %, {StatusText(state)}",
+    };
 
     private Widget Card(BatteryState state) => new StackWidget(
         new IconWidget(Glyph(state)) { Size = 18, Color = ColorFor(state, Settings) },

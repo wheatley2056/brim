@@ -164,6 +164,7 @@ public partial class App : Application
             new ProcessPluginLauncher(Path.Combine(DataDirectory, "logs", "plugins")),
             s => _settings.Save(s));
         _settings.Changed += s => _plugins.ApplySettings(s);
+        _settings.Changed += _ => _modules?.NotifySettingsChanged();
         ShelfPluginActions.List = () => _plugins.ShelfActions().Select(a => (a.PluginId, a.PluginName, a.Action.Id, a.Action.Label)).ToList();
         ShelfPluginActions.Invoke = (plugin, action, paths) => _plugins.SendShelfItems(plugin, action, paths);
         // Unbemerkte Updates (nur installierte Fassung); kein Neustart, solange jemand arbeitet oder überträgt.

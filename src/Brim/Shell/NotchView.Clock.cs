@@ -72,7 +72,9 @@ public sealed partial class NotchView
         {
             var shape = ShapeFor(NotchMode.Idle);
             scale = _hovering ? HoverContentScale : 1;
-            x = center - width * scale / 2;
+            // Uhr mittig, links oder rechts (IdleLayout); beim Anschwellen wächst sie um ihre Mitte.
+            var left = center - _idle.Width / 2;
+            x = left + IdleClockX + width * (1 - scale) / 2;
             y = shape.Height / 2 - height * scale / 2;
         }
 

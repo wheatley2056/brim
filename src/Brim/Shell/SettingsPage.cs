@@ -288,6 +288,19 @@ internal sealed class SettingsPage : UserControl
         p.Children.Add(Choice("Material", "Acryl zeigt den Desktop weichgezeichnet, Mica und Mica Alt sind aus dem Hintergrundbild getönt (Windows 11). Braucht etwas mehr Grafikleistung.",
             [("Schwarz", NotchMaterial.Black), ("Acryl", NotchMaterial.Acrylic), ("Mica", NotchMaterial.Mica), ("Mica Alt", NotchMaterial.MicaAlt)],
             a.Material, v => a.Material = v));
+        p.Children.Add(Header("In der Notch"));
+        var d = S.Display;
+        p.Children.Add(Choice("Uhr", "Wo die Uhrzeit in der ruhenden Notch steht; daneben die Werte, die du hier einschaltest.",
+            [("Mittig", ClockAlignment.Center), ("Links", ClockAlignment.Left), ("Rechts", ClockAlignment.Right)],
+            d.Clock, v => d.Clock = v));
+        p.Children.Add(Toggle("Datum", "z. B. „Di. 20.“", d.Date, v => d.Date = v));
+        p.Children.Add(Toggle("CPU und RAM", "Auslastung in Prozent, alle 2 Sekunden.", d.Load, v => d.Load = v));
+        p.Children.Add(Toggle("Netzwerk", "Aktuelle Download- und Uploadrate.", d.Network, v => d.Network = v));
+        p.Children.Add(Toggle("Akku", "Ladestand in den Akku-Farben (nur mit Akku).", d.Battery, v => d.Battery = v));
+        p.Children.Add(Choice("Benachrichtigungen", "„Nur Punkt“: Die Uhr bleibt stehen, ein blauer Punkt erscheint, bis du die Notch aufklappst.",
+            [("Vorschau zeigen", NotificationStyle.Preview), ("Nur blauer Punkt", NotificationStyle.Dot)],
+            S.Notifications.Style, v => S.Notifications.Style = v));
+
         var fonts = new Button { Content = "Einstellen" };
         fonts.Click += (_, _) => Select("fonts");
         p.Children.Add(Card("Schriften", "Für Uhr, Menü, Überschriften, Texte und Zahlen je eine eigene Schrift, auch aus eigenen Dateien.", fonts));

@@ -87,6 +87,8 @@ public sealed class ClockModule : IBrimModule
         }
     }
 
+    public void OnSettingsChanged() => Publish();
+
     public void OnTabVisibilityChanged(NotchTab tab, bool visible)
     {
         if (tab == NotchTab.Now && visible)
@@ -106,6 +108,10 @@ public sealed class ClockModule : IBrimModule
             timePattern = culture.DateTimeFormat.LongTimePattern;
         }
         var time = now.ToString(timePattern, culture);
+        // Datum neben der Uhr in der ruhenden Notch (Einstellungen → Aussehen → In der Notch).
+        context.SetStatus("date", context.Settings.Display.Date
+            ? new TextWidget(now.ToString("ddd d.", culture)) { Style = TextStyle.Mono, Color = BrimColors.Slate, AccessibleName = now.ToString("D", culture) }
+            : null);
         var week = ISOWeek.GetWeekOfYear(now.DateTime);
         var date = now.ToString("dddd", culture) + ", " + now.ToString(culture.DateTimeFormat.MonthDayPattern, culture);
 
