@@ -1,0 +1,23 @@
+# Bauen und testen auf Windows bei jedem Push und Pull Request – damit ein Release nicht erst am Tag scheitert.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Tests (ohne Netz)
+        run: dotnet test Brim.slnx -c Release
