@@ -35,6 +35,40 @@ public sealed class AnimationSettings
     };
 }
 
+/// <summary>Material des Körpers: Schwarz oder eines der Windows-Materialien, das durch die Notch scheint.</summary>
+public enum NotchMaterial
+{
+    Black,
+    /// <summary>Acryl: der Desktop dahinter, weichgezeichnet.</summary>
+    Acrylic,
+    /// <summary>Mica: getönt aus dem Hintergrundbild (Windows 11).</summary>
+    Mica,
+    /// <summary>Mica Alt: kräftiger getönt, wie Registerkarten in Windows 11.</summary>
+    MicaAlt,
+}
+
+/// <summary>Aussehen der Notch (Personalisierung, Plan 7h).</summary>
+public sealed class AppearanceSettings
+{
+    public NotchForm Form { get; set; } = NotchForm.Notch;
+
+    /// <summary>Faktor auf alle Zustände (0,8–1,3).</summary>
+    public double Size { get; set; } = 1.0;
+
+    public NotchMaterial Material { get; set; } = NotchMaterial.Black;
+
+    /// <summary>Schrift je Bereich (Einstellungen → Aussehen → Schriften).</summary>
+    public FontSettings Fonts { get; set; } = new();
+
+    public AppearanceSettings Clamped() => new()
+    {
+        Form = Enum.IsDefined(Form) ? Form : NotchForm.Notch,
+        Material = Enum.IsDefined(Material) ? Material : NotchMaterial.Black,
+        Fonts = Fonts ?? new(),
+        Size = double.IsFinite(Size) ? Math.Clamp(Size, NotchGeometry.MinSize, NotchGeometry.MaxSize) : 1.0,
+    };
+}
+
 public sealed class InteractionSettings
 {
     /// <summary>Wie lange die Maus über der Notch ruhen muss, bevor sie sich erweitert.</summary>
@@ -210,6 +244,7 @@ public sealed class BrimSettings
     public ShelfSettings Shelf { get; set; } = new();
     public MonitorMode Monitors { get; set; } = MonitorMode.Primary;
     public AnimationSettings Animation { get; set; } = new();
+    public AppearanceSettings Appearance { get; set; } = new();
     public InteractionSettings Interaction { get; set; } = new();
     public ClockSettings Clock { get; set; } = new();
 

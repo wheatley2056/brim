@@ -67,17 +67,31 @@ public sealed class CalendarModule : IBrimModule
             if (!Identity.Present)
             {
                 Log.Info("Kalender braucht Paketidentität (Einstellungen → Kalender und Benachrichtigungen)");
+                FeatureStatus.Calendar = "Aus: Brim läuft ohne Paketidentität.";
                 return;
             }
             try
             {
                 _store = await AppointmentManager.RequestStoreAsync(AppointmentStoreAccessType.AllCalendarsReadOnly);
+                if (_store is null)
+                {
+                    // Zugriff in Windows verweigert (Datenschutz → Kalender).
+                    FeatureStatus.Calendar = "Aus: Windows verweigert den Zugriff (Einstellungen → Datenschutz → Kalender).";
+                    Log.Info("Kalender: Zugriff verweigert");
+                    return;
+                }
+                var calendars = await _store.FindAppointmentCalendarsAsync();
+                FeatureStatus.Calendar = calendars.Count == 0
+                    ? "Kein Kalender gefunden. Brim liest Konten aus der Windows-Kalender-App bzw. dem neuen Outlook, nicht aus dem klassischen Outlook."
+                    : $"Aktiv: {calendars.Count} Kalender ({string.Join(", ", calendars.Select(c => c.DisplayName).Take(5))}).";
+                Log.Info($"Kalender: {calendars.Count} Kalender");
                 _store.ChangeTracker.Enable();
                 _store.StoreChanged += (_, _) => _ = RefreshAsync();
             }
             catch (Exception ex)
             {
                 Log.Warn("Kalender nicht verfügbar", ex);
+                FeatureStatus.Calendar = $"Fehler: {ex.Message}";
                 return;
             }
         }

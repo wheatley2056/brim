@@ -426,9 +426,21 @@ Zusätzlich für 1.0:
 - **Datenträger** (aktive Zeit, `\PhysicalDisk(_Total)\% Idle Time`) im Tab System.
 - Version 1.0.0 in `Directory.Build.props` und `CHANGELOG.md`.
 
-Nach 1.0 (bewusst verschoben): Personalisierung (Plan siehe Unterhaltung vom 20.10.), englische Oberfläche, Anzeige-Latenz und Vulkan/OpenGL wie PresentMon, Helligkeit externer Monitore per DDC/CI, Klick auf Benachrichtigungen, „Nicht stören“, `lifecycle.suspend/resume`, VRAM.
+Nach 1.0 (bewusst verschoben): Personalisierung (siehe 7h), englische Oberfläche, Anzeige-Latenz und Vulkan/OpenGL wie PresentMon, Helligkeit externer Monitore per DDC/CI, Klick auf Benachrichtigungen, „Nicht stören“, `lifecycle.suspend/resume`, VRAM.
 
 Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das fertige Ausblende-System.
+
+### 7h. Personalisierung (20.10.2026)
+
+Entscheidungen: alle vier Formen, Glas ja, Position nur Mitte.
+
+Schritte:
+1. **Formen und Größe** (fertig): `NotchForm` Notch, Insel, Kante, Tab. `NotchGeometry.Styled` ändert nur Ecken, Ohren und den Morph-Wert `Round` (obere Ecken rund); Breiten und Höhen bleiben, damit alle Inhalte passen. Die Insel schwebt 6 DIP unter der Kante (`CanvasRoot.Padding`), der Abstand zählt zur Eingabefläche. Die Größe (80–130 %) ist ein `ScaleTransform` auf der Zeichenfläche; das Fenster rechnet mit DPI × Größe.
+2. **Material** (fertig, auf Windows zu prüfen): Schwarz, Acryl, Mica, Mica Alt. `MaterialBackdrop` (Acryl- bzw. Mica-Controller, bleibt auch ohne Fokus an), Fensterregion genau im Umriss (`NotchGeometry.Outline`, `CreateRoundRectRgn`, Ohren mit ausgespartem Kreis). Während einer Formänderung folgt die Region Bild für Bild (`CompositionTarget.Rendering`). Der Körper ist dann eine Tönung (Schwarz, 44 %). Grenze: Regionen sind nicht geglättet.
+2b. **Schriften** (fertig): je Bereich (`FontRole` Uhr, Menü, Überschriften, Texte, Zahlen) Segoe UI, Bahnschrift, Cascadia Mono oder eine eigene Datei; Untermenü „Schriften“ unter Aussehen. `FontFile` liest den Familiennamen aus der Tabelle „name“, `FontCatalog` macht daraus die XAML-Angabe mit Ersatzschriften, `NotchFonts` kopiert Dateien nach `%LocalAppData%\Brim\Fonts` und setzt die Ressourcen als „Pfad#Familie“ (auf Windows zu prüfen).
+3. Farbschema (Farbnamen → Farben des Designs), eigene Farbe, Kontur, Deckkraft in Ruhe.
+4. Ruhezustand (Uhr, Datum, leer), Uhrschrift, Perlen-Stil.
+5. Fertige Kombinationen, Designs exportieren und importieren.
 
 ## 8. Risiken
 

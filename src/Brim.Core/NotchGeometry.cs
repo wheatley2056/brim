@@ -1,14 +1,37 @@
 namespace Brim.Core;
 
+/// <summary>Grundform der Notch (Einstellungen → Aussehen).</summary>
+public enum NotchForm
+{
+    /// <summary>Wächst aus der Kante, unten rund, mit Ohren (Standard).</summary>
+    Notch,
+    /// <summary>Frei schwebende Pille mit Abstand zur Kante, alle Ecken rund.</summary>
+    Island,
+    /// <summary>An der Kante wie die Notch, aber ohne Ohren: unten rund, seitlich hart.</summary>
+    Edge,
+    /// <summary>Fast eckig (3 DIP Radius), wie ein Reiter.</summary>
+    Tab,
+}
+
 /// <summary>
 /// Form der Notch in DIP: Körper mit unten abgerundeten Ecken und zwei „Ohren“,
 /// die den Körper weich in die Bildschirmkante übergehen lassen.
+/// <paramref name="Round"/> rundet auch die oberen Ecken (1 = Insel, 0 = an der Kante); dazwischen morpht sie.
 /// </summary>
-public readonly record struct NotchShape(double Width, double Height, double Radius, double Ear)
+public readonly record struct NotchShape(double Width, double Height, double Radius, double Ear, double Round = 0)
 {
     /// <summary>Gesamtbreite inklusive Ohren.</summary>
     public double OuterWidth => Width + 2 * Ear;
 }
+
+/// <summary>Abgerundetes Rechteck in DIP der Zeichenfläche.</summary>
+public readonly record struct RoundRect(double X, double Y, double Width, double Height, double Radius);
+
+/// <summary>
+/// Genauer Umriss, wie er gezeichnet wird – für Glas, dessen Hintergrund das Fenster nur innerhalb seiner
+/// Region weichzeichnet. Ohren sind Quadrate, aus denen ein Kreis ausgespart ist (<see cref="EarCutouts"/>).
+/// </summary>
+public sealed record NotchOutline(RoundRect Body, IReadOnlyList<RoundRect> Ears, IReadOnlyList<RoundRect> EarCutouts, IReadOnlyList<RoundRect> Beads);
 
 /// <summary>Eine Perle (zweite, dritte Aktivität) rechts neben dem Körper.</summary>
 public readonly record struct BeadShape(double Left, double Size);
@@ -36,9 +59,33 @@ public static class NotchGeometry
     /// <summary>Spielraum für das Überschwingen der Feder, damit nichts abgeschnitten wird.</summary>
     public const double Overshoot = 16;
 
-    /// <summary>Feste Größe der Zeichenfläche (Fenster), in die alle Formen passen.</summary>
+    /// <summary>Abstand der Insel zur Bildschirmkante.</summary>
+    public const double IslandGap = 6;
+
+    /// <summary>Kleinste und größte Größe (Faktor auf alle Zustände).</summary>
+    public const double MinSize = 0.8, MaxSize = 1.3;
+
+    /// <summary>Feste Größe der Zeichenfläche (Fenster), in die alle Formen passen – auch die Insel mit Abstand.</summary>
     public static readonly (double Width, double Height) Canvas =
-        (Expanded.OuterWidth + 2 * (BeadGap + BeadSize) + 2 * Overshoot, Expanded.Height + Overshoot);
+        (Expanded.OuterWidth + 2 * (BeadGap + BeadSize) + 2 * Overshoot, Expanded.Height + Overshoot + IslandGap);
+
+    /// <summary>Abstand zur Oberkante: Nur die Insel schwebt.</summary>
+    public static double Gap(NotchForm form) => form == NotchForm.Island ? IslandGap : 0;
+
+    /// <summary>
+    /// Passt eine Grundform (Maße aus den Design-Boards) an den gewählten Stil an. Breiten und Höhen bleiben,
+    /// damit Inhalte und Animationen überall gleich passen; es ändern sich Ecken und Ohren.
+    /// </summary>
+    public static NotchShape Styled(NotchShape shape, NotchForm form) => form switch
+    {
+        // Ecken werden beim Zeichnen auf die halbe Höhe begrenzt: klein eine Pille, aufgeklappt ein Kärtchen.
+        NotchForm.Island => shape with { Ear = 0, Round = 1 },
+        // Kante: wie die Notch, aber ohne Ohren – endet hart an der Bildschirmkante, unten weich.
+        NotchForm.Edge => shape with { Ear = 0 },
+        // Tab: fast eckig, in jeder Größe derselbe kleine Radius.
+        NotchForm.Tab => shape with { Ear = 0, Radius = Math.Min(shape.Radius, 3) },
+        _ => shape,
+    };
 
     /// <summary>
     /// Leicht angeschwollene Form, solange die Maus auf der kompakten Notch ruht –
@@ -49,6 +96,8 @@ public static class NotchGeometry
 
     /// <summary>Ob die Notch in diesem Zustand auf Hover anschwillt.</summary>
     public static bool SwellsOnHover(NotchMode mode) => mode is NotchMode.Idle or NotchMode.Compact or NotchMode.Hud;
+
+    public static NotchShape For(NotchMode mode, NotchForm form) => Styled(For(mode), form);
 
     public static NotchShape For(NotchMode mode) => mode switch
     {
@@ -78,8 +127,9 @@ public static class NotchGeometry
     /// <summary>
     /// Bereich, der Eingaben annimmt (Fensterregion), relativ zur Zeichenfläche.
     /// Während einer Animation wird die Vereinigung aus alter und neuer Form genutzt.
+    /// Der Abstand der Insel zur Kante gehört dazu, sonst flackert der Hover beim Weg nach oben.
     /// </summary>
-    public static (double X, double Y, double Width, double Height) HitArea(NotchShape body, int beadCount)
+    public static (double X, double Y, double Width, double Height) HitArea(NotchShape body, int beadCount, double gap = 0)
     {
         var center = Canvas.Width / 2;
         var left = center - body.Width / 2 - body.Ear;
@@ -90,7 +140,37 @@ public static class NotchGeometry
             right = center + beads[^1].Left + beads[^1].Size;
         }
         var height = Math.Max(body.Height, beadCount > 0 ? BeadSize : 0);
-        return (left, 0, right - left, height);
+        return (left, 0, right - left, height + gap);
+    }
+
+    /// <summary>Umriss genau wie in NotchSurface gezeichnet, mit dem Abstand der Insel nach unten versetzt.</summary>
+    public static NotchOutline Outline(NotchShape body, int beadCount, double gap)
+    {
+        var center = Canvas.Width / 2;
+        var left = center - body.Width / 2;
+        var rise = body.Radius * (1 - body.Round);
+        var radius = Math.Min(body.Radius, body.Height * (1 - 0.5 * body.Round));
+        var shape = new RoundRect(left, gap - rise, body.Width, body.Height + rise, radius);
+
+        var ears = new List<RoundRect>();
+        var cutouts = new List<RoundRect>();
+        if (body.Ear > 0)
+        {
+            var e = body.Ear;
+            ears.Add(new RoundRect(left - e, gap, e, e, 0));
+            ears.Add(new RoundRect(left + body.Width, gap, e, e, 0));
+            // Kreis um die äußere untere Ecke des Ohrs: Was darin liegt, ist durchsichtig.
+            cutouts.Add(new RoundRect(left - 2 * e, gap, 2 * e, 2 * e, e));
+            cutouts.Add(new RoundRect(left + body.Width, gap, 2 * e, 2 * e, e));
+        }
+
+        var beads = new List<RoundRect>();
+        foreach (var bead in Beads(body, beadCount))
+        {
+            var beadRise = bead.Size / 2 * (1 - body.Round);
+            beads.Add(new RoundRect(center + bead.Left, gap - beadRise, bead.Size, bead.Size + beadRise, bead.Size / 2));
+        }
+        return new NotchOutline(shape, ears, cutouts, beads);
     }
 
     public static (double X, double Y, double Width, double Height) Union(

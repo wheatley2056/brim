@@ -3,6 +3,13 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 1.1.0
+
+- Aussehen (neu in den Einstellungen): Die Notch gibt es jetzt in vier Formen – klassische Notch, schwebende Insel, runde Kante ohne Ohren und eckiger Tab. Die Größe lässt sich von 80 bis 130 % einstellen. Wechsel siehst du sofort.
+- Material: Statt Schwarz auf Wunsch die Windows-Materialien Acryl (Desktop weichgezeichnet), Mica oder Mica Alt.
+- Kalender und Benachrichtigungen: Eine Diagnose in den Einstellungen zeigt, woran es hängt, und lässt sich kopieren. Ist die Einrichtung für einen anderen Brim-Ordner registriert, richtet „Neu einrichten“ sie für diesen ein.
+- Schriften (Aussehen → Schriften): Für Uhr, Menü, Überschriften, Texte und Zahlen je eine eigene Schrift – Segoe UI, Bahnschrift, Cascadia Mono oder eigene Schriftdateien (.ttf, .otf), ohne sie installieren zu müssen.
+
 ## 1.0.1
 
 - Benachrichtigungen: Neue Windows-Benachrichtigungen erscheinen jetzt zuverlässig in der Notch. Brim fragt das Info-Center zusätzlich alle 2 Sekunden ab, weil Windows das Ereignis an Desktop-Apps oft nicht zustellt. Auch Apps mit älteren Benachrichtigungsvorlagen werden angezeigt.

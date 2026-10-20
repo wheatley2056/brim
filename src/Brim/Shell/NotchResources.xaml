@@ -20,6 +20,7 @@
 
     <!-- Im Programm die Schriften des Systems (Identity-Board: „Segoe UI Variable and Cascadia Mono“). -->
     <FontFamily x:Key="NotchTextFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <FontFamily x:Key="NotchTitleFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="NotchDisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
     <FontFamily x:Key="NotchMonoFont">Cascadia Mono, Consolas</FontFamily>
     <FontFamily x:Key="NotchIconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>

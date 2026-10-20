@@ -165,7 +165,8 @@ Eingebaute Funktionen sind Module mit derselben Schnittstelle, die Plugins bekom
 - [x] **Spiele** – FPS, 1 % Low, Frametime und Ping, als Mini-Pille oder auf Abruf
 - [x] **Timer, Stoppuhr, Kalender, Vorschau von Benachrichtigungen**
 - [x] **Einstellungsfenster**, winget-Manifeste
-- [ ] **Als Nächstes** – Personalisierung (Formen, Farben, Glas), englische Oberfläche, Anzeige-Latenz wie PresentMon, Vulkan/OpenGL, Helligkeit externer Monitore (DDC/CI), Signatur
+- [x] **Aussehen** – vier Formen (Notch, Insel, Kante, Tab), Größe, Acryl/Mica/Mica Alt, Schriften (auch eigene)
+- [ ] **Als Nächstes** – Farben und Designs, englische Oberfläche, Anzeige-Latenz wie PresentMon, Vulkan/OpenGL, Helligkeit externer Monitore (DDC/CI), Signatur
 
 ## Danke
 

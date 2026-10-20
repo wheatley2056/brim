@@ -58,6 +58,91 @@ internal static class PackageIdentity
         }
     }
 
+    /// <summary>Ordner, für den das Paket registriert ist (externer Ort), oder <c>null</c>.</summary>
+    public static string? RegisteredLocation
+    {
+        get
+        {
+            try
+            {
+                return new PackageManager().FindPackagesForUser("", PackageName, Publisher).FirstOrDefault()?.EffectiveExternalLocation?.Path;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+    }
+
+    /// <summary>Ist das Paket für einen anderen Ordner registriert als den, aus dem dieses Brim läuft?</summary>
+    public static bool RegisteredElsewhere => RegisteredLocation is { } location && !SameFolder(location, AppContext.BaseDirectory);
+
+    private static bool SameFolder(string a, string b) =>
+        string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)), Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Vertraut der PC dem Zertifikat, das dieser Fassung beiliegt?</summary>
+    private static bool? CertificateTrusted
+    {
+        get
+        {
+            if (!File.Exists(CertificatePath))
+            {
+                return null;
+            }
+            try
+            {
+                using var certificate = X509CertificateLoader.LoadCertificateFromFile(CertificatePath);
+                using var store = new X509Store(StoreName.TrustedPeople, StoreLocation.LocalMachine);
+                store.Open(OpenFlags.ReadOnly);
+                // Jedes Release bringt ein eigenes Zertifikat mit; ein früher eingerichtetes reicht für das schon
+                // registrierte Paket weiter. Hier zählt nur das aktuelle.
+                return store.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, false).Count > 0;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+    }
+
+    /// <summary>Alles, was für Kalender und Benachrichtigungen zählt, zum Ansehen und Kopieren.</summary>
+    public static string Diagnose()
+    {
+        string YesNo(bool? value) => value switch { true => "ja", false => "nein", null => "unbekannt" };
+        string identity;
+        try
+        {
+            identity = Windows.ApplicationModel.Package.Current?.Id.FullName ?? "nein";
+        }
+        catch (InvalidOperationException)
+        {
+            identity = "nein";
+        }
+        var registered = RegisteredLocation;
+        var lines = new List<string>
+        {
+            $"Brim {typeof(PackageIdentity).Assembly.GetName().Version} läuft aus: {AppContext.BaseDirectory}",
+            $"Identitätspaket liegt bei (installierte Fassung): {YesNo(Available)}",
+            $"Zertifikat dieser Version vertraut: {YesNo(CertificateTrusted)} (nach einem Update normal „nein“, solange das Paket schon registriert ist)",
+            $"Paket registriert: {(IsRegistered ? "ja, für " + (registered ?? "unbekannten Ordner") : "nein")}",
+            $"Paketidentität in diesem Prozess: {identity}",
+            $"Kalender: {Brim.Modules.Sensors.FeatureStatus.Calendar}",
+            $"Benachrichtigungen: {Brim.Modules.Sensors.FeatureStatus.Notifications}",
+        };
+        if (RegisteredElsewhere)
+        {
+            lines.Add("→ Das Paket gehört zu einem anderen Brim-Ordner; dieses Brim bekommt deshalb keine Identität.");
+        }
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    /// <summary>Registrierung für einen anderen Ordner entfernen und für diesen neu einrichten.</summary>
+    public static async Task<string?> ReinstallAsync()
+    {
+        Remove();
+        return await SetupAsync();
+    }
+
     /// <summary>Im erhöhten Prozess: Zertifikat unter „Vertrauenswürdige Personen“ des Computers ablegen.</summary>
     public static int Trust()
     {

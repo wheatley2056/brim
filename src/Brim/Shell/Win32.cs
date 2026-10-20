@@ -54,6 +54,39 @@ internal static class Win32
         _ = PInvoke.SetWindowRgn(new HWND(hwnd), region, true);
     }
 
+    /// <summary>
+    /// Region genau im Umriss der Notch (Glas): Das Acryl hinter dem Fenster erscheint nur hier.
+    /// <paramref name="scale"/> rechnet DIP der Zeichenfläche in physische Pixel um. Regionen sind nicht
+    /// geglättet; der halbtransparente Körper darüber zeichnet die weiche Kante.
+    /// </summary>
+    public static void SetRegion(nint hwnd, Brim.Core.NotchOutline outline, double scale)
+    {
+        static int P(double v, double scale) => (int)Math.Round(v * scale);
+        HRGN Round(Brim.Core.RoundRect r, double scale) => PInvoke.CreateRoundRectRgn(
+            P(r.X, scale), P(r.Y, scale), P(r.X + r.Width, scale) + 1, P(r.Y + r.Height, scale) + 1,
+            P(2 * r.Radius, scale), P(2 * r.Radius, scale));
+
+        var region = Round(outline.Body, scale);
+        for (var i = 0; i < outline.Ears.Count; i++)
+        {
+            var ear = Round(outline.Ears[i], scale);
+            var e = outline.EarCutouts[i];
+            var cutout = PInvoke.CreateEllipticRgn(P(e.X, scale), P(e.Y, scale), P(e.X + e.Width, scale), P(e.Y + e.Height, scale));
+            _ = PInvoke.CombineRgn(ear, ear, cutout, RGN_COMBINE_MODE.RGN_DIFF);
+            _ = PInvoke.CombineRgn(region, region, ear, RGN_COMBINE_MODE.RGN_OR);
+            PInvoke.DeleteObject(cutout);
+            PInvoke.DeleteObject(ear);
+        }
+        foreach (var bead in outline.Beads)
+        {
+            var b = Round(bead, scale);
+            _ = PInvoke.CombineRgn(region, region, b, RGN_COMBINE_MODE.RGN_OR);
+            PInvoke.DeleteObject(b);
+        }
+        // Das System übernimmt die Region; sie darf danach nicht freigegeben werden.
+        _ = PInvoke.SetWindowRgn(new HWND(hwnd), region, true);
+    }
+
     public static uint GetDpi(nint hwnd) => PInvoke.GetDpiForWindow(new HWND(hwnd));
 
     /// <summary>Zeit seit der letzten Eingabe (Maus, Tastatur) an diesem Rechner.</summary>

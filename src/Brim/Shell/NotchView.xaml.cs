@@ -132,6 +132,7 @@ public sealed partial class NotchView : UserControl
                 ? new Spring(animation.ExpandMs / 1000.0, Math.Min(animation.Damping, 0.6))
                 : null;
             LastMorphDuration = _surface.MorphTo(shape, animation, reducedMotion, reveal);
+            Morphing?.Invoke(LastMorphDuration);
         }
         var beadCount = p.Mode == NotchMode.Compact ? p.Beads.Count : 0;
         if (beadCount != (previous?.Mode == NotchMode.Compact ? previous.Beads.Count : 0))
@@ -194,9 +195,42 @@ public sealed partial class NotchView : UserControl
     private bool _reducedMotion;
     private readonly SpringChannel _hoverScale = new(1);
 
+    private NotchForm _form;
+
+    /// <summary>Form und Größe aus Einstellungen → Aussehen. Die Größe skaliert die ganze Zeichenfläche.</summary>
+    public void ApplyAppearance(AppearanceSettings appearance)
+    {
+        _form = appearance.Form;
+        // Die Insel schwebt: Alles rückt um den Abstand nach unten; die Zeichenfläche hat dafür Platz.
+        CanvasRoot.Padding = new Thickness(0, NotchGeometry.Gap(_form), 0, 0);
+        CanvasRoot.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0);
+        CanvasRoot.RenderTransform = appearance.Size == 1 ? null : new Microsoft.UI.Xaml.Media.ScaleTransform { ScaleX = appearance.Size, ScaleY = appearance.Size };
+
+        // Schrift: Widgets lesen die Ressourcen beim nächsten Zeichnen; Uhr, Tabs und feste Texte hier.
+        var (text, menu, clock) = NotchFonts.Apply(appearance);
+        FontFamily = text;
+        SharedClock.FontFamily = clock;
+        foreach (var tab in TabStrip.Children.OfType<Button>())
+        {
+            tab.FontFamily = menu;
+        }
+        _clockPlaced = false;
+    }
+
+    public NotchForm Form => _form;
+
+    public void SetMaterial(NotchMaterial material) => _surface.SetGlass(material != NotchMaterial.Black,
+        material is NotchMaterial.Mica or NotchMaterial.MicaAlt ? (byte)0x28 : NotchSurface.GlassTint);
+
+    /// <summary>Eine Formänderung beginnt und dauert so lange (auch das Anschwellen beim Hover).</summary>
+    public event Action<TimeSpan>? Morphing;
+
+    /// <summary>Form in diesem Moment, auch mitten in einer Animation.</summary>
+    public NotchShape CurrentShape => _surface.Current;
+
     private NotchShape ShapeFor(NotchMode mode)
     {
-        var shape = NotchGeometry.For(mode);
+        var shape = NotchGeometry.For(mode, _form);
         return _hovering && NotchGeometry.SwellsOnHover(mode) ? NotchGeometry.Swell(shape) : shape;
     }
 
@@ -215,6 +249,7 @@ public sealed partial class NotchView : UserControl
         if (shape != _surface.Target)
         {
             LastMorphDuration = _surface.MorphTo(shape, _animation, _reducedMotion, _reducedMotion ? null : HoverSpring);
+            Morphing?.Invoke(LastMorphDuration);
         }
         if (!_reducedMotion && _activeLayer is { } layer && NotchGeometry.SwellsOnHover(_current.Mode))
         {

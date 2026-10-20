@@ -41,6 +41,7 @@ public sealed class NotificationModule : IBrimModule
         if (!Identity.Present)
         {
             Log.Info("Benachrichtigungen brauchen Paketidentität (Einstellungen → Kalender und Benachrichtigungen)");
+            FeatureStatus.Notifications = "Aus: Brim läuft ohne Paketidentität.";
             return;
         }
         try
@@ -51,6 +52,7 @@ public sealed class NotificationModule : IBrimModule
             if (access != UserNotificationListenerAccessStatus.Allowed)
             {
                 Log.Info($"Zugriff auf Benachrichtigungen: {access} (Windows-Einstellungen → Datenschutz → Benachrichtigungen)");
+                FeatureStatus.Notifications = $"Aus: Windows erlaubt den Zugriff nicht ({access}). Einstellungen → Datenschutz → Benachrichtigungen.";
                 return;
             }
             // Was jetzt schon im Info-Center liegt, ist nicht neu.
@@ -67,10 +69,12 @@ public sealed class NotificationModule : IBrimModule
             }
             _ = Task.Run(() => PollAsync(_listener, _stop.Token), CancellationToken.None);
             Log.Info("Benachrichtigungen werden gespiegelt");
+            FeatureStatus.Notifications = _subscribed ? "Aktiv (Ereignis und Abfrage alle 2 s)." : "Aktiv (Abfrage alle 2 s, das Ereignis gibt es nicht).";
         }
         catch (Exception ex)
         {
             Log.Warn("Benachrichtigungen nicht verfügbar", ex);
+            FeatureStatus.Notifications = $"Fehler: {ex.Message}";
         }
     }
 
@@ -106,6 +110,7 @@ public sealed class NotificationModule : IBrimModule
                     if (failures++ == 0)
                     {
                         Log.Warn("Benachrichtigungen abfragen fehlgeschlagen", ex);
+                        FeatureStatus.Notifications = $"Fehler beim Abfragen: {ex.Message}";
                     }
                 }
             }
