@@ -3,6 +3,12 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 2.2.1
+
+Feinschliff an den Einstellungen: Rundungen und Navigation.
+
+- Einstellungsfenster: überarbeitete Ecken und Navigation.
+
 ## 2.2.0
 
 „Jetzt“ neu gestaltet: neue Anordnung, einheitliche Widgets und ein Editor, der sich wie Windows anfühlt.
