@@ -448,7 +448,7 @@ Entscheidungen: eigenes Widget-System statt Adaptive Cards (Microsofts WinUI- un
 
 - **Raster:** 4 × 2 Felder pro Seite (Feld 137 × 81 DIP, 8 Abstand), Größen klein, mittel, breit, groß, ganze Seite. `Dashboard.Pack` legt in Lesereihenfolge an die erste freie Stelle, weitere Seiten nach Bedarf. Aufbau in `NowSettings.Tiles`, Standard: laufende Aktivität über die ganze Seite.
 - **Katalog:** `ActivityHub.DefineTile`/`SetTile`/`SetTilePlacements`; Module liefern Inhalt nur für gelegte Größen (`TilePlacementsChanged`), die Galerie bekommt Vorschauen in der Standardgröße.
-- **Shell:** `NowBoard` – lange drücken oder Rechtsklick: wackeln, ziehen, Größe, entfernen, „+“ mit Galerie; „Fertig“ statt der Uhr, die Notch bleibt offen.
+- **Shell:** `NowBoard` – lange drücken oder Rechtsklick: Rahmen um die Kacheln, ziehen, Größe, entfernen, „+“ mit Galerie; „Fertig“ statt der Uhr, die Notch bleibt offen.
 - **Widgets:** `ClockTiles` (acht Uhren, neuer Baustein `clockface`), Musik, Termine, laufende Aktivität.
 - **Plugins:** `widgets` im Manifest, `widget.placed` → `widget.set`; SwyxIt! 1.3 (Telefon, Chats), Outlook 1.2 (Termin, Posteingang, Aufgaben).
 

@@ -1,11 +1,8 @@
-using System.Numerics;
 using Brim.Core;
 using Brim.Core.Widgets;
-using Microsoft.UI.Composition;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
@@ -14,8 +11,8 @@ namespace Brim.Shell;
 
 /// <summary>
 /// Seite „Jetzt“ als Raster aus Kacheln (Personalisierung, Plan 7i): 4 × 2 Felder pro Seite, Kacheln aus
-/// Modulen und Plugins. Bearbeiten direkt in der Notch – lange drücken oder Rechtsklick: Kacheln wackeln,
-/// ziehen sortiert um, „−“ entfernt, die Größe wechselt per Tipp, „+“ öffnet die Galerie.
+/// Modulen und Plugins. Bearbeiten direkt in der Notch – lange drücken oder Rechtsklick: Kacheln bekommen
+/// einen Rahmen, ziehen sortiert um, „−“ entfernt, die Größe wechselt per Tipp, „+“ öffnet die Galerie.
 /// </summary>
 internal sealed class NowBoard : Grid
 {
@@ -27,7 +24,6 @@ internal sealed class NowBoard : Grid
     private readonly Grid _page = new();
     private readonly StackPanel _dots = new() { Orientation = Orientation.Horizontal, Spacing = 5, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom };
     private readonly Dictionary<string, (Border Tile, WidgetRenderer Renderer)> _tiles = new();
-    private readonly HashSet<Border> _wiggling = [];
 
     // Wo jeder Inhalt gerade hängt. FrameworkElement.Parent ist vor dem ersten Laden leer und taugt dafür nicht.
     private readonly Dictionary<FrameworkElement, FrameworkElement> _owners = [];
@@ -105,7 +101,6 @@ internal sealed class NowBoard : Grid
             tile.HorizontalAlignment = HorizontalAlignment.Left;
             tile.VerticalAlignment = VerticalAlignment.Top;
             placed.Add(tile);
-            Wiggle(tile, _editing && placement.Key != AddKey);
         }
         // Nur neu einhängen, wenn sich die Anordnung geändert hat; sonst nur Inhalte (z. B. jede Sekunde die Uhr).
         if (!placed.SequenceEqual(_page.Children.OfType<Border>()))
@@ -119,7 +114,6 @@ internal sealed class NowBoard : Grid
         foreach (var stale in _tiles.Keys.Where(k => !used.Contains(k)).ToList())
         {
             var old = _tiles[stale].Tile;
-            _wiggling.Remove(old);
             _tiles.Remove(stale);
             // Inhalte, die nur in der alten Kachel hingen, vergessen (nicht die Aktivität, die zieht weiter).
             foreach (var content in _owners.Where(o => ReferenceEquals(o.Value, old) && !ReferenceEquals(o.Key, _activity)).Select(o => o.Key).ToList())
@@ -161,6 +155,9 @@ internal sealed class NowBoard : Grid
         // Die Aktivität bringt ihre eigene Fläche mit (Player, Anruf); alle anderen sitzen auf einer Karte.
         tile.Background = activity && !_editing ? null : Brushes.Get(BrimColors.Graphite);
         tile.CornerRadius = new CornerRadius(16);
+        // Bearbeiten erkennt man an einem feinen Rahmen um jede Kachel.
+        tile.BorderBrush = Brushes.Get(BrimColors.Slate);
+        tile.BorderThickness = new Thickness(_editing && placement.Key != AddKey ? 1 : 0);
         tile.Padding = activity ? new Thickness(0) : new Thickness(Dashboard.TilePadding);
 
         FrameworkElement content;
@@ -297,7 +294,6 @@ internal sealed class NowBoard : Grid
         }
         // Inhalte bedienbar bzw. gesperrt: Kacheln neu aufbauen.
         _tiles.Clear();
-        _wiggling.Clear();
         EditingChanged?.Invoke(editing);
         Update();
     }
@@ -313,7 +309,6 @@ internal sealed class NowBoard : Grid
             Log.Warn("Aufbau von „Jetzt“ nicht gespeichert", ex);
         }
         _tiles.Clear();
-        _wiggling.Clear();
         Update();
     }
 
@@ -567,29 +562,4 @@ internal sealed class NowBoard : Grid
     }
 
     private static double Distance(Point a, Point b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
-
-    /// <summary>Wackeln wie auf dem iPhone: leichte Drehung hin und her, je Kachel etwas versetzt.</summary>
-    private void Wiggle(Border tile, bool on)
-    {
-        if (on ? !_wiggling.Add(tile) : !_wiggling.Remove(tile))
-        {
-            return;
-        }
-        var visual = ElementCompositionPreview.GetElementVisual(tile);
-        if (!on)
-        {
-            visual.StopAnimation("RotationAngleInDegrees");
-            visual.RotationAngleInDegrees = 0;
-            return;
-        }
-        visual.CenterPoint = new Vector3((float)tile.Width / 2, (float)tile.Height / 2, 0);
-        var animation = visual.Compositor.CreateScalarKeyFrameAnimation();
-        animation.InsertKeyFrame(0, -0.9f);
-        animation.InsertKeyFrame(0.5f, 0.9f);
-        animation.InsertKeyFrame(1, -0.9f);
-        animation.Duration = TimeSpan.FromMilliseconds(260 + Random.Shared.Next(60));
-        animation.DelayTime = TimeSpan.FromMilliseconds(Random.Shared.Next(120));
-        animation.IterationBehavior = AnimationIterationBehavior.Forever;
-        visual.StartAnimation("RotationAngleInDegrees", animation);
-    }
 }
