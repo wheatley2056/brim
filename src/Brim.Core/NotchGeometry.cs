@@ -24,6 +24,15 @@ public readonly record struct NotchShape(double Width, double Height, double Rad
     public double OuterWidth => Width + 2 * Ear;
 }
 
+/// <summary>Abgerundetes Rechteck in DIP der Zeichenfläche.</summary>
+public readonly record struct RoundRect(double X, double Y, double Width, double Height, double Radius);
+
+/// <summary>
+/// Genauer Umriss, wie er gezeichnet wird – für Glas, dessen Hintergrund das Fenster nur innerhalb seiner
+/// Region weichzeichnet. Ohren sind Quadrate, aus denen ein Kreis ausgespart ist (<see cref="EarCutouts"/>).
+/// </summary>
+public sealed record NotchOutline(RoundRect Body, IReadOnlyList<RoundRect> Ears, IReadOnlyList<RoundRect> EarCutouts, IReadOnlyList<RoundRect> Beads);
+
 /// <summary>Eine Perle (zweite, dritte Aktivität) rechts neben dem Körper.</summary>
 public readonly record struct BeadShape(double Left, double Size);
 
@@ -130,6 +139,36 @@ public static class NotchGeometry
         }
         var height = Math.Max(body.Height, beadCount > 0 ? BeadSize : 0);
         return (left, 0, right - left, height + gap);
+    }
+
+    /// <summary>Umriss genau wie in NotchSurface gezeichnet, mit dem Abstand der Insel nach unten versetzt.</summary>
+    public static NotchOutline Outline(NotchShape body, int beadCount, double gap)
+    {
+        var center = Canvas.Width / 2;
+        var left = center - body.Width / 2;
+        var rise = body.Radius * (1 - body.Round);
+        var radius = Math.Min(body.Radius, body.Height * (1 - 0.5 * body.Round));
+        var shape = new RoundRect(left, gap - rise, body.Width, body.Height + rise, radius);
+
+        var ears = new List<RoundRect>();
+        var cutouts = new List<RoundRect>();
+        if (body.Ear > 0)
+        {
+            var e = body.Ear;
+            ears.Add(new RoundRect(left - e, gap, e, e, 0));
+            ears.Add(new RoundRect(left + body.Width, gap, e, e, 0));
+            // Kreis um die äußere untere Ecke des Ohrs: Was darin liegt, ist durchsichtig.
+            cutouts.Add(new RoundRect(left - 2 * e, gap, 2 * e, 2 * e, e));
+            cutouts.Add(new RoundRect(left + body.Width, gap, 2 * e, 2 * e, e));
+        }
+
+        var beads = new List<RoundRect>();
+        foreach (var bead in Beads(body, beadCount))
+        {
+            var beadRise = bead.Size / 2 * (1 - body.Round);
+            beads.Add(new RoundRect(center + bead.Left, gap - beadRise, bead.Size, bead.Size + beadRise, bead.Size / 2));
+        }
+        return new NotchOutline(shape, ears, cutouts, beads);
     }
 
     public static (double X, double Y, double Width, double Height) Union(

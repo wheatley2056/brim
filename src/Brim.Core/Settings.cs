@@ -35,7 +35,7 @@ public sealed class AnimationSettings
     };
 }
 
-/// <summary>Aussehen der Notch (Personalisierung, Plan 8).</summary>
+/// <summary>Aussehen der Notch (Personalisierung, Plan 7h).</summary>
 public sealed class AppearanceSettings
 {
     public NotchForm Form { get; set; } = NotchForm.Notch;
@@ -43,9 +43,13 @@ public sealed class AppearanceSettings
     /// <summary>Faktor auf alle Zustände (0,8–1,3).</summary>
     public double Size { get; set; } = 1.0;
 
+    /// <summary>Glas: Der Desktop scheint weichgezeichnet durch, statt Schwarz.</summary>
+    public bool Glass { get; set; }
+
     public AppearanceSettings Clamped() => new()
     {
         Form = Enum.IsDefined(Form) ? Form : NotchForm.Notch,
+        Glass = Glass,
         Size = double.IsFinite(Size) ? Math.Clamp(Size, NotchGeometry.MinSize, NotchGeometry.MaxSize) : 1.0,
     };
 }

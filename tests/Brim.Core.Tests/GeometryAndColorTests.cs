@@ -53,6 +53,27 @@ public class GeometryAndColorTests
     }
 
     [Fact]
+    public void Outline_matches_the_drawn_body()
+    {
+        // Notch: Rechteck reicht um den Radius über die Kante, Ohren mit ausgesparten Kreisen.
+        var notch = NotchGeometry.Outline(NotchGeometry.Compact, 0, 0);
+        var center = NotchGeometry.Canvas.Width / 2;
+        Assert.Equal(new RoundRect(center - 150, -17, 300, 51, 17), notch.Body);
+        Assert.Equal(2, notch.Ears.Count);
+        Assert.Equal(new RoundRect(center - 160, 0, 10, 10, 0), notch.Ears[0]);
+        Assert.Equal(new RoundRect(center - 170, 0, 20, 20, 10), notch.EarCutouts[0]);
+
+        // Insel: ganz sichtbar, unter dem Abstand, Radius höchstens halbe Höhe, runde Perlen.
+        var island = NotchGeometry.Outline(NotchGeometry.For(NotchMode.Compact, NotchForm.Island), 1, NotchGeometry.IslandGap);
+        Assert.Equal(new RoundRect(center - 150, NotchGeometry.IslandGap, 300, 34, 17), island.Body);
+        Assert.Empty(island.Ears);
+        var bead = Assert.Single(island.Beads);
+        Assert.Equal(NotchGeometry.IslandGap, bead.Y);
+        Assert.Equal(NotchGeometry.BeadSize, bead.Height);
+        Assert.Equal(center + 150 + NotchGeometry.BeadGap, bead.X);
+    }
+
+    [Fact]
     public void Appearance_is_clamped()
     {
         Assert.Equal(1.3, new AppearanceSettings { Size = 3 }.Clamped().Size);

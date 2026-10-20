@@ -261,6 +261,8 @@ internal sealed class SettingsWindow : Window
             [("Notch – wächst aus der Kante", NotchForm.Notch), ("Insel – schwebende Pille", NotchForm.Island),
              ("Kante – flach, ohne Ohren", NotchForm.Edge), ("Tab – eckig wie ein Reiter", NotchForm.Tab)],
             a.Form, v => a.Form = v));
+        p.Children.Add(Toggle("Glas", "Der Desktop scheint weichgezeichnet durch die Notch, statt Schwarz. Braucht etwas mehr Grafikleistung.",
+            a.Glass, v => a.Glass = v));
         p.Children.Add(Slider("Größe (%)", NotchGeometry.MinSize * 100, NotchGeometry.MaxSize * 100, 5, a.Size * 100,
             v => a.Size = Math.Round(v) / 100));
         var preview = new Button { Content = "Aufklappen" };

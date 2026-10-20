@@ -31,6 +31,9 @@ internal sealed class NotchSurface : IDisposable
     private readonly List<IDisposable> _owned = [];
     private readonly Dictionary<string, SpringChannel> _channels;
     private NotchShape _target;
+    private readonly CompositionColorBrush _fill;
+    private readonly List<CompositionColorGradientStop> _earStops = [];
+    private bool _glass;
     private string? _accent;
     private float _shimmerTarget = -1;
     private double? _glow;
@@ -60,6 +63,7 @@ internal sealed class NotchSurface : IDisposable
         _root.Size = new Vector2(canvasWidth, canvasHeight);
 
         var black = compositor.CreateColorBrush(Colors.Black);
+        _fill = black;
 
         // Körper: abgerundetes Rechteck, nach oben über die Kante geschoben,
         // damit nur die unteren Ecken rund erscheinen.
@@ -180,6 +184,39 @@ internal sealed class NotchSurface : IDisposable
             default:
                 SetImmediate(shape, now);
                 return TimeSpan.Zero;
+        }
+    }
+
+    /// <summary>Körper, Ohren und Perlen in der Füllfarbe: Schwarz, oder bei Glas eine Tönung über dem Acryl.</summary>
+    public void SetGlass(bool glass)
+    {
+        if (glass == _glass)
+        {
+            return;
+        }
+        _glass = glass;
+        var color = glass ? Color.FromArgb(GlassTint, 0, 0, 0) : Colors.Black;
+        var animation = _compositor.CreateColorKeyFrameAnimation();
+        animation.InsertKeyFrame(1, color);
+        animation.Duration = TimeSpan.FromMilliseconds(300);
+        _fill.StartAnimation("Color", animation);
+        foreach (var stop in _earStops)
+        {
+            stop.StartAnimation("Color", animation);
+        }
+    }
+
+    /// <summary>Deckkraft der Tönung bei Glas: dunkel genug für weiße Schrift, hell genug, dass der Desktop durchscheint.</summary>
+    private const byte GlassTint = 0x70;
+
+    /// <summary>Form in diesem Moment, auch mitten in einer Feder (für die Region bei Glas).</summary>
+    public NotchShape Current
+    {
+        get
+        {
+            var now = Now;
+            return new NotchShape(_channels[W].Sample(now).Value, _channels[H].Sample(now).Value, _channels[R].Sample(now).Value,
+                _channels[E].Sample(now).Value, _channels[K].Sample(now).Value);
         }
     }
 
@@ -401,7 +438,9 @@ internal sealed class NotchSurface : IDisposable
         brush.ExtendMode = CompositionGradientExtendMode.Clamp;
         brush.ColorStops.Add(_compositor.CreateColorGradientStop(0, Color.FromArgb(0, 0, 0, 0)));
         brush.ColorStops.Add(_compositor.CreateColorGradientStop(0.94f, Color.FromArgb(0, 0, 0, 0)));
-        brush.ColorStops.Add(_compositor.CreateColorGradientStop(1, Colors.Black));
+        var solid = _compositor.CreateColorGradientStop(1, Colors.Black);
+        _earStops.Add(solid);
+        brush.ColorStops.Add(solid);
         ear.Brush = brush;
         Bind(ear, "Size", "Vector2(p.E, p.E)");
         Bind(ear, "Offset", left ? "Vector3(p.CX - p.W / 2 - p.E + 0.5, 0, 0)" : "Vector3(p.CX + p.W / 2 - 0.5, 0, 0)");

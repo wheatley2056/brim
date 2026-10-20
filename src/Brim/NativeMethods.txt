@@ -35,3 +35,7 @@ GetForegroundWindow
 IsZoomed
 GetWindowText
 GetWindowTextLength
+CreateRoundRectRgn
+CreateEllipticRgn
+CombineRgn
+DeleteObject

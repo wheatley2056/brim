@@ -132,6 +132,7 @@ public sealed partial class NotchView : UserControl
                 ? new Spring(animation.ExpandMs / 1000.0, Math.Min(animation.Damping, 0.6))
                 : null;
             LastMorphDuration = _surface.MorphTo(shape, animation, reducedMotion, reveal);
+            Morphing?.Invoke(LastMorphDuration);
         }
         var beadCount = p.Mode == NotchMode.Compact ? p.Beads.Count : 0;
         if (beadCount != (previous?.Mode == NotchMode.Compact ? previous.Beads.Count : 0))
@@ -208,6 +209,14 @@ public sealed partial class NotchView : UserControl
 
     public NotchForm Form => _form;
 
+    public void SetGlass(bool glass) => _surface.SetGlass(glass);
+
+    /// <summary>Eine Formänderung beginnt und dauert so lange (auch das Anschwellen beim Hover).</summary>
+    public event Action<TimeSpan>? Morphing;
+
+    /// <summary>Form in diesem Moment, auch mitten in einer Animation.</summary>
+    public NotchShape CurrentShape => _surface.Current;
+
     private NotchShape ShapeFor(NotchMode mode)
     {
         var shape = NotchGeometry.For(mode, _form);
@@ -229,6 +238,7 @@ public sealed partial class NotchView : UserControl
         if (shape != _surface.Target)
         {
             LastMorphDuration = _surface.MorphTo(shape, _animation, _reducedMotion, _reducedMotion ? null : HoverSpring);
+            Morphing?.Invoke(LastMorphDuration);
         }
         if (!_reducedMotion && _activeLayer is { } layer && NotchGeometry.SwellsOnHover(_current.Mode))
         {

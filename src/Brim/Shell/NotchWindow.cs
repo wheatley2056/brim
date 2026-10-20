@@ -37,6 +37,8 @@ internal sealed partial class NotchWindow : WindowEx
     /// <summary>DIP der Zeichenfläche → physische Pixel: DPI des Monitors mal gewählte Größe.</summary>
     private double _scale = 1;
     private double _dpiScale = 1;
+    private bool? _glass;
+    private double _glassUntil;
 
     public NotchWindow(DisplayArea display, ActivityHub hub, SettingsStore settings, ShelfStore shelf, NearbyModule nearby)
     {
@@ -87,6 +89,7 @@ internal sealed partial class NotchWindow : WindowEx
         _hoverPoll.Interval = TimeSpan.FromMilliseconds(50);
 
         View.HoverChanged += OnPointer;
+        View.Morphing += OnMorphing;
         View.ExpandRequested += () => SetExpanded(true, pinned: false);
         View.CollapseRequested += () => SetExpanded(false, pinned: false);
         View.TabRequested += tab =>
@@ -127,7 +130,11 @@ internal sealed partial class NotchWindow : WindowEx
             };
         };
 
-        Closed += (_, _) => _hub.NotifyVisibleTab(this, null);
+        Closed += (_, _) =>
+        {
+            _hub.NotifyVisibleTab(this, null);
+            Microsoft.UI.Xaml.Media.CompositionTarget.Rendering -= TrackGlass;
+        };
 
         Place();
         Refresh();
@@ -165,6 +172,12 @@ internal sealed partial class NotchWindow : WindowEx
 
         var appearance = _settings.Current.Appearance.Clamped();
         View.ApplyAppearance(appearance);
+        if (_glass != appearance.Glass)
+        {
+            _glass = appearance.Glass;
+            SystemBackdrop = appearance.Glass ? new GlassBackdrop() : new TransparentTintBackdrop { TintColor = Microsoft.UI.Colors.Transparent };
+            View.SetGlass(appearance.Glass);
+        }
         // Neue Form sofort zeigen, nicht erst bei der nächsten Aktivität.
         _regionTarget = default;
 
@@ -451,9 +464,42 @@ internal sealed partial class NotchWindow : WindowEx
         ApplyRegion(CurrentHitArea());
     }
 
+    /// <summary>Bei Glas folgt das Acryl der Form Bild für Bild, solange sie sich bewegt.</summary>
+    private void OnMorphing(TimeSpan duration)
+    {
+        if (_glass != true)
+        {
+            return;
+        }
+        _glassUntil = Math.Max(_glassUntil, NotchSurface.Now + duration.TotalSeconds + 0.06);
+        Microsoft.UI.Xaml.Media.CompositionTarget.Rendering -= TrackGlass;
+        Microsoft.UI.Xaml.Media.CompositionTarget.Rendering += TrackGlass;
+    }
+
+    private void TrackGlass(object? sender, object e)
+    {
+        if (_glass != true || NotchSurface.Now > _glassUntil)
+        {
+            Microsoft.UI.Xaml.Media.CompositionTarget.Rendering -= TrackGlass;
+        }
+        if (_glass == true && _region.Width > 0)
+        {
+            ApplyGlassRegion();
+        }
+    }
+
+    /// <summary>Bei Glas genau der gezeichnete Umriss, sonst schiene das Acryl um die Notch herum durch.</summary>
+    private void ApplyGlassRegion() =>
+        Win32.SetRegion(Handle, NotchGeometry.Outline(View.CurrentShape, View.BeadCount, NotchGeometry.Gap(View.Form)), _scale);
+
     private void ApplyRegion((double X, double Y, double Width, double Height) area)
     {
         _region = area;
+        if (_glass == true && area.Width > 0)
+        {
+            ApplyGlassRegion();
+            return;
+        }
         Win32.SetRegion(Handle,
             (int)Math.Floor(area.X * _scale),
             (int)Math.Floor(area.Y * _scale),
