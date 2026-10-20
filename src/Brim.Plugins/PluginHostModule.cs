@@ -220,6 +220,32 @@ public sealed class PluginHostModule : IBrimModule
         return true;
     }
 
+    public void OnExpandedChanged(bool expanded)
+    {
+        foreach (var runner in Runners())
+        {
+            runner.Notify(PluginProtocol.NotchExpanded, new ExpandedParams(expanded));
+        }
+    }
+
+    /// <summary>
+    /// Benachrichtigung an das Plugin geben, das ihre App in <c>notificationApps</c> nennt und das Recht hat.
+    /// <c>true</c>, wenn ein laufendes Plugin sie übernimmt; Brim zeigt sie dann nicht selbst.
+    /// </summary>
+    public bool RouteNotification(string app, string title, string body)
+    {
+        var runner = Runners().FirstOrDefault(r =>
+            r.State == PluginState.Running
+            && Config(r.Id).Granted.Contains("notifications")
+            && r.Manifest.NotificationApps.Any(a => app.Contains(a, StringComparison.OrdinalIgnoreCase)));
+        if (runner is null)
+        {
+            return false;
+        }
+        runner.Notify(PluginProtocol.NotificationPosted, new NotificationParams(app, title, body));
+        return true;
+    }
+
     public void OnTabVisibilityChanged(NotchTab tab, bool visible)
     {
         if (tab != NotchTab.Plugins)

@@ -21,6 +21,12 @@ public sealed class NotificationModule : IBrimModule
     private ModuleContext? _context;
     private UserNotificationListener? _listener;
 
+    /// <summary>
+    /// Gibt eine Benachrichtigung an ein Plugin weiter (z. B. Swyx Messenger an das SwyxIt!-Plugin).
+    /// <c>true</c>, wenn es sie übernommen hat; dann zeigt Brim sie nicht noch einmal.
+    /// </summary>
+    public Func<NotificationPreview, bool>? Route { get; set; }
+
     public string Id => ModuleId;
     public string DisplayName => "Benachrichtigungen";
 
@@ -67,7 +73,7 @@ public sealed class NotificationModule : IBrimModule
             var app = notification.AppInfo?.DisplayInfo?.DisplayName ?? "";
             var texts = notification.Notification?.Visual?.GetBinding(KnownNotificationBindings.ToastGeneric)?
                 .GetTextElements().Select(t => t.Text).Where(t => !string.IsNullOrWhiteSpace(t)).ToList() ?? [];
-            if (Preview(app, texts) is { } preview)
+            if (Preview(app, texts) is { } preview && Route?.Invoke(preview) != true)
             {
                 Show(preview);
             }

@@ -18,6 +18,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Swyx.Client.ClmgrAPI" />
+    <PackageReference Include="NAudio.Wasapi" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Brim.Sdk\Brim.Sdk.csproj" />

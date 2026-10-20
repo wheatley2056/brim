@@ -29,6 +29,10 @@ internal static class Program
         using var timer = new System.Windows.Forms.Timer { Interval = 1000 };
         timer.Tick += (_, _) => bridge.Tick();
         timer.Start();
+        // Wellenform: etwa 15 Bilder pro Sekunde, Brim gleitet dazwischen weich.
+        using var wave = new System.Windows.Forms.Timer { Interval = 66 };
+        wave.Tick += (_, _) => bridge.WaveTick();
+        wave.Start();
         bridge.Start();
         Application.Run();
 

@@ -33,6 +33,38 @@ internal sealed record LineSnapshot(int Line, LineState State, string Name, stri
     public string Caller => Name.Trim() is { Length: > 0 } name ? name : Number.Trim() is { Length: > 0 } number ? number : "Unbekannt";
 }
 
+/// <summary>Was mit einer laufenden Weiterleitung als Nächstes passiert.</summary>
+internal enum TransferStep { Wait, Complete, Cancel }
+
+/// <summary>
+/// Weiterleiten eines laufenden Gesprächs: Brim wählt das Ziel auf einer freien Leitung (das Gespräch wird
+/// dabei gehalten) und verbindet beide, sobald es beim Ziel klingelt oder abgenommen wird.
+/// </summary>
+internal sealed record PendingTransfer(int From, int To, string Number, DateTime Started)
+{
+    public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(20);
+
+    public TransferStep Next(LineState target, DateTime now) => target switch
+    {
+        LineState.Alerting or LineState.Active => TransferStep.Complete,
+        LineState.Busy or LineState.Terminated => TransferStep.Cancel,
+        _ when now - Started > Timeout => TransferStep.Cancel,
+        _ => TransferStep.Wait,
+    };
+}
+
+/// <summary>Eingabe über die Tastatur in der Notch: Ziffern sammeln (Weiterleiten) oder sofort senden (DTMF).</summary>
+internal static class Keypad
+{
+    public static readonly string[] Keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
+
+    /// <summary>Ziffer anhängen; höchstens 32 Zeichen, nur Tasten der Tastatur und ein führendes „+“.</summary>
+    public static string Append(string digits, string key) =>
+        digits.Length >= 32 || !(Keys.Contains(key) || (key == "+" && digits.Length == 0)) ? digits : digits + key;
+
+    public static string Backspace(string digits) => digits.Length == 0 ? digits : digits[..^1];
+}
+
 /// <summary>Was sich seit dem letzten Blick auf die Leitungen geändert hat.</summary>
 internal sealed record LineChanges(IReadOnlyList<LineSnapshot> Incoming, IReadOnlyList<LineSnapshot> Calls, IReadOnlyList<int> Gone);
 
@@ -57,6 +89,15 @@ internal sealed class CallTracker
             current.Values.Where(l => l.IsIncoming).OrderBy(l => l.Line).ToList(),
             current.Values.Where(l => l.IsCall).OrderBy(l => l.Line).ToList(),
             gone);
+    }
+
+    /// <summary>Pegelverlauf für die Wellenform: neuer Wert rechts, feste Länge, leicht verstärkt (Sprache ist leise).</summary>
+    public static double[] Push(double[] history, double peak)
+    {
+        var next = new double[history.Length];
+        Array.Copy(history, 1, next, 0, history.Length - 1);
+        next[^1] = Math.Clamp(Math.Sqrt(Math.Max(0, peak)) * 1.15, 0, 1);
+        return next;
     }
 
     /// <summary>„3:07“ bzw. „1:02:03“.</summary>

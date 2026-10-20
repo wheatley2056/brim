@@ -14,6 +14,7 @@ namespace Brim.Core.Widgets;
 [JsonDerivedType(typeof(RingWidget), "ring")]
 [JsonDerivedType(typeof(ChartWidget), "chart")]
 [JsonDerivedType(typeof(LevelWidget), "level")]
+[JsonDerivedType(typeof(WaveWidget), "wave")]
 [JsonDerivedType(typeof(ButtonWidget), "button")]
 [JsonDerivedType(typeof(SwitchWidget), "switch")]
 [JsonDerivedType(typeof(StackWidget), "stack")]
@@ -118,6 +119,20 @@ public sealed record ChartWidget(IReadOnlyList<double> Values) : Widget
     public double Height { get; init; } = 30;
     public double Thickness { get; init; } = 1.8;
     public string? Color { get; init; }
+}
+
+/// <summary>
+/// Echte Wellenform, z. B. der Pegel eines Gesprächs: gespiegelte Balken um die Mitte, der neueste rechts.
+/// Die Shell gleitet zwischen zwei Aktualisierungen weich im Compositor, sodass 10–20 Updates pro Sekunde
+/// flüssig wirken.
+/// </summary>
+public sealed record WaveWidget(IReadOnlyList<double> Values) : Widget
+{
+    public double Height { get; init; } = 36;
+    public string? Color { get; init; }
+
+    /// <summary>Breite eines Balkens; der Abstand ist genauso breit.</summary>
+    public double BarWidth { get; init; } = 3;
 }
 
 /// <summary>Pegel aus fünf Balken (Musik läuft). Animiert, solange <see cref="Active"/>.</summary>

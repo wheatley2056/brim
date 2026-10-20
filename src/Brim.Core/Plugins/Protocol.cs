@@ -31,6 +31,12 @@ public static class PluginProtocol
     public const string ShelfItems = "shelf.items";
     public const string SettingsChanged = "settings.changed";
     public const string TabVisibility = "tab.visibility";
+
+    /// <summary>Die Notch wurde auf- oder zugeklappt (z. B. Live-Werte nur dann senden).</summary>
+    public const string NotchExpanded = "notch.expanded";
+
+    /// <summary>Eine Windows-Benachrichtigung einer App aus <c>notificationApps</c> (Recht „notifications“).</summary>
+    public const string NotificationPosted = "notification.posted";
     public const string Shutdown = "shutdown";
 }
 
@@ -103,3 +109,8 @@ public sealed record ShelfItemsParams(string ActionId, IReadOnlyList<string> Pat
 public sealed record SettingsParams(Dictionary<string, JsonElement> Settings);
 
 public sealed record VisibilityParams(bool Visible);
+
+public sealed record ExpandedParams(bool Expanded);
+
+/// <summary>Eine Windows-Benachrichtigung: App, Titel (erste Zeile) und Text.</summary>
+public sealed record NotificationParams(string App, string Title, string Body);

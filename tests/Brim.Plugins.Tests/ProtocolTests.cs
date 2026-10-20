@@ -153,3 +153,17 @@ public class ManifestTests : IDisposable
         Assert.Contains(expected, error.Message);
     }
 }
+
+public class WaveWidgetTests
+{
+    [Fact]
+    public void Wave_travels_as_json_and_is_validated()
+    {
+        var widget = JsonSerializer.Deserialize<Widget>("""{ "type": "wave", "values": [0, 0.5, 1], "color": "#5BD98A" }""", PluginJson.Options);
+
+        var wave = Assert.IsType<WaveWidget>(widget);
+        Assert.Equal([0, 0.5, 1], wave.Values);
+        Assert.Null(WidgetValidator.Validate(wave));
+        Assert.Contains("zwischen 0 und 1", WidgetValidator.Validate(wave with { Values = [1.5] }));
+    }
+}

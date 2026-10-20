@@ -37,7 +37,8 @@ The plugin's stdout and stderr go to `%LocalAppData%\Brim\logs\plugins\<id>.log`
 | `entry` | A file inside the plugin folder (`ServerStatus.exe`), or a command on `PATH` (`py`, `node`). Paths that leave the folder are rejected. |
 | `args` | Arguments for `entry`, e.g. `["-3", "plugin.py"]` |
 | `api` | Protocol version, currently `"1"` |
-| `permissions` | `network`, `media`: shown to the user. Brim can't sandbox a process, so these are declarations. `alerts`: allows `critical` activities, which pop the notch open; without it they are shown as a HUD. `shelf`: receive files from the shelf. |
+| `permissions` | `network`, `media`: shown to the user. Brim can't sandbox a process, so these are declarations. `alerts`: allows `critical` activities, which pop the notch open; without it they are shown as a HUD. `shelf`: receive files from the shelf. `notifications`: receive the Windows notifications of the apps in `notificationApps`. |
+| `notificationApps` | App display names, e.g. `["Swyx Messenger"]`. Their Windows notifications go to this plugin instead of Brim's own preview. Matching is case-insensitive on a part of the name. Needs `notifications`, and Brim's identity must be set up (Settings → Calendar and notifications). |
 | `settings` | Values the user can set (for now in `settings.json` under `Plugins.<id>.Values`). Defaults are sent in `hello`. |
 
 ## Connection
@@ -101,6 +102,8 @@ Every `id` is 1–64 characters, without `/` or `|`. Invalid parameters come bac
 | `action.invoked` | `{ "actionId", "value"? }`: a button, switch (`value` 1/0) or slider (`value` 0–1) in your content |
 | `settings.changed` | `{ "settings" }` |
 | `tab.visibility` | `{ "visible" }`: the Plugins tab opened or closed. Do expensive work only while it's visible. |
+| `notch.expanded` | `{ "expanded" }`: the notch opened or closed. Send live values (e.g. a `wave`) only while it's open. |
+| `notification.posted` | `{ "app", "title", "body" }`: a Windows notification from one of your `notificationApps` (needs `notifications`) |
 | `shelf.items` | `{ "actionId", "paths" }`: files from the shelf (needs `shelf`) |
 | `shutdown` | Exit now |
 
@@ -117,6 +120,7 @@ Content is a tree of widgets, each with a `"type"`. Names are camelCase. Colors 
 | `ring` | `value` 0–1, `size`, `thickness`, `color`, `trackColor` |
 | `chart` | `values`, `max`, `capacity`, `height`, `color`: a line, newest value on the right |
 | `level` | `active`, `color`, `height`: five animated bars |
+| `wave` | `values` (0–1, at most 200, newest on the right), `height`, `color`, `barWidth`: a real waveform. Brim glides between updates, so 10–20 updates per second look fluid. |
 | `button` | `actionId`, `glyph`, `label`, `kind` (`subtle`, `primary`, `secondary`, `row`), `size`, `glyphSize`, `glyphColor`, `selected` |
 | `switch` | `actionId`, `isOn`, `label` |
 | `stack` | `children`, `orientation` (`horizontal`/`vertical`), `spacing`, `justify`, `align`, `padding` (number, `[x, y]` or `[l, t, r, b]`), `background`, `cornerRadius` |

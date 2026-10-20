@@ -62,6 +62,10 @@ public static class WidgetValidator
                 ?? Range(c.Max, 1e-9, double.MaxValue, "max") ?? Range(c.Capacity, 2, 1000, "capacity")
                 ?? Range(c.Height, 4, 400, "height") ?? Range(c.Thickness, 0.5, 20, "thickness") ?? Color(c.Color),
             LevelWidget l => Color(l.Color) ?? Range(l.Height, 4, 200, "height"),
+            WaveWidget v => (v.Values is null ? "values fehlen" : null)
+                ?? (v.Values!.Count > 200 ? "mehr als 200 Werte" : null)
+                ?? (v.Values.Any(x => !double.IsFinite(x) || x < 0 || x > 1) ? "values müssen zwischen 0 und 1 liegen" : null)
+                ?? Range(v.Height, 4, 200, "height") ?? Range(v.BarWidth, 1, 20, "barWidth") ?? Color(v.Color),
             ButtonWidget b => (string.IsNullOrEmpty(b.ActionId) ? "actionId fehlt" : null) ?? Text(b.ActionId, "actionId") ?? Text(b.Glyph, "glyph")
                 ?? Text(b.Label, "label") ?? Range(b.Size, 12, 200, "size") ?? Range(b.GlyphSize, 4, 100, "glyphSize") ?? Color(b.GlyphColor),
             SwitchWidget s => (string.IsNullOrEmpty(s.ActionId) ? "actionId fehlt" : null) ?? Text(s.Label, "label"),

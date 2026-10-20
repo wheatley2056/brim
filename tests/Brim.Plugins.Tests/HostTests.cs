@@ -244,6 +244,53 @@ public sealed class HostTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Notifications_and_expanded_state_reach_permitted_plugins()
+    {
+        var dir = Path.Combine(_root, "messenger");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, PluginManifest.FileName),
+            $$"""{ "id": "{{PluginId}}", "name": "Messenger", "entry": "demo", "permissions": ["notifications"], "notificationApps": ["Swyx Messenger"] }""");
+        var received = new ConcurrentQueue<string>();
+        var expanded = new ConcurrentQueue<bool>();
+        var launcher = new InProcessLauncher(async (pipe, token) =>
+        {
+            await using var brim = await BrimPlugin.ConnectAsync(pipe, token);
+            brim.NotificationPosted += n => received.Enqueue($"{n.Title}: {n.Body}");
+            brim.NotchExpandedChanged += e => expanded.Enqueue(e);
+            await brim.RunAsync(token);
+        });
+
+        var host = await StartHost(launcher, true, "notifications");
+        await Until(() => host.StateOf(PluginId) == PluginState.Running);
+
+        Assert.True(host.RouteNotification("Swyx Messenger", "Anna", "Hast du kurz Zeit?"));
+        Assert.False(host.RouteNotification("Outlook", "Newsletter", "…"));
+        host.OnExpandedChanged(true);
+
+        await Until(() => received.Contains("Anna: Hast du kurz Zeit?") && expanded.Contains(true));
+    }
+
+    [Fact]
+    public async Task Without_permission_notifications_stay_with_brim()
+    {
+        var dir = Path.Combine(_root, "messenger");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, PluginManifest.FileName),
+            $$"""{ "id": "{{PluginId}}", "name": "Messenger", "entry": "demo", "permissions": ["notifications"], "notificationApps": ["Swyx Messenger"] }""");
+        var launcher = new InProcessLauncher(async (pipe, token) =>
+        {
+            await using var brim = await BrimPlugin.ConnectAsync(pipe, token);
+            await brim.RunAsync(token);
+        });
+
+        // Eingeschaltet, aber dem neuen Recht noch nicht zugestimmt: startet nicht.
+        var host = await StartHost(launcher, true);
+        await Task.Delay(100);
+
+        Assert.False(host.RouteNotification("Swyx Messenger", "Anna", "Hallo"));
+    }
+
+    [Fact]
     public async Task Broken_plugins_are_listed_not_started()
     {
         var dir = Path.Combine(_root, "kaputt");

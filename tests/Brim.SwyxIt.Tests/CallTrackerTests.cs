@@ -55,3 +55,50 @@ public class CallTrackerTests
         Assert.Equal("0:00", CallTracker.Duration(TimeSpan.FromSeconds(-4)));
     }
 }
+
+public class QuickMenuTests
+{
+    [Fact]
+    public void Keypad_collects_digits_with_limits()
+    {
+        var digits = "";
+        foreach (var key in new[] { "+", "4", "9", "x", "+", "3", "0" })
+        {
+            digits = Keypad.Append(digits, key);
+        }
+        Assert.Equal("+4930", digits);
+        Assert.Equal("+493", Keypad.Backspace(digits));
+        Assert.Equal("", Keypad.Backspace(""));
+        Assert.Equal(32, Enumerable.Range(0, 40).Aggregate("", (d, _) => Keypad.Append(d, "1")).Length);
+    }
+
+    [Theory]
+    // Zustände als Zahl, weil LineState und TransferStep intern sind (wie CLMgrLineStates: 4 wählt, 5 klingelt, 7 besetzt, 8 aktiv).
+    [InlineData(4, 1, "Wait")]
+    [InlineData(5, 1, "Complete")]
+    [InlineData(8, 1, "Complete")]
+    [InlineData(7, 1, "Cancel")]
+    [InlineData(0, 1, "Wait")]
+    [InlineData(4, 25, "Cancel")]
+    public void Transfer_completes_when_the_target_rings(int target, int secondsLater, string expected)
+    {
+        var started = new DateTime(2026, 10, 20, 9, 0, 0, DateTimeKind.Utc);
+        var transfer = new PendingTransfer(0, 1, "220", started);
+
+        Assert.Equal(expected, transfer.Next((LineState)target, started.AddSeconds(secondsLater)).ToString());
+    }
+
+    [Fact]
+    public void Wave_history_shifts_left_and_stays_in_range()
+    {
+        var history = new double[4];
+
+        history = CallTracker.Push(history, 0.25);
+        history = CallTracker.Push(history, 4);
+
+        Assert.Equal(4, history.Length);
+        Assert.Equal(0, history[1]);
+        Assert.Equal(0.575, history[2], 3);
+        Assert.Equal(1, history[3]);
+    }
+}

@@ -51,6 +51,15 @@ public sealed class BrimPlugin : IAsyncDisposable
     /// <summary>Tab „Plugins“ ist sichtbar geworden oder nicht mehr zu sehen; teure Abfragen danach richten.</summary>
     public event Action<bool>? TabVisibilityChanged;
 
+    /// <summary>Die Notch wurde auf- oder zugeklappt; Live-Werte (z. B. eine Wellenform) nur aufgeklappt senden.</summary>
+    public event Action<bool>? NotchExpandedChanged;
+
+    /// <summary>Windows-Benachrichtigung einer App aus <c>notificationApps</c> im Manifest (Recht „notifications“).</summary>
+    public event Action<NotificationParams>? NotificationPosted;
+
+    /// <summary>Ist die Notch gerade aufgeklappt?</summary>
+    public bool NotchExpanded { get; private set; }
+
     /// <summary>Endet, wenn Brim das Plugin beendet oder die Verbindung abbricht.</summary>
     public Task Completion => Task.WhenAny(_shutdown.Task, _connection.Completion).Unwrap();
 
@@ -135,6 +144,13 @@ public sealed class BrimPlugin : IAsyncDisposable
                 break;
             case PluginProtocol.TabVisibility when parameters?.Deserialize<VisibilityParams>(PluginJson.Options) is { } visibility:
                 TabVisibilityChanged?.Invoke(visibility.Visible);
+                break;
+            case PluginProtocol.NotchExpanded when parameters?.Deserialize<ExpandedParams>(PluginJson.Options) is { } expanded:
+                NotchExpanded = expanded.Expanded;
+                NotchExpandedChanged?.Invoke(expanded.Expanded);
+                break;
+            case PluginProtocol.NotificationPosted when parameters?.Deserialize<NotificationParams>(PluginJson.Options) is { } notification:
+                NotificationPosted?.Invoke(notification);
                 break;
             case PluginProtocol.Shutdown:
                 _shutdown.TrySetResult();

@@ -5,7 +5,8 @@ using IpPbx.CLMgrLib;
 namespace Brim.SwyxIt;
 
 /// <summary>Eine Chat-Nachricht aus SwyxIt!.</summary>
-internal sealed record ChatItem(string From, string Text, DateTime Received);
+/// <param name="Messenger">Aus Swyx Messenger (über die Windows-Benachrichtigung) statt aus dem klassischen Chat.</param>
+internal sealed record ChatItem(string From, string Text, DateTime Received, bool Messenger = false);
 
 /// <summary>
 /// Verbindung zu SwyxIt! über den Client Line Manager (COM, <c>CLMgr.ClientLineMgr</c>). Läuft komplett auf
@@ -21,6 +22,28 @@ internal sealed class SwyxClient : IDisposable
     public event Action<ChatItem>? ChatReceived;
 
     public bool IsConnected => _lines is not null;
+
+    /// <summary>Mikrofon stumm (gilt für alle Leitungen, wie der Knopf in SwyxIt!).</summary>
+    public bool Muted
+    {
+        get
+        {
+            try
+            {
+                return _lines is { } lines && lines.DispMicroEnabled == 0;
+            }
+            catch (COMException)
+            {
+                return false;
+            }
+        }
+    }
+
+    /// <summary>Laufende Weiterleitung, bis das Ziel klingelt oder sie scheitert.</summary>
+    public PendingTransfer? Transfer { get; private set; }
+
+    /// <summary>Meldung für den Nutzer, z. B. warum eine Weiterleitung nicht ging.</summary>
+    public event Action<string>? Problem;
 
     /// <summary>Angemeldeter Swyx-Benutzer, wenn verbunden.</summary>
     public string? User { get; private set; }
@@ -108,8 +131,40 @@ internal sealed class SwyxClient : IDisposable
                 snapshots.Add(new LineSnapshot(i, state, line.DispPeerName ?? "", line.DispPeerNumber ?? "",
                     line.DispCalledName ?? "", line.DispIsOutgoingCall != 0, connected));
             }
+            AdvanceTransfer(snapshots);
             LinesChanged?.Invoke(snapshots);
         });
+    }
+
+    /// <summary>Weiterleitung vorantreiben: verbinden, sobald das Ziel klingelt, oder abbrechen und zurückholen.</summary>
+    private void AdvanceTransfer(IReadOnlyList<LineSnapshot> lines)
+    {
+        if (Transfer is not { } transfer)
+        {
+            return;
+        }
+        var target = lines.FirstOrDefault(l => l.Line == transfer.To)?.State ?? LineState.None;
+        switch (transfer.Next(target, DateTime.UtcNow))
+        {
+            case TransferStep.Complete:
+                Transfer = null;
+                if (Line(transfer.From) is { } from && Line(transfer.To) is { } to)
+                {
+                    from.DispTransferCall(to);
+                    Console.WriteLine($"Weitergeleitet an {transfer.Number}");
+                }
+                break;
+            case TransferStep.Cancel:
+                Transfer = null;
+                Line(transfer.To)?.DispHookOn();
+                if (Line(transfer.From) is { } original)
+                {
+                    _lines!.DispSelectLine(original);
+                    original.DispActivate();
+                }
+                Problem?.Invoke($"{transfer.Number} ist nicht erreichbar – das Gespräch ist zurück.");
+                break;
+        }
     }
 
     private void DrainChat()
@@ -176,6 +231,43 @@ internal sealed class SwyxClient : IDisposable
                 line.DispHold();
             }
         }
+    });
+
+    public void ToggleMute() => Guard(() =>
+    {
+        if (_lines is { } lines)
+        {
+            lines.DispMicroEnabled = lines.DispMicroEnabled == 0 ? 1 : 0;
+        }
+    });
+
+    /// <summary>Tastentöne ins Gespräch (DTMF), z. B. für Sprachmenüs.</summary>
+    public void SendDtmf(int index, string digits) => Guard(() => Line(index)?.DispSendDtmf(digits, 0));
+
+    /// <summary>
+    /// Weiterleiten an eine Nummer. Klingelt der Anruf noch, wird er direkt umgeleitet; läuft das Gespräch,
+    /// wählt Brim das Ziel auf einer freien Leitung und verbindet, sobald es dort klingelt.
+    /// </summary>
+    public void TransferTo(int index, string number) => Guard(() =>
+    {
+        if (_lines is not { } lines || Line(index) is not { } line || number.Length == 0)
+        {
+            return;
+        }
+        if ((LineState)line.DispState is LineState.Ringing or LineState.Knocking)
+        {
+            line.DispForwardCall(number);
+            return;
+        }
+        var free = Enumerable.Range(0, lines.DispNumberOfLines)
+            .FirstOrDefault(i => i != index && (LineState)(Line(i)?.DispState ?? -1) == LineState.Inactive, -1);
+        if (free < 0)
+        {
+            Problem?.Invoke("Keine freie Leitung zum Weiterleiten.");
+            return;
+        }
+        Transfer = new PendingTransfer(index, free, number, DateTime.UtcNow);
+        lines.DispSimpleDialEx2(number, free);
     });
 
     public void OpenChat() => Guard(() =>

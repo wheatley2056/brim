@@ -25,6 +25,7 @@ public sealed partial record PluginManifest
         ["shelf"] = "Dateien der Ablage",
         ["media"] = "Mediensteuerung",
         ["alerts"] = "Kritische Hinweise (klappt die Notch auf)",
+        ["notifications"] = "Benachrichtigungen bestimmter Apps lesen",
     };
 
     public required string Id { get; init; }
@@ -39,6 +40,12 @@ public sealed partial record PluginManifest
     public List<string> Slots { get; init; } = [];
     public List<string> Permissions { get; init; } = [];
     public List<PluginSettingDefinition> Settings { get; init; } = [];
+
+    /// <summary>
+    /// Apps, deren Windows-Benachrichtigungen dieses Plugin statt Brim zeigt (Recht „notifications“), z. B.
+    /// <c>["Swyx Messenger"]</c>. Verglichen wird mit dem Anzeigenamen, ohne Groß-/Kleinschreibung, als Teilwort.
+    /// </summary>
+    public List<string> NotificationApps { get; init; } = [];
 
     /// <summary>Ordner, aus dem das Manifest stammt (nicht Teil der Datei).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
@@ -90,6 +97,10 @@ public sealed partial record PluginManifest
         if (LooksLikePath(Entry) && ResolveEntry() is null)
         {
             throw new InvalidDataException($"entry „{Entry}“ liegt nicht im Ordner des Plugins");
+        }
+        if (NotificationApps.Count > 0 && !Permissions.Contains("notifications"))
+        {
+            throw new InvalidDataException("notificationApps braucht das Recht „notifications“");
         }
         foreach (var permission in Permissions)
         {

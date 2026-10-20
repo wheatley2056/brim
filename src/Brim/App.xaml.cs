@@ -171,7 +171,11 @@ public partial class App : Application
             yield return new BluetoothModule();
             // Brauchen Paketidentität (Einstellungen → Kalender und Benachrichtigungen); ohne sie tun sie nichts.
             yield return calendar;
-            yield return new NotificationModule();
+            yield return new NotificationModule
+            {
+                // Apps, die ein Plugin übernimmt (z. B. Swyx Messenger), zeigt das Plugin statt Brim.
+                Route = n => _plugins?.RouteNotification(n.App, n.Title, n.Body) == true,
+            };
             yield return new GamesModule(new TelemetryLauncher(Path.Combine(DataDirectory, "logs")));
         }
         yield return new ResourcesModule();
