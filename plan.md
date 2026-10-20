@@ -455,8 +455,8 @@ Entscheidungen: eigenes Widget-System statt Adaptive Cards (Microsofts WinUI- un
 ### 8a. Einführung (Brim 2.0, 20.10.2026)
 
 - **Wann:** nur beim ersten Start einer frischen Installation (`Onboarding.ShouldRun`: keine Einstellungsdatei); bestehende Installationen gelten als eingeführt. Erneut über Einstellungen → Info.
-- **Geburt:** im Compositor (`NotchSurface.PlayBirth`): Lichtlinie an der Kante, Glühen in der Akzentfarbe, 18 Funken mit Schwerkraft; die Notch tropft aus der Kante (Feder mit Dämpfung 0,42) und wächst auf die Größe der Einstellungen (bis 960 × 640). Solange zeigt die Fensterregion die ganze Zeichenfläche.
-- **Schritte:** Willkommen, Kurzanleitung mit drei Lottie-Animationen (CommunityToolkit.WinUI.Lottie, MIT; erzeugt von `build/onboarding/make_lottie.py`), Kalender und Benachrichtigungen einrichten (Paketidentität, Rückfrage nach Adminrechten), Fertig – mit Neustart, wenn die Identität gerade eingerichtet wurde.
+- **Geburt** (nach dem Entwurf „First launch · Birth“, 3,4 s): Naht 0–260 ms (2 px, Pfirsich, wächst von 40 auf 170 px, `NotchSurface.PlaySeam`); Tropfen 260–620 ms auf 112 × 26 (Feder, Dämpfung 0,85); Aufblühen 620–1300 ms auf 440 × 136 (Dämpfung 0,7); Begrüßung „Brim“ ab 950 ms (Deckkraft, 8 px Weg, Unschärfe 6 → 0); Schimmer 1000–2800 ms als 24-px-Streifen am unteren Rand (Verlauf #FF8A66 → #8C7BFF → #4FC3E8 → #E8D26A, gleitend, vertikal ausgeblendet, `PlaySheen`); ab 2900 ms setzt sich die Notch (360 ms, Bézier 0,32/0,72/0/1) zur ruhenden Form, danach 2,2 s Hinweisblase. Klick springt zu 2900 ms; reduzierte Animationen: nur überblenden. Die Fensterregion deckt nur 520 × 180 oben in der Mitte ab, Fokus wird nicht genommen.
+- **Schritte:** erst beim ersten Aufklappen danach – Kurzanleitung mit drei Lottie-Animationen (CommunityToolkit.WinUI.Lottie, MIT; erzeugt von `build/onboarding/make_lottie.py`), Kalender und Benachrichtigungen einrichten (Paketidentität, Rückfrage nach Adminrechten), Fertig – mit Neustart, wenn die Identität gerade eingerichtet wurde.
 
 ## 8. Risiken
 

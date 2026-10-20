@@ -3,80 +3,279 @@ using CommunityToolkit.WinUI.Lottie;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
+using System.Numerics;
 
 namespace Brim.Shell;
 
 /// <summary>
-/// Einführung beim ersten Start (Plan 8a): Die Notch wird aus der Bildschirmkante „geboren“ (Lichtlinie,
-/// Glühen, Funken, Tropfen mit Nachfedern), wächst dann auf und zeigt vier Schritte – Willkommen, Kurzanleitung
-/// mit Lottie-Animationen, Kalender und Benachrichtigungen einrichten, Fertig.
+/// Einführung beim ersten Start (Plan 8a, Design „First launch · Birth“): Eine Naht aus Licht an der Kante, die
+/// Notch tropft heraus, blüht zur Begrüßung auf (mit Schimmer durch die Akzentfarben) und zieht sich in die Ruhe
+/// zurück; darunter erscheint kurz ein Hinweis. Nimmt nie den Fokus, ein Klick auf die Notch springt ans Ende.
+/// Beim ersten Aufklappen danach folgen Kurzanleitung und Einrichtung in der Notch.
 /// </summary>
 public sealed partial class NotchView
 {
-    private static readonly TimeSpan DropAt = TimeSpan.FromMilliseconds(650);
-    private static readonly TimeSpan GrowAt = TimeSpan.FromMilliseconds(1700);
+    // Formen aus dem Design: unsichtbar in der Kante, Tropfen, Begrüßung. Ohren wie dort: 45 % der Höhe, höchstens 11.
+    private static readonly NotchShape BirthSeam = new(64, 0.5, 0, 0);
+    private static readonly NotchShape BirthDrop = new(112, 26, 13, 11);
+    private static readonly NotchShape BirthHello = new(440, 136, 36, 11);
 
     private Grid? _onboardingLayer;
     private ContentPresenter? _onboardingStep;
     private StackPanel? _onboardingDots;
+    private Grid? _helloLayer;
+    private FrameworkElement? _hint;
+    private readonly List<Microsoft.UI.Dispatching.DispatcherQueueTimer> _birthTimers = [];
     private int _onboardingIndex;
     private bool _birth;
     private bool _onboarding;
+    private bool _onboardingPending;
 
-    /// <summary>Die Geburt ist vorbei: Das Fenster klappt auf, die Schritte erscheinen.</summary>
+    /// <summary>Die Geburt ist vorbei, die Notch ruht; der Hinweis steht darunter (Fensterregion mit einschließen).</summary>
+    public event Action<bool>? HintChanged;
+
+    /// <summary>Die Geburt ist vorbei: Notch ruht wieder; die Schritte kommen beim ersten Aufklappen.</summary>
     public event Action? BirthFinished;
+
+    /// <summary>Die Schritte beginnen (erstes Aufklappen nach der Geburt): offen halten, Tastatur annehmen.</summary>
+    public event Action? OnboardingStarted;
 
     /// <summary>Einführung beendet; <c>true</c>, wenn Brim für Kalender und Benachrichtigungen neu starten soll.</summary>
     public event Action<bool>? OnboardingFinished;
 
     public bool IsOnboarding => _onboarding || _birth;
 
-    /// <summary>Spielt die Geburt und zeigt danach die Einführung.</summary>
+    /// <summary>Bereich des Hinweises in DIP der Zeichenfläche (für die Fensterregion).</summary>
+    public (double X, double Y, double Width, double Height) HintArea =>
+        (NotchGeometry.Canvas.Width / 2 - 230, 30 + NotchGeometry.Gap(_form), 460, 60);
+
+    /// <summary>Spielt die Geburt; danach ruht die Notch, und die Schritte warten aufs erste Aufklappen.</summary>
     public void StartOnboarding(AnimationSettings animation, bool reducedMotion)
     {
         SetSettingsOpen(false);
         _board?.SetEditing(false);
         EnsureOnboardingLayer();
+        EnsureHello();
         _onboardingIndex = 0;
         ShowOnboardingStep();
+        StopBirthTimers();
+        _birth = true;
+        _onboardingPending = true;
+        FadeClock(false);
+        SwitchLayer(null, animation, reducedMotion, growing: true);
 
-        if (reducedMotion || animation.Style is AnimationStyle.None or AnimationStyle.Fade)
+        var calm = reducedMotion || animation.Style is AnimationStyle.None or AnimationStyle.Fade;
+        if (calm)
         {
-            _onboarding = true;
-            BirthFinished?.Invoke();
+            // Bewegung reduziert: keine Feder, nur Überblenden – Begrüßung, dann Ruhe.
+            _surface.MorphTo(NotchGeometry.Styled(BirthHello, _form), new AnimationSettings { Style = AnimationStyle.None }, reducedMotion: true);
+            _surface.SetVisible(true, TimeSpan.Zero);
+            ShowHello(true, animate: false);
+            At(2600, () => Settle(new AnimationSettings { Style = AnimationStyle.Fade }));
             return;
         }
 
-        // Aus dem Nichts: zur feinen Linie an der Kante, ohne Inhalte und ohne Uhr.
-        _birth = true;
-        FadeClock(false);
-        _surface.MorphTo(NotchGeometry.For(NotchMode.Hidden, _form), new AnimationSettings { Style = AnimationStyle.None }, reducedMotion: false);
+        _surface.MorphTo(NotchGeometry.Styled(BirthSeam, _form), new AnimationSettings { Style = AnimationStyle.None }, reducedMotion: false);
         _surface.SetVisible(true, TimeSpan.Zero);
-        SwitchLayer(null, animation, reducedMotion, growing: true);
-        _surface.SetAccent(BrimColors.DefaultAccent, visible: true);
-        _surface.PlayBirth(BrimColors.DefaultAccent, DropAt);
+        _surface.PlaySeam();
+        _surface.PlaySheen(NotchGeometry.Styled(BirthHello, _form), TimeSpan.FromMilliseconds(1000));
+        // Tropfen: aus der Kante heraus, kaum Überschwingen (Dämpfung 0,85).
+        At(260, () => LastMorphDuration = _surface.MorphTo(NotchGeometry.Styled(BirthDrop, _form), animation, reducedMotion: false, new Spring(0.36, 0.85)));
+        // Aufblühen: weicher, etwa 4 % Überschwingen (Dämpfung 0,7).
+        At(620, () => LastMorphDuration = _surface.MorphTo(NotchGeometry.Styled(BirthHello, _form), animation, reducedMotion: false, new Spring(0.62, 0.7)));
+        At(950, () => ShowHello(true, animate: true));
+        At(2900, () => Settle(new AnimationSettings { Style = AnimationStyle.EaseOut, RetractMs = 360, ExpandMs = 360 }));
+    }
 
-        After(DropAt, () =>
-        {
-            // Der Tropfen: aus der Kante heraus mit deutlichem Nachfedern.
-            LastMorphDuration = _surface.MorphTo(NotchGeometry.For(NotchMode.Compact, _form), animation, reducedMotion: false, new Spring(0.55, 0.42));
-        });
-        After(GrowAt, () =>
+    /// <summary>Zurückziehen in die Ruhe (schneller als das Ausdehnen), dann übernimmt wieder Present.</summary>
+    private void Settle(AnimationSettings animation)
+    {
+        StopBirthTimers();
+        ShowHello(false, animate: animation.Style != AnimationStyle.Fade);
+        var idle = ShapeFor(NotchMode.Idle);
+        LastMorphDuration = _surface.MorphTo(idle, animation, reducedMotion: false);
+        At(360, () =>
         {
             _birth = false;
-            _onboarding = true;
             BirthFinished?.Invoke();
+            // Hinweis an Ort und Stelle, kurz darauf.
+            At(140, () => ShowHint(true));
+            At(140 + 2200, () => ShowHint(false));
         });
     }
 
-    private void After(TimeSpan delay, Action action)
+    /// <summary>Klick auf die Notch während der Geburt: sofort ans Ende (Zurückziehen).</summary>
+    private void SkipBirth()
+    {
+        if (_birth)
+        {
+            Settle(new AnimationSettings { Style = AnimationStyle.EaseOut, RetractMs = 360, ExpandMs = 360 });
+        }
+    }
+
+    private void At(double ms, Action action)
     {
         var timer = DispatcherQueue.CreateTimer();
-        timer.Interval = delay;
+        timer.Interval = TimeSpan.FromMilliseconds(ms);
         timer.IsRepeating = false;
-        timer.Tick += (_, _) => action();
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            _birthTimers.Remove(timer);
+            action();
+        };
+        _birthTimers.Add(timer);
         timer.Start();
+    }
+
+    private void StopBirthTimers()
+    {
+        foreach (var timer in _birthTimers)
+        {
+            timer.Stop();
+        }
+        _birthTimers.Clear();
+    }
+
+    /// <summary>„Brim“ und die Zeile darunter, mitten in der aufgeblühten Notch.</summary>
+    private void EnsureHello()
+    {
+        if (_helloLayer is not null)
+        {
+            return;
+        }
+        _helloLayer = new Grid
+        {
+            Width = BirthHello.Width,
+            Height = BirthHello.Height,
+            Padding = new Thickness(0, 4, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top,
+            IsHitTestVisible = false,
+            Opacity = 0,
+        };
+        var text = new StackPanel { Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(new TextBlock
+        {
+            Text = "Brim",
+            FontSize = 46,
+            FontWeight = FontWeights.SemiBold,
+            CharacterSpacing = -45,
+            LineHeight = 46,
+            Foreground = Brushes.Get(BrimColors.Fog),
+            HorizontalAlignment = HorizontalAlignment.Center,
+        });
+        text.Children.Add(new TextBlock { Text = "Alles an der Kante.", FontSize = 14, Foreground = Brushes.Get(BrimColors.Slate), HorizontalAlignment = HorizontalAlignment.Center });
+        _helloLayer.Children.Add(text);
+        ContentHost.Children.Add(_helloLayer);
+
+        // Hinweis unter der Notch, außerhalb ihres Umrisses (nicht beschnitten).
+        var bubble = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, IsHitTestVisible = false, Opacity = 0 };
+        bubble.Children.Add(new Microsoft.UI.Xaml.Shapes.Path
+        {
+            Data = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(typeof(Geometry), "M0 8 8 0l8 8z"),
+            Fill = Brushes.Get("#141519"),
+            Width = 16,
+            Height = 8,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        });
+        bubble.Children.Add(new Border
+        {
+            Padding = new Thickness(16, 11, 16, 11),
+            CornerRadius = new CornerRadius(12),
+            Background = Brushes.Get("#141519"),
+            Child = new TextBlock { Text = "Brim wohnt hier oben. Zeig jederzeit auf die obere Kante.", FontSize = 14, Foreground = Brushes.Get(BrimColors.Fog) },
+        });
+        bubble.Margin = new Thickness(0, 40, 0, 0);
+        _hint = bubble;
+        CanvasRoot.Children.Add(bubble);
+
+        CanvasRoot.Tapped += (_, e) =>
+        {
+            if (_birth)
+            {
+                SkipBirth();
+                e.Handled = true;
+            }
+        };
+    }
+
+    /// <summary>Begrüßung: 450 ms ein (8 px von unten, wie aus der Unschärfe), 120 ms aus.</summary>
+    private void ShowHello(bool show, bool animate)
+    {
+        if (_helloLayer is null)
+        {
+            return;
+        }
+        var visual = ElementCompositionPreview.GetElementVisual(_helloLayer);
+        ElementCompositionPreview.SetIsTranslationEnabled(_helloLayer, true);
+        _helloLayer.Opacity = 1;
+        if (!animate)
+        {
+            visual.Opacity = show ? 1 : 0;
+            visual.Properties.InsertVector3("Translation", Vector3.Zero);
+            return;
+        }
+        var compositor = visual.Compositor;
+        var ease = compositor.CreateCubicBezierEasingFunction(new Vector2(0.33f, 1), new Vector2(0.68f, 1));
+        var opacity = compositor.CreateScalarKeyFrameAnimation();
+        opacity.InsertKeyFrame(0, show ? 0 : 1);
+        opacity.InsertKeyFrame(1, show ? 1 : 0, ease);
+        opacity.Duration = TimeSpan.FromMilliseconds(show ? 450 : 120);
+        visual.StartAnimation("Opacity", opacity);
+        if (show)
+        {
+            var rise = compositor.CreateVector3KeyFrameAnimation();
+            rise.InsertKeyFrame(0, new Vector3(0, 8, 0));
+            rise.InsertKeyFrame(1, Vector3.Zero, ease);
+            rise.Duration = TimeSpan.FromMilliseconds(450);
+            visual.StartAnimation("Translation", rise);
+            BlurIn(6, TimeSpan.FromMilliseconds(450));
+        }
+    }
+
+    /// <summary>Hinweis: 300 ms ein (6 px von oben), 300 ms aus.</summary>
+    private void ShowHint(bool show)
+    {
+        if (_hint is null)
+        {
+            return;
+        }
+        HintChanged?.Invoke(show);
+        _hint.Margin = new Thickness(0, 40 + NotchGeometry.Gap(_form), 0, 0);
+        var visual = ElementCompositionPreview.GetElementVisual(_hint);
+        ElementCompositionPreview.SetIsTranslationEnabled(_hint, true);
+        _hint.Opacity = 1;
+        var compositor = visual.Compositor;
+        var ease = compositor.CreateCubicBezierEasingFunction(new Vector2(0.33f, 1), new Vector2(0.68f, 1));
+        var opacity = compositor.CreateScalarKeyFrameAnimation();
+        opacity.InsertKeyFrame(0, show ? 0 : 1);
+        opacity.InsertKeyFrame(1, show ? 1 : 0, ease);
+        opacity.Duration = TimeSpan.FromMilliseconds(300);
+        visual.StartAnimation("Opacity", opacity);
+        if (show)
+        {
+            var drop = compositor.CreateVector3KeyFrameAnimation();
+            drop.InsertKeyFrame(0, new Vector3(0, -6, 0));
+            drop.InsertKeyFrame(1, Vector3.Zero, ease);
+            drop.Duration = TimeSpan.FromMilliseconds(300);
+            visual.StartAnimation("Translation", drop);
+        }
+    }
+
+    /// <summary>Beim ersten Aufklappen nach der Geburt: Kurzanleitung und Einrichtung statt „Jetzt“.</summary>
+    private void BeginStepsIfPending(NotchPresentation p)
+    {
+        if (_onboardingPending && !_birth && p.Mode == NotchMode.Expanded && !_onboarding)
+        {
+            _onboardingPending = false;
+            _onboarding = true;
+            _onboardingIndex = 0;
+            ShowOnboardingStep();
+            OnboardingStarted?.Invoke();
+        }
     }
 
     private void FinishOnboarding()
@@ -118,7 +317,7 @@ public sealed partial class NotchView
         _layers = [.. _layers, _onboardingLayer];
     }
 
-    private const int OnboardingSteps = 4;
+    private const int OnboardingSteps = 3;
 
     private void ShowOnboardingStep()
     {
@@ -128,9 +327,8 @@ public sealed partial class NotchView
         }
         _onboardingStep.Content = _onboardingIndex switch
         {
-            0 => WelcomeStep(),
-            1 => GuideStep(),
-            2 => IdentityStep(),
+            0 => GuideStep(),
+            1 => IdentityStep(),
             _ => DoneStep(),
         };
         _onboardingDots.Children.Clear();
@@ -153,23 +351,6 @@ public sealed partial class NotchView
     }
 
     // ───────── Schritte ─────────
-
-    private UIElement WelcomeStep()
-    {
-        var panel = Column(HorizontalAlignment.Center, 14);
-        panel.VerticalAlignment = VerticalAlignment.Center;
-        panel.Children.Add(new Image
-        {
-            Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(Path.Combine(AppContext.BaseDirectory, "Assets", "Brim.png"))),
-            Width = 72,
-            Height = 72,
-        });
-        panel.Children.Add(Text("Willkommen bei Brim", 30, FontWeights.SemiBold, BrimColors.Fog, center: true));
-        panel.Children.Add(Text("Deine Notch für Windows: Musik, Anrufe, Termine, Dateien und dein System – immer oben in der Mitte, " +
-            "und nur, wenn du sie brauchst. Drei kurze Schritte, dann geht es los.", 14, FontWeights.Normal, BrimColors.Slate, center: true));
-        panel.Children.Add(Buttons(("Los geht's", () => Go(1), true)));
-        return panel;
-    }
 
     private UIElement GuideStep()
     {
@@ -203,7 +384,7 @@ public sealed partial class NotchView
         }
         grid.Children.Add(columns);
 
-        var buttons = Buttons(("Zurück", () => Go(0), false), ("Weiter", () => Go(2), true));
+        var buttons = Buttons(("Später", FinishOnboarding, false), ("Weiter", () => Go(1), true));
         Grid.SetRow(buttons, 2);
         grid.Children.Add(buttons);
         return grid;
@@ -254,7 +435,7 @@ public sealed partial class NotchView
         };
         Update();
         panel.Children.Add(setup);
-        panel.Children.Add(Buttons(("Zurück", () => Go(1), false), ("Weiter", () => Go(3), true)));
+        panel.Children.Add(Buttons(("Zurück", () => Go(0), false), ("Weiter", () => Go(2), true)));
         return panel;
     }
 
@@ -266,7 +447,7 @@ public sealed partial class NotchView
         panel.Children.Add(Text("Alles bereit", 30, FontWeights.SemiBold, BrimColors.Fog, center: true));
         panel.Children.Add(Text("Das Zahnrad neben den Tabs öffnet die Einstellungen – Form, Material, Schriften, Plugins und mehr. " +
             "Viel Spaß mit Brim!", 14, FontWeights.Normal, BrimColors.Slate, center: true));
-        panel.Children.Add(Buttons(("Zurück", () => Go(2), false), (restart ? "Brim neu starten" : "Loslegen", FinishOnboarding, true)));
+        panel.Children.Add(Buttons(("Zurück", () => Go(1), false), (restart ? "Brim neu starten" : "Loslegen", FinishOnboarding, true)));
         return panel;
     }
 

@@ -102,6 +102,8 @@ internal sealed partial class NotchWindow : WindowEx
         View.Dropped += OnDropped;
         View.BirthFinished += OnBirthFinished;
         View.OnboardingFinished += OnOnboardingFinished;
+        View.HintChanged += OnHintChanged;
+        View.OnboardingStarted += OnOnboardingStarted;
         View.SettingsOpenChanged += open =>
         {
             // Einstellungen: offen bleiben wie bei einem Menü, und Tastatur annehmen.
@@ -240,11 +242,11 @@ internal sealed partial class NotchWindow : WindowEx
 
     // ───────── Einführung ─────────
 
-    /// <summary>Erster Start: Die Notch wird geboren, klappt auf und zeigt die Einführung, bis sie beendet ist.</summary>
+    /// <summary>Erster Start: Die Notch wird aus der Kante geboren und ruht dann; die Schritte kommen beim ersten Aufklappen.</summary>
     public void StartOnboarding()
     {
-        // Glühen und Funken reichen über die Notch hinaus: solange die ganze Zeichenfläche zeigen.
-        ApplyRegion((0, 0, NotchGeometry.Canvas.Width, NotchGeometry.Canvas.Height));
+        // Naht, Begrüßung und Schimmer liegen oben in der Mitte; daneben gehen Klicks weiter durch.
+        ApplyRegion((NotchGeometry.Canvas.Width / 2 - 260, 0, 520, 180));
         _regionTarget = default;
         _popupOpen = true;
         View.StartOnboarding(_settings.Current.Animation.Clamped(), reducedMotion: !_uiSettings.AnimationsEnabled);
@@ -252,11 +254,37 @@ internal sealed partial class NotchWindow : WindowEx
 
     private void OnBirthFinished()
     {
+        // Geboren: ruhen wie sonst auch, ohne Fokus zu nehmen.
+        _popupOpen = false;
+        _regionTarget = default;
+        Refresh();
+    }
+
+    private void OnHintChanged(bool show)
+    {
+        if (!show)
+        {
+            _regionTarget = default;
+            ApplyRegion(CurrentHitArea());
+            return;
+        }
+        // Die Sprechblase unter der Notch muss sichtbar sein (die Region schneidet auch das Zeichnen ab).
+        var notch = CurrentHitArea();
+        var hint = View.HintArea;
+        var left = Math.Min(notch.X, hint.X);
+        var top = Math.Min(notch.Y, hint.Y);
+        var right = Math.Max(notch.X + notch.Width, hint.X + hint.Width);
+        var bottom = Math.Max(notch.Y + notch.Height, hint.Y + hint.Height);
+        ApplyRegion((left, top, right - left, bottom - top));
+    }
+
+    private void OnOnboardingStarted()
+    {
         // Tastatur für die Schritte (z. B. Rückfrage beim Einrichten), offen bis „Loslegen“.
         Win32.SetActivatable(Handle, true);
+        _popupOpen = true;
         _tab = NotchTab.Now;
         SetExpanded(true, pinned: true);
-        Refresh();
     }
 
     private void OnOnboardingFinished(bool restart)

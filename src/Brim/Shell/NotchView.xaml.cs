@@ -131,6 +131,7 @@ public sealed partial class NotchView : UserControl
         {
             return;
         }
+        BeginStepsIfPending(p);
 
         // Zugeklappt: Bearbeiten von „Jetzt“ und die Einstellungen enden.
         if (p.Mode != NotchMode.Expanded)

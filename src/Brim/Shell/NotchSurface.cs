@@ -224,91 +224,118 @@ internal sealed class NotchSurface : IDisposable
     }
 
     // ───────── Geburt (Einführung) ─────────
+    // Nach design/First launch · Birth: eine Naht aus Licht an der Kante, dann tropft die Notch heraus, blüht zur
+    // Begrüßung auf, ein Schimmer probiert einmal alle Akzentfarben, und sie zieht sich in die Ruhe zurück.
+    // Die Form morpht die Ansicht (MorphTo); hier nur Naht und Schimmer.
 
-    /// <summary>
-    /// Intro beim ersten Start: An der Bildschirmkante zieht eine Lichtlinie auf, dahinter glüht es in der
-    /// Akzentfarbe, und Funken sprühen nach unten, während die Notch aus der Kante tropft (das Morphen macht die
-    /// Ansicht mit <see cref="MorphTo"/>). Alles im Compositor, danach räumt es sich selbst ab.
-    /// </summary>
-    /// <param name="dropAt">Zeitpunkt, an dem die Notch herauskommt; Glühen und Funken richten sich danach.</param>
-    public void PlayBirth(string? accentHex, TimeSpan dropAt)
+    /// <summary>Naht: 2 px Licht an der Kante, wächst von 40 auf 170 px (260 ms) und vergeht beim Herauskommen.</summary>
+    public void PlaySeam()
     {
-        var (_, r, g, b) = AccentColor.Parse(accentHex ?? "#FF8A66");
-        var accent = Color.FromArgb(255, r, g, b);
-        var clear = Color.FromArgb(0, r, g, b);
         var cx = _root.Size.X / 2;
-        var drop = (float)dropAt.TotalMilliseconds;
-        var visuals = new List<Visual>();
-
-        // 1. Lichtlinie an der Kante: wächst aus der Mitte, mit weißem Kern.
-        var line = _compositor.CreateSpriteVisual();
-        var lineBrush = _compositor.CreateLinearGradientBrush();
-        lineBrush.StartPoint = new Vector2(0, 0.5f);
-        lineBrush.EndPoint = new Vector2(1, 0.5f);
-        lineBrush.ColorStops.Add(_compositor.CreateColorGradientStop(0, clear));
-        lineBrush.ColorStops.Add(_compositor.CreateColorGradientStop(0.35f, accent));
-        lineBrush.ColorStops.Add(_compositor.CreateColorGradientStop(0.5f, Colors.White));
-        lineBrush.ColorStops.Add(_compositor.CreateColorGradientStop(0.65f, accent));
-        lineBrush.ColorStops.Add(_compositor.CreateColorGradientStop(1, clear));
-        line.Brush = lineBrush;
-        line.Size = new Vector2(Math.Min(_root.Size.X, 520), 3);
-        line.Offset = new Vector3(cx - line.Size.X / 2, 0, 0);
-        line.CenterPoint = new Vector3(line.Size.X / 2, 0, 0);
-        visuals.Add(line);
-        Animate(line, "Scale", new[] { (0f, new Vector3(0.05f, 1, 1)), (drop * 0.8f, new Vector3(1, 1, 1)), (drop + 300, new Vector3(1.1f, 1, 1)) });
-        Fade(line, (0, 0), (drop * 0.5f, 1), (drop + 200, 1), (drop + 900, 0));
-
-        // 2. Glühen hinter der Notch: weicher Kreis in der Akzentfarbe, der aufblüht und verglimmt.
-        var bloom = _compositor.CreateSpriteVisual();
-        var bloomBrush = _compositor.CreateRadialGradientBrush();
-        bloomBrush.MappingMode = CompositionMappingMode.Relative;
-        bloomBrush.EllipseCenter = new Vector2(0.5f, 0);
-        bloomBrush.EllipseRadius = new Vector2(0.5f, 1);
-        bloomBrush.ColorStops.Add(_compositor.CreateColorGradientStop(0, Color.FromArgb(210, r, g, b)));
-        bloomBrush.ColorStops.Add(_compositor.CreateColorGradientStop(0.45f, Color.FromArgb(70, r, g, b)));
-        bloomBrush.ColorStops.Add(_compositor.CreateColorGradientStop(1, clear));
-        bloom.Brush = bloomBrush;
-        bloom.Size = new Vector2(420, 220);
-        bloom.Offset = new Vector3(cx - 210, 0, 0);
-        bloom.CenterPoint = new Vector3(210, 0, 0);
-        visuals.Add(bloom);
-        Animate(bloom, "Scale", new[] { (0f, new Vector3(0.1f, 0.1f, 1)), (drop, new Vector3(0.6f, 0.5f, 1)), (drop + 500, new Vector3(1.2f, 1, 1)), (drop + 1400, new Vector3(1.4f, 1.1f, 1)) });
-        Fade(bloom, (0, 0), (drop * 0.6f, 0.5f), (drop + 250, 1), (drop + 1400, 0));
-
-        // 3. Funken: sprühen beim Herauskommen nach unten und fallen mit etwas Schwerkraft.
-        var random = new Random(7);
-        for (var i = 0; i < 18; i++)
+        var core = _compositor.CreateSpriteVisual();
+        core.Brush = HorizontalGlow(Color.FromArgb(242, 255, 236, 226));
+        core.Size = new Vector2(170, 2);
+        // Weicher Schein wie box-shadow 0 0 14px 3px rgba(255,170,140,0.5).
+        var halo = _compositor.CreateSpriteVisual();
+        var haloBrush = _compositor.CreateRadialGradientBrush();
+        haloBrush.MappingMode = CompositionMappingMode.Relative;
+        haloBrush.EllipseCenter = new Vector2(0.5f, 0);
+        haloBrush.EllipseRadius = new Vector2(0.5f, 1);
+        haloBrush.ColorStops.Add(_compositor.CreateColorGradientStop(0, Color.FromArgb(128, 255, 170, 140)));
+        haloBrush.ColorStops.Add(_compositor.CreateColorGradientStop(1, Color.FromArgb(0, 255, 170, 140)));
+        halo.Brush = haloBrush;
+        halo.Size = new Vector2(206, 18);
+        foreach (var visual in new[] { halo, core })
         {
-            var spark = _compositor.CreateSpriteVisual();
-            var dot = _compositor.CreateRadialGradientBrush();
-            dot.ColorStops.Add(_compositor.CreateColorGradientStop(0, Colors.White));
-            dot.ColorStops.Add(_compositor.CreateColorGradientStop(0.4f, accent));
-            dot.ColorStops.Add(_compositor.CreateColorGradientStop(1, clear));
-            spark.Brush = dot;
-            var size = 4 + (float)random.NextDouble() * 5;
-            spark.Size = new Vector2(size, size);
-            var angle = (float)(Math.PI * (0.1 + 0.8 * random.NextDouble()));
-            var speed = 90 + (float)random.NextDouble() * 120;
-            var start = new Vector3(cx + (float)(random.NextDouble() - 0.5) * 40, 8, 0);
-            var mid = start + new Vector3(MathF.Cos(angle) * speed * 0.6f, MathF.Sin(angle) * speed * 0.5f, 0);
-            var end = start + new Vector3(MathF.Cos(angle) * speed, MathF.Sin(angle) * speed + 70, 0);
-            var life = 900 + (float)random.NextDouble() * 500;
-            spark.Offset = start;
-            spark.Opacity = 0;
-            visuals.Add(spark);
-            Animate(spark, "Offset", new[] { (0f, start), (drop, start), (drop + life * 0.4f, mid), (drop + life, end) });
-            Fade(spark, (0, 0), (drop, 0), (drop + 60, 1), (drop + life * 0.6f, 0.9f), (drop + life, 0));
-        }
-
-        // Hinter dem Körper das Glühen, darüber Linie und Funken.
-        _root.Children.InsertAtBottom(bloom);
-        foreach (var visual in visuals.Where(v => v != bloom))
-        {
+            visual.Offset = new Vector3(cx - visual.Size.X / 2, 0, 0);
+            visual.CenterPoint = new Vector3(visual.Size.X / 2, 0, 0);
+            visual.Opacity = 0;
+            var grow = _compositor.CreateVector3KeyFrameAnimation();
+            grow.InsertKeyFrame(0, new Vector3(40f / 170, 1, 1));
+            grow.InsertKeyFrame(1, Vector3.One, EaseOutCubic);
+            grow.Duration = TimeSpan.FromMilliseconds(260);
+            visual.StartAnimation("Scale", grow);
+            var fade = _compositor.CreateScalarKeyFrameAnimation();
+            fade.InsertKeyFrame(0, 0);
+            fade.InsertKeyFrame(260f / 500, 1, EaseOutCubic);
+            fade.InsertKeyFrame(1, 0);
+            fade.Duration = TimeSpan.FromMilliseconds(500);
+            visual.StartAnimation("Opacity", fade);
             _root.Children.InsertAtTop(visual);
         }
+        Remove(TimeSpan.FromMilliseconds(600), core, halo);
+    }
 
-        var total = drop + 1600;
-        _ = Task.Delay(TimeSpan.FromMilliseconds(total)).ContinueWith(_ =>
+    /// <summary>
+    /// Schimmer am unteren Rand der Begrüßung (24 px, oben weich ausgeblendet): ein Verlauf durch die geliehenen
+    /// Farben gleitet 1,8 s einmal hindurch; 250 ms ein-, 300 ms ausgeblendet.
+    /// </summary>
+    public void PlaySheen(NotchShape shape, TimeSpan delay)
+    {
+        var width = (float)(shape.Width - 2 * shape.Radius);
+        var sheen = _compositor.CreateSpriteVisual();
+        sheen.Size = new Vector2(width, 24);
+        sheen.Offset = new Vector3(_root.Size.X / 2 - width / 2, (float)shape.Height - 24, 0);
+        sheen.Opacity = 0;
+
+        var colors = _compositor.CreateLinearGradientBrush();
+        colors.MappingMode = CompositionMappingMode.Relative;
+        foreach (var (offset, a, r, g, b) in new[] { (0f, 0, 255, 138, 102), (0.18f, 128, 255, 138, 102), (0.40f, 128, 140, 123, 255), (0.62f, 128, 79, 195, 232), (0.82f, 128, 232, 210, 106), (1f, 0, 232, 210, 106) })
+        {
+            colors.ColorStops.Add(_compositor.CreateColorGradientStop(offset, Color.FromArgb((byte)a, (byte)r, (byte)g, (byte)b)));
+        }
+        // Der Verlauf ist dreimal so breit wie der Streifen und gleitet von −2 bis 0.
+        colors.StartPoint = new Vector2(-2, 0.5f);
+        colors.EndPoint = new Vector2(1, 0.5f);
+        var mask = _compositor.CreateLinearGradientBrush();
+        mask.StartPoint = new Vector2(0.5f, 0);
+        mask.EndPoint = new Vector2(0.5f, 1);
+        mask.ColorStops.Add(_compositor.CreateColorGradientStop(0, Color.FromArgb(0, 0, 0, 0)));
+        mask.ColorStops.Add(_compositor.CreateColorGradientStop(1, Colors.Black));
+        var brush = _compositor.CreateMaskBrush();
+        brush.Source = colors;
+        brush.Mask = mask;
+        sheen.Brush = brush;
+
+        var slide = TimeSpan.FromMilliseconds(1800);
+        foreach (var (property, from, to) in new[] { ("StartPoint", new Vector2(-2, 0.5f), new Vector2(0, 0.5f)), ("EndPoint", new Vector2(1, 0.5f), new Vector2(3, 0.5f)) })
+        {
+            var move = _compositor.CreateVector2KeyFrameAnimation();
+            move.InsertKeyFrame(0, from);
+            move.InsertKeyFrame(1, to, _compositor.CreateLinearEasingFunction());
+            move.Duration = slide;
+            move.DelayTime = delay;
+            colors.StartAnimation(property, move);
+        }
+        var fade = _compositor.CreateScalarKeyFrameAnimation();
+        fade.InsertKeyFrame(0, 0);
+        fade.InsertKeyFrame(250f / 1800, 1, EaseOutCubic);
+        fade.InsertKeyFrame(1500f / 1800, 1);
+        fade.InsertKeyFrame(1, 0, EaseOutCubic);
+        fade.Duration = slide;
+        fade.DelayTime = delay;
+        sheen.StartAnimation("Opacity", fade);
+        _root.Children.InsertAtTop(sheen);
+        Remove(delay + slide + TimeSpan.FromMilliseconds(100), sheen);
+    }
+
+    private CompositionEasingFunction EaseOutCubic => _compositor.CreateCubicBezierEasingFunction(new Vector2(0.33f, 1), new Vector2(0.68f, 1));
+
+    private CompositionLinearGradientBrush HorizontalGlow(Color center)
+    {
+        var brush = _compositor.CreateLinearGradientBrush();
+        brush.StartPoint = new Vector2(0, 0.5f);
+        brush.EndPoint = new Vector2(1, 0.5f);
+        var clear = Color.FromArgb(0, center.R, center.G, center.B);
+        brush.ColorStops.Add(_compositor.CreateColorGradientStop(0, clear));
+        brush.ColorStops.Add(_compositor.CreateColorGradientStop(0.5f, center));
+        brush.ColorStops.Add(_compositor.CreateColorGradientStop(1, clear));
+        return brush;
+    }
+
+    private void Remove(TimeSpan after, params Visual[] visuals)
+    {
+        _ = Task.Delay(after).ContinueWith(_ =>
         {
             foreach (var visual in visuals)
             {
@@ -316,31 +343,6 @@ internal sealed class NotchSurface : IDisposable
                 visual.Dispose();
             }
         }, TaskScheduler.FromCurrentSynchronizationContext());
-    }
-
-    private void Animate(Visual visual, string property, (float Ms, Vector3 Value)[] keys)
-    {
-        var length = Math.Max(1, keys[^1].Ms);
-        var animation = _compositor.CreateVector3KeyFrameAnimation();
-        var ease = _compositor.CreateCubicBezierEasingFunction(new Vector2(0.2f, 0.9f), new Vector2(0.3f, 1));
-        foreach (var (ms, value) in keys)
-        {
-            animation.InsertKeyFrame(ms / length, value, ease);
-        }
-        animation.Duration = TimeSpan.FromMilliseconds(length);
-        visual.StartAnimation(property, animation);
-    }
-
-    private void Fade(Visual visual, params (float Ms, float Opacity)[] keys)
-    {
-        var length = Math.Max(1, keys[^1].Ms);
-        var animation = _compositor.CreateScalarKeyFrameAnimation();
-        foreach (var (ms, opacity) in keys)
-        {
-            animation.InsertKeyFrame(ms / length, opacity);
-        }
-        animation.Duration = TimeSpan.FromMilliseconds(length);
-        visual.StartAnimation("Opacity", animation);
     }
 
     /// <summary>Blendet die ganze Notch aus (nach dem Zurückziehen) oder wieder ein.</summary>
