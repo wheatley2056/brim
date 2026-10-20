@@ -305,6 +305,8 @@ internal sealed class SettingsPage : UserControl
         p.Children.Add(Toggle("Ganzen Inhalt zentrieren", "Bei mittiger Uhr: Ist eine Seite länger, steht alles zusammen in der Mitte statt nur die Uhr.",
             d.CenterContent, v => d.CenterContent = v));
         p.Children.Add(Toggle("Sekunden anzeigen", null, S.Clock.ShowSeconds, v => S.Clock.ShowSeconds = v));
+        p.Children.Add(Slider("Größe der Uhr in der Pille", ClockSettings.MinIdleSize, ClockSettings.MaxIdleSize, 1, S.Clock.ClampedIdleSize,
+            v => S.Clock.IdleSize = Math.Round(v)));
         var today = DateTime.Now;
         string Example(DateFormat format) => today.ToString(DateFormats.Pattern(format), CultureInfo.CurrentCulture);
         p.Children.Add(Toggle("Datum", "Neben der Uhr, rechts.", d.Date, v => d.Date = v));

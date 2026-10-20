@@ -243,6 +243,9 @@ public sealed partial class NotchView : UserControl
 
     public NotchForm Form => _form;
 
+    /// <summary>Platz für das Material unter der Form (siehe <see cref="NotchSurface.CreateMaterialHost"/>).</summary>
+    internal Microsoft.UI.Composition.ContainerVisual CreateMaterialHost() => _surface.CreateMaterialHost();
+
     public void SetMaterial(NotchMaterial material) => _surface.SetGlass(material != NotchMaterial.Black,
         material is NotchMaterial.Mica or NotchMaterial.MicaAlt ? (byte)0x28 : NotchSurface.GlassTint);
 

@@ -21,7 +21,7 @@ internal sealed class MaterialBackdrop(NotchMaterial material) : SystemBackdrop
     protected override void OnTargetConnected(ICompositionSupportsSystemBackdrop connectedTarget, XamlRoot xamlRoot)
     {
         base.OnTargetConnected(connectedTarget, xamlRoot);
-        _controller = Create();
+        _controller = CreateController(material);
         if (_controller is null)
         {
             Log.Info($"Material {material} wird von diesem System nicht unterstützt");
@@ -34,10 +34,11 @@ internal sealed class MaterialBackdrop(NotchMaterial material) : SystemBackdrop
         _controller.AddSystemBackdropTarget(connectedTarget);
     }
 
-    private ISystemBackdropControllerWithTargets? Create()
+    /// <summary>Controller für das Material, oder null, wenn das System es nicht kann.</summary>
+    public static ISystemBackdropControllerWithTargets? CreateController(NotchMaterial kind)
     {
         var fallback = Color.FromArgb(255, 18, 18, 20);
-        if (material == NotchMaterial.Acrylic)
+        if (kind == NotchMaterial.Acrylic)
         {
             return DesktopAcrylicController.IsSupported()
                 ? new DesktopAcrylicController
@@ -51,7 +52,7 @@ internal sealed class MaterialBackdrop(NotchMaterial material) : SystemBackdrop
                 : null;
         }
         // Die dunklen Werte von Windows 11 ausdrücklich, damit es nie hell wird, egal was das System meldet.
-        var alt = material == NotchMaterial.MicaAlt;
+        var alt = kind == NotchMaterial.MicaAlt;
         return MicaController.IsSupported()
             ? new MicaController
             {

@@ -66,8 +66,7 @@ public sealed partial class NotchView
         }
         _statusWidths.Retain(shown.Select(s => s.Key));
 
-        SharedClock.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
-        var clockWidth = Math.Max(1, SharedClock.DesiredSize.Width);
+        var clockWidth = FitClock(display.Clock);
         var arrangement = IdleLayout.Arrange(display.Clock, clockWidth, shown.Select(s => s.Item).ToList(), display.CenterContent);
         _idle = arrangement;
 
@@ -93,6 +92,65 @@ public sealed partial class NotchView
             _idleLeft.Children.Remove(element);
             _idleRight.Children.Remove(element);
             panel.Children.Add(element);
+        }
+    }
+
+    private readonly TextBlock _clockProbe = new() { TextLineBounds = Microsoft.UI.Xaml.TextLineBounds.Tight };
+    private (string Font, double Size, char Digit)? _widestDigit;
+
+    /// <summary>Etwas Luft rechts, damit Ziffern mit Überhang (z. B. kursive Schriften) nicht angeschnitten werden.</summary>
+    private const double ClockSlack = 2;
+
+    /// <summary>
+    /// Uhr in der Größe aus Einstellungen → Aussehen → Uhr, mit fester Breite für die breiteste Ziffernfolge.
+    /// Vorher hing die Breite an der gerade gezeigten Zeit und am Text vom letzten Mal; bei manchen Ziffern
+    /// war die letzte Sekunde angeschnitten.
+    /// </summary>
+    private double FitClock(ClockAlignment alignment)
+    {
+        var text = (_current?.Idle?.Activity.Content as TextWidget)?.Text ?? "";
+        if (SharedClock.Text != text)
+        {
+            SharedClock.Text = text;
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(SharedClock, text);
+        }
+        var size = _displaySettings?.Current.Clock.ClampedIdleSize ?? ClockSettings.DefaultIdleSize;
+        SharedClock.FontSize = size;
+
+        _clockProbe.FontFamily = SharedClock.FontFamily;
+        _clockProbe.FontSize = size;
+        _clockProbe.FontWeight = SharedClock.FontWeight;
+        Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(_clockProbe, Microsoft.UI.Xaml.FontNumeralAlignment.Tabular);
+        var font = SharedClock.FontFamily?.Source ?? "";
+        if (_widestDigit is not { } cached || cached.Font != font || cached.Size != size)
+        {
+            var widest = '0';
+            var best = 0.0;
+            for (var c = '0'; c <= '9'; c++)
+            {
+                var w = Measure(c.ToString());
+                if (w > best)
+                {
+                    (best, widest) = (w, c);
+                }
+            }
+            _widestDigit = (font, size, widest);
+        }
+        var width = text.Length == 0 ? 1 : Math.Ceiling(Measure(ClockWidth.Widest(text, _widestDigit.Value.Digit))) + ClockSlack;
+        SharedClock.Width = width;
+        SharedClock.TextAlignment = alignment switch
+        {
+            ClockAlignment.Left => TextAlignment.Left,
+            ClockAlignment.Right => TextAlignment.Right,
+            _ => TextAlignment.Center,
+        };
+        return width;
+
+        double Measure(string s)
+        {
+            _clockProbe.Text = s;
+            _clockProbe.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+            return _clockProbe.DesiredSize.Width;
         }
     }
 

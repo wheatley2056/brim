@@ -2,7 +2,6 @@ using System.Numerics;
 using Brim.Core;
 using Brim.Core.Widgets;
 using Microsoft.UI.Composition;
-using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Hosting;
 
 namespace Brim.Shell;
@@ -14,8 +13,8 @@ namespace Brim.Shell;
 /// </summary>
 public sealed partial class NotchView
 {
-    /// <summary>Schriftgröße in der Kopfzeile (Design: 12) relativ zur Ruhe (13).</summary>
-    private const double HeaderClockScale = 12.0 / 13.0;
+    /// <summary>Schriftgröße in der Kopfzeile (Design: 12), gleich welche Größe die Uhr in der Ruhe hat.</summary>
+    private const double HeaderClockSize = 12;
 
     /// <summary>Innenabstand und Kopfzeile des erweiterten Zustands (aus NotchView.xaml).</summary>
     private const double ExpandedPaddingRight = 24, ExpandedPaddingTop = 14, HeaderHeight = 30;
@@ -42,12 +41,8 @@ public sealed partial class NotchView
         {
             return;
         }
-        var text = (p.Idle?.Activity.Content as TextWidget)?.Text ?? "";
-        if (SharedClock.Text != text)
-        {
-            SharedClock.Text = text;
-            AutomationProperties.SetName(SharedClock, text);
-        }
+        // Text, Größe und Breite setzt ArrangeIdle (FitClock), vor der Form.
+        var text = SharedClock.Text;
 
         // Beim Bearbeiten von „Jetzt“ steht oben rechts „Fertig“ statt der Uhr.
         var visible = p.Mode is NotchMode.Idle or NotchMode.Expanded && text.Length > 0 && _board?.IsEditing != true && !_settingsOpen && !_onboarding;
@@ -64,7 +59,7 @@ public sealed partial class NotchView
         double x, y, scale;
         if (p.Mode == NotchMode.Expanded)
         {
-            scale = HeaderClockScale;
+            scale = HeaderClockSize / SharedClock.FontSize;
             x = center + NotchGeometry.Expanded.Width / 2 - ExpandedPaddingRight - width * scale;
             y = ExpandedPaddingTop + HeaderHeight / 2 - height * scale / 2;
         }

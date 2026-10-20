@@ -88,6 +88,24 @@ public static class IdleLayout
 /// Wachsen geht sofort, schrumpfen erst, wenn der Wert eine Weile kleiner war. So atmet die Notch nicht
 /// bei jeder Messung.
 /// </summary>
+/// <summary>Breite der Uhr, die beim Weiterzählen gleich bleibt.</summary>
+public static class ClockWidth
+{
+    /// <summary>
+    /// Jede Ziffer durch die breiteste der Schrift ersetzt: So breit kann die Uhr mit dieser Anzahl Ziffern
+    /// höchstens werden, auch wenn die Schrift keine gleich breiten Ziffern hat.
+    /// </summary>
+    public static string Widest(string text, char widestDigit) =>
+        string.Create(text.Length, (text, widestDigit), static (span, state) =>
+        {
+            for (var i = 0; i < span.Length; i++)
+            {
+                var c = state.text[i];
+                span[i] = char.IsAsciiDigit(c) ? state.widestDigit : c;
+            }
+        });
+}
+
 public sealed class StableWidths(TimeSpan shrinkAfter)
 {
     private readonly Dictionary<string, (double Width, DateTimeOffset? SmallerSince)> _widths = new();
