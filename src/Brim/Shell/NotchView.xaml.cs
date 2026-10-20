@@ -207,12 +207,12 @@ public sealed partial class NotchView : UserControl
         CanvasRoot.RenderTransform = appearance.Size == 1 ? null : new Microsoft.UI.Xaml.Media.ScaleTransform { ScaleX = appearance.Size, ScaleY = appearance.Size };
 
         // Schrift: Widgets lesen die Ressourcen beim nächsten Zeichnen; Uhr, Tabs und feste Texte hier.
-        var (text, clock) = NotchFonts.Apply(appearance);
+        var (text, menu, clock) = NotchFonts.Apply(appearance);
         FontFamily = text;
         SharedClock.FontFamily = clock;
         foreach (var tab in TabStrip.Children.OfType<Button>())
         {
-            tab.FontFamily = text;
+            tab.FontFamily = menu;
         }
         _clockPlaced = false;
     }

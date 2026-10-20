@@ -81,7 +81,13 @@ internal sealed class SettingsWindow : Window
 
         foreach (var (tag, label, glyph) in Sections)
         {
-            _navigation.MenuItems.Add(new NavigationViewItem { Content = label, Tag = tag, Icon = new FontIcon { Glyph = glyph } });
+            var item = new NavigationViewItem { Content = label, Tag = tag, Icon = new FontIcon { Glyph = glyph } };
+            if (tag == "appearance")
+            {
+                // Untermenü: Schriften je Bereich.
+                item.MenuItems.Add(new NavigationViewItem { Content = "Schriften", Tag = "fonts", Icon = new FontIcon { Glyph = "\uE8D2" } });
+            }
+            _navigation.MenuItems.Add(item);
         }
         _navigation.SelectionChanged += (_, e) =>
         {
@@ -117,6 +123,25 @@ internal sealed class SettingsWindow : Window
         _saveTimer.Start();
     }
 
+    /// <summary>Wechselt zu einem Bereich, auch zu einem im Untermenü.</summary>
+    private void Select(string tag)
+    {
+        foreach (var item in _navigation.MenuItems.OfType<NavigationViewItem>())
+        {
+            if (item.Tag as string == tag)
+            {
+                _navigation.SelectedItem = item;
+                return;
+            }
+            if (item.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(c => c.Tag as string == tag) is { } child)
+            {
+                item.IsExpanded = true;
+                _navigation.SelectedItem = child;
+                return;
+            }
+        }
+    }
+
     private void Save()
     {
         try
@@ -134,7 +159,7 @@ internal sealed class SettingsWindow : Window
     private void ShowSection(string tag)
     {
         var panel = new StackPanel { Spacing = 6, MaxWidth = 760, HorizontalAlignment = HorizontalAlignment.Left };
-        var title = Sections.First(s => s.Tag == tag).Label;
+        var title = tag == "fonts" ? "Schriften" : Sections.First(s => s.Tag == tag).Label;
         panel.Children.Add(new TextBlock { Text = title, FontSize = 28, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 12) });
         switch (tag)
         {
@@ -146,6 +171,9 @@ internal sealed class SettingsWindow : Window
                 break;
             case "appearance":
                 Appearance(panel);
+                break;
+            case "fonts":
+                Fonts(panel);
                 break;
             case "animation":
                 Animation(panel);
@@ -264,16 +292,9 @@ internal sealed class SettingsWindow : Window
         p.Children.Add(Choice("Material", "Acryl zeigt den Desktop weichgezeichnet, Mica und Mica Alt sind aus dem Hintergrundbild getönt (Windows 11). Braucht etwas mehr Grafikleistung.",
             [("Schwarz", NotchMaterial.Black), ("Acryl", NotchMaterial.Acrylic), ("Mica", NotchMaterial.Mica), ("Mica Alt", NotchMaterial.MicaAlt)],
             a.Material, v => a.Material = v));
-        p.Children.Add(Choice("Schrift", "Bahnschrift und Cascadia Mono gehören zu Windows 11.",
-            [("Segoe UI (Standard)", NotchFont.Standard), ("Bahnschrift – schmal, technisch", NotchFont.Bahnschrift),
-             ("Cascadia Mono – alles in Monospace", NotchFont.Mono),
-             (a.CustomFontFamily is { } family ? $"Eigene: {family}" : "Eigene Schrift (Datei wählen)", NotchFont.Custom)],
-            a.Font, v => a.Font = v));
-        var upload = new Button { Content = "Schriftdatei wählen …" };
-        upload.Click += async (_, _) => await ImportFontAsync();
-        p.Children.Add(Card("Eigene Schrift", a.CustomFontFamily is { } current
-            ? $"Geladen: {current}. Eine neue Datei ersetzt sie."
-            : "Eine .ttf-, .otf- oder .ttc-Datei. Brim kopiert sie in seinen Datenordner; installieren musst du nichts.", upload));
+        var fonts = new Button { Content = "Einstellen" };
+        fonts.Click += (_, _) => Select("fonts");
+        p.Children.Add(Card("Schriften", "Für Uhr, Menü, Überschriften, Texte und Zahlen je eine eigene Schrift, auch aus eigenen Dateien.", fonts));
         p.Children.Add(Slider("Größe (%)", NotchGeometry.MinSize * 100, NotchGeometry.MaxSize * 100, 5, a.Size * 100,
             v => a.Size = Math.Round(v) / 100));
         var preview = new Button { Content = "Aufklappen" };
@@ -283,6 +304,73 @@ internal sealed class SettingsWindow : Window
             _preview();
         };
         p.Children.Add(Card("Vorschau", "Klappt die Notch einmal auf.", preview));
+    }
+
+    private static readonly (FontRole Role, string Label, string Description)[] FontRoles =
+    [
+        (FontRole.Clock, "Uhr", "Uhrzeit in Ruhe und oben rechts, wenn die Notch offen ist."),
+        (FontRole.Menu, "Menü", "Die Tabs „Jetzt · Ablage · System · Plugins“."),
+        (FontRole.Headings, "Überschriften", "Titel und große Anzeigen wie Datum, Songtitel oder Gesprächsdauer."),
+        (FontRole.Text, "Texte", "Untertitel, Hinweise und kleine Beschriftungen."),
+        (FontRole.Numbers, "Zahlen", "Messwerte wie FPS, Ping oder Prozent. Eine Monospace-Schrift verhindert springende Ziffern."),
+    ];
+
+    /// <summary>Untermenü von Aussehen: Schrift je Bereich und eigene Schriftdateien.</summary>
+    private void Fonts(StackPanel p)
+    {
+        var fonts = S.Appearance.Fonts;
+        var available = FontCatalog.BuiltIn.Concat(fonts.Custom.Select(c => c.Family)).Distinct().ToList();
+        (string, string?)[] Options(FontRole role) =>
+            [($"Standard ({FontCatalog.DefaultName(role)})", null), .. available.Select(f => (f, (string?)f))];
+
+        p.Children.Add(Hint("Änderungen siehst du sofort an der Notch. Bahnschrift und Cascadia Mono gehören zu Windows 11."));
+        var all = new ComboBox { MinWidth = 220, PlaceholderText = "Schrift wählen" };
+        foreach (var font in available)
+        {
+            all.Items.Add(font);
+        }
+        all.SelectionChanged += (_, _) =>
+        {
+            if (all.SelectedItem is string font)
+            {
+                foreach (var (role, _, _) in FontRoles)
+                {
+                    fonts.Set(role, font);
+                }
+                Changed();
+                ShowSection("fonts");
+            }
+        };
+        p.Children.Add(Card("Alle Bereiche", "Setzt eine Schrift überall; danach kannst du einzelne Bereiche ändern.", all));
+
+        p.Children.Add(Header("Je Bereich"));
+        foreach (var (role, label, description) in FontRoles)
+        {
+            p.Children.Add(Choice(label, description, Options(role), fonts.Get(role), v => fonts.Set(role, v)));
+        }
+
+        p.Children.Add(Header("Eigene Schriften"));
+        var upload = new Button { Content = "Schriftdatei hinzufügen …" };
+        upload.Click += async (_, _) => await ImportFontAsync();
+        p.Children.Add(Card("Hinzufügen", "Eine .ttf-, .otf- oder .ttc-Datei. Brim kopiert sie in seinen Datenordner; installieren musst du nichts.", upload));
+        foreach (var custom in fonts.Custom.ToList())
+        {
+            var remove = new Button { Content = "Entfernen" };
+            remove.Click += (_, _) =>
+            {
+                fonts.Custom.Remove(custom);
+                foreach (var (role, _, _) in FontRoles)
+                {
+                    if (fonts.Get(role) == custom.Family)
+                    {
+                        fonts.Set(role, null);
+                    }
+                }
+                Changed();
+                ShowSection("fonts");
+            };
+            p.Children.Add(Card(custom.Family, Path.GetFileName(custom.File), remove));
+        }
     }
 
     private async Task ImportFontAsync()
@@ -300,10 +388,9 @@ internal sealed class SettingsWindow : Window
         try
         {
             var (path, family) = NotchFonts.Import(file.Path);
-            var a = S.Appearance;
-            a.CustomFontFile = path;
-            a.CustomFontFamily = family;
-            a.Font = NotchFont.Custom;
+            var custom = S.Appearance.Fonts.Custom;
+            custom.RemoveAll(c => c.Family == family);
+            custom.Add(new CustomFont(path, family));
             Changed();
         }
         catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
@@ -318,8 +405,8 @@ internal sealed class SettingsWindow : Window
             }.ShowAsync();
             return;
         }
-        // Neu aufbauen, damit Auswahl und Text die neue Schrift zeigen.
-        ShowSection("appearance");
+        // Neu aufbauen, damit die neue Schrift in jeder Auswahl steht.
+        ShowSection("fonts");
     }
 
     private void Animation(StackPanel p)

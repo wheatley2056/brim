@@ -5,56 +5,35 @@ using Microsoft.UI.Xaml.Media;
 namespace Brim.Shell;
 
 /// <summary>
-/// Schriften der Notch (Einstellungen → Aussehen). Setzt die Ressourcen, die Widgets beim Zeichnen lesen
-/// (<c>NotchTextFont</c>, <c>NotchDisplayFont</c>, <c>NotchMonoFont</c>), und liefert die Schrift der Uhr.
+/// Schriften der Notch je Bereich (Einstellungen → Aussehen → Schriften). Setzt die Ressourcen, die Widgets beim
+/// Zeichnen lesen (<c>NotchTextFont</c>, <c>NotchTitleFont</c>, <c>NotchDisplayFont</c>, <c>NotchMonoFont</c>),
+/// und liefert die Schriften für Menü und Uhr.
 /// Eigene Schriften werden nicht installiert: Brim kopiert die Datei in seinen Datenordner und lädt sie als
 /// „Pfad#Familie“.
 /// </summary>
 internal static class NotchFonts
 {
-    private const string Text = "Segoe UI Variable Text, Segoe UI";
-    private const string Display = "Segoe UI Variable Display, Segoe UI";
-    private const string Mono = "Cascadia Mono, Consolas";
-
     public static string Directory => Path.Combine(App.DataDirectory, "Fonts");
 
-    private static NotchFont _applied = (NotchFont)(-1);
-    private static string? _appliedCustom;
-
-    public static (string Text, string Display, string Mono, string Clock) For(AppearanceSettings appearance)
-    {
-        switch (appearance.Font)
-        {
-            case NotchFont.Bahnschrift:
-                return ("Bahnschrift, Segoe UI", "Bahnschrift, Segoe UI", Mono, "Bahnschrift, Segoe UI");
-            case NotchFont.Mono:
-                return (Mono, Mono, Mono, Mono);
-            case NotchFont.Custom when appearance.CustomFontFile is { } file && File.Exists(file):
-                // Als Pfad und als Datei-URI, weil WinUI je nach Version nur eines davon lädt. Fehlt ein Zeichen in
-                // der eigenen Schrift, springt Segoe UI ein.
-                var family = appearance.CustomFontFamily;
-                var custom = $"{file}#{family}, {new Uri(file).AbsoluteUri}#{family}, {Text}";
-                return (custom, custom, Mono, custom);
-            default:
-                return (Text, Display, Mono, Mono);
-        }
-    }
+    private static string? _applied;
 
     /// <summary>Global für alle Notch-Fenster; ändert nur, wenn sich die Wahl geändert hat.</summary>
-    public static (FontFamily Text, FontFamily Clock) Apply(AppearanceSettings appearance)
+    public static (FontFamily Text, FontFamily Menu, FontFamily Clock) Apply(AppearanceSettings appearance)
     {
-        var fonts = For(appearance);
+        var fonts = appearance.Fonts;
+        string Of(FontRole role) => FontCatalog.Resolve(fonts, role, File.Exists);
         var resources = Application.Current.Resources;
-        if (_applied != appearance.Font || _appliedCustom != appearance.CustomFontFile)
+        var key = string.Join("|", Enum.GetValues<FontRole>().Select(Of));
+        if (_applied != key)
         {
-            _applied = appearance.Font;
-            _appliedCustom = appearance.CustomFontFile;
-            resources["NotchTextFont"] = new FontFamily(fonts.Text);
-            resources["NotchDisplayFont"] = new FontFamily(fonts.Display);
-            resources["NotchMonoFont"] = new FontFamily(fonts.Mono);
-            Log.Info($"Schrift: {appearance.Font} {appearance.CustomFontFamily}");
+            _applied = key;
+            resources["NotchTextFont"] = new FontFamily(Of(FontRole.Text));
+            resources["NotchTitleFont"] = new FontFamily(Of(FontRole.Headings));
+            resources["NotchDisplayFont"] = new FontFamily(Of(FontRole.Headings));
+            resources["NotchMonoFont"] = new FontFamily(Of(FontRole.Numbers));
+            Log.Info($"Schriften: Uhr {fonts.Clock}, Menü {fonts.Menu}, Überschriften {fonts.Headings}, Text {fonts.Text}, Zahlen {fonts.Numbers}");
         }
-        return ((FontFamily)resources["NotchTextFont"], new FontFamily(fonts.Clock));
+        return ((FontFamily)resources["NotchTextFont"], new FontFamily(Of(FontRole.Menu)), new FontFamily(Of(FontRole.Clock)));
     }
 
     /// <summary>

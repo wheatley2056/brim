@@ -74,7 +74,7 @@ internal sealed class WidgetRenderer
 
         var (font, size, weight, color) = w.Style switch
         {
-            TextStyle.Title => ("NotchTextFont", 18d, FontWeights.SemiBold, BrimColors.Fog),
+            TextStyle.Title => ("NotchTitleFont", 18d, FontWeights.SemiBold, BrimColors.Fog),
             TextStyle.Secondary => ("NotchTextFont", 13d, FontWeights.Normal, BrimColors.Slate),
             TextStyle.Caption => ("NotchTextFont", 11d, FontWeights.Normal, BrimColors.Slate),
             TextStyle.Mono => ("NotchMonoFont", 13d, FontWeights.Normal, BrimColors.Fog),

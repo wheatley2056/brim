@@ -60,3 +60,36 @@ public class FontFileTests
         Assert.Null(FontFile.FamilyName(Font((3, 1, 0x409, 2, "Bold"))));
     }
 }
+
+public class FontCatalogTests
+{
+    private static readonly Func<string, bool> Exists = _ => true;
+
+    [Fact]
+    public void Defaults_follow_the_design()
+    {
+        var fonts = new FontSettings();
+        Assert.StartsWith("Cascadia Mono", FontCatalog.Resolve(fonts, FontRole.Clock, Exists));
+        Assert.StartsWith("Cascadia Mono", FontCatalog.Resolve(fonts, FontRole.Numbers, Exists));
+        Assert.StartsWith("Segoe UI Variable Display", FontCatalog.Resolve(fonts, FontRole.Headings, Exists));
+        Assert.StartsWith("Segoe UI Variable Text", FontCatalog.Resolve(fonts, FontRole.Menu, Exists));
+    }
+
+    [Fact]
+    public void Each_role_has_its_own_font_and_custom_fonts_fall_back()
+    {
+        var file = OperatingSystem.IsWindows() ? @"C:\Brim\Fonts\Inter.ttf" : "/brim/fonts/Inter.ttf";
+        var fonts = new FontSettings { Clock = FontCatalog.Bahnschrift, Text = "Inter", Custom = [new CustomFont(file, "Inter")] };
+
+        Assert.StartsWith("Bahnschrift", FontCatalog.Resolve(fonts, FontRole.Clock, Exists));
+        var text = FontCatalog.Resolve(fonts, FontRole.Text, Exists);
+        Assert.StartsWith(file + "#Inter, file:///", text);
+        Assert.EndsWith("Segoe UI", text);
+        Assert.StartsWith("Segoe UI Variable Display", FontCatalog.Resolve(fonts, FontRole.Headings, Exists));
+
+        // Datei weg oder unbekannter Name: Standard.
+        Assert.StartsWith("Segoe UI Variable Text", FontCatalog.Resolve(fonts, FontRole.Text, _ => false));
+        fonts.Set(FontRole.Menu, "Gibt es nicht");
+        Assert.StartsWith("Segoe UI Variable Text", FontCatalog.Resolve(fonts, FontRole.Menu, Exists));
+    }
+}

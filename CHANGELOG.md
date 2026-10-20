@@ -7,7 +7,7 @@ Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der 
 
 - Aussehen (neu in den Einstellungen): Die Notch gibt es jetzt in vier Formen – klassische Notch, schwebende Insel, runde Kante ohne Ohren und eckiger Tab. Die Größe lässt sich von 80 bis 130 % einstellen. Wechsel siehst du sofort.
 - Material: Statt Schwarz auf Wunsch die Windows-Materialien Acryl (Desktop weichgezeichnet), Mica oder Mica Alt.
-- Schrift: Segoe UI, Bahnschrift oder Cascadia Mono – oder eine eigene Schriftdatei (.ttf, .otf), ohne sie installieren zu müssen.
+- Schriften (Aussehen → Schriften): Für Uhr, Menü, Überschriften, Texte und Zahlen je eine eigene Schrift – Segoe UI, Bahnschrift, Cascadia Mono oder eigene Schriftdateien (.ttf, .otf), ohne sie installieren zu müssen.
 
 ## 1.0.1
 
