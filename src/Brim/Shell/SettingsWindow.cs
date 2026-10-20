@@ -259,7 +259,7 @@ internal sealed class SettingsWindow : Window
         p.Children.Add(Hint("Änderungen siehst du sofort an der Notch."));
         p.Children.Add(Choice("Form", "Die Insel schwebt mit etwas Abstand unter der Kante.",
             [("Notch – wächst aus der Kante", NotchForm.Notch), ("Insel – schwebende Pille", NotchForm.Island),
-             ("Kante – flach, ohne Ohren", NotchForm.Edge), ("Tab – eckig wie ein Reiter", NotchForm.Tab)],
+             ("Kante – rund, ohne Ohren", NotchForm.Edge), ("Tab – eckig wie ein Reiter", NotchForm.Tab)],
             a.Form, v => a.Form = v));
         p.Children.Add(Choice("Material", "Acryl zeigt den Desktop weichgezeichnet, Mica und Mica Alt sind aus dem Hintergrundbild getönt (Windows 11). Braucht etwas mehr Grafikleistung.",
             [("Schwarz", NotchMaterial.Black), ("Acryl", NotchMaterial.Acrylic), ("Mica", NotchMaterial.Mica), ("Mica Alt", NotchMaterial.MicaAlt)],

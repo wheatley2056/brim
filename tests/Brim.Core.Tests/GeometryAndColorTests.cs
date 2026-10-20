@@ -44,7 +44,11 @@ public class GeometryAndColorTests
         Assert.Equal(0, NotchGeometry.For(NotchMode.Compact, NotchForm.Island).Ear);
         Assert.Equal(1, NotchGeometry.For(NotchMode.Compact, NotchForm.Island).Round);
         Assert.Equal(0, NotchGeometry.For(NotchMode.Compact, NotchForm.Edge).Round);
-        Assert.True(NotchGeometry.For(NotchMode.Expanded, NotchForm.Tab).Radius < NotchGeometry.For(NotchMode.Expanded, NotchForm.Edge).Radius);
+        // Kante und Tab unterscheiden sich in jedem Zustand deutlich.
+        foreach (var mode in new[] { NotchMode.Idle, NotchMode.Compact, NotchMode.Expanded })
+        {
+            Assert.True(NotchGeometry.For(mode, NotchForm.Edge).Radius >= 4 * NotchGeometry.For(mode, NotchForm.Tab).Radius);
+        }
 
         Assert.Equal(NotchGeometry.IslandGap, NotchGeometry.Gap(NotchForm.Island));
         Assert.Equal(0, NotchGeometry.Gap(NotchForm.Tab));

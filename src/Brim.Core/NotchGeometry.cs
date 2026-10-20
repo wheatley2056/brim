@@ -7,9 +7,9 @@ public enum NotchForm
     Notch,
     /// <summary>Frei schwebende Pille mit Abstand zur Kante, alle Ecken rund.</summary>
     Island,
-    /// <summary>Flach an der Kante, ohne Ohren, unten leicht gerundet.</summary>
+    /// <summary>An der Kante wie die Notch, aber ohne Ohren: unten rund, seitlich hart.</summary>
     Edge,
-    /// <summary>Eckig mit kleinem Radius, wie ein Reiter.</summary>
+    /// <summary>Fast eckig (3 DIP Radius), wie ein Reiter.</summary>
     Tab,
 }
 
@@ -80,8 +80,10 @@ public static class NotchGeometry
     {
         // Ecken werden beim Zeichnen auf die halbe Höhe begrenzt: klein eine Pille, aufgeklappt ein Kärtchen.
         NotchForm.Island => shape with { Ear = 0, Round = 1 },
-        NotchForm.Edge => shape with { Ear = 0, Radius = Math.Min(shape.Radius * 0.4, 14) },
-        NotchForm.Tab => shape with { Ear = 0, Radius = Math.Min(shape.Radius, Math.Min(4 + shape.Radius * 0.1, 8)) },
+        // Kante: wie die Notch, aber ohne Ohren – endet hart an der Bildschirmkante, unten weich.
+        NotchForm.Edge => shape with { Ear = 0 },
+        // Tab: fast eckig, in jeder Größe derselbe kleine Radius.
+        NotchForm.Tab => shape with { Ear = 0, Radius = Math.Min(shape.Radius, 3) },
         _ => shape,
     };
 
