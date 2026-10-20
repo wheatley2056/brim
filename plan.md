@@ -407,11 +407,18 @@ Umgesetzt:
 - **Einstellungsfenster** (`SettingsWindow`, in Code statt XAML): `NavigationView` mit Mica, Bereiche Allgemein, Ausblenden (mit Regeln pro App), Animation (mit Vorschau), Module (inkl. Akku-Schwellen), Ablage und Teilen, Spiele, Plugins, Info (Updates, Protokolle). Geöffnet wird es aus dem Tray-Menü. Jede Änderung wird nach 400 ms gespeichert; was nur beim Start gelesen wird, ist gekennzeichnet.
 - **Auto-Update** ist seit 0.1.0 da (Velopack).
 
-Noch offen, braucht Entscheidungen:
-- **Signatur:** eigenes Zertifikat (Warnung von SmartScreen bleibt) oder gekauftes bzw. Azure Trusted Signing.
-- **Paketidentität:** Velopack baut kein MSIX. Vorschlag: bei Velopack bleiben und ein **Sparse Package** (nur Identität) mitliefern. Damit gehen Kalender (`AppointmentStore`) und Benachrichtigungen (`UserNotificationListener`); es braucht aber eine Signatur.
-- **winget:** Manifest auf Basis des Velopack-Setups, sobald die Signatur steht.
-- **Microsoft Store:** offene Entscheidung 5.
+Entschieden (20.10.2026): **keine gekaufte Signatur**, **Sparse Package** für die Identität, Verteilung **GitHub und winget** (Store vorerst nicht).
+- **Identitätspaket** (`build/identity`): Sparse Package `Brim.Notch`, `CN=Brim`, Version fest 1.0.0.0, externer Ort ist die Velopack-Installation (`…\BrimNotch\current`). Die Pipeline signiert es pro Release mit einem frisch erzeugten, selbst ausgestellten Zertifikat; der private Schlüssel verlässt den Build nie. Schlägt der Bau fehl, erscheint das Release trotzdem.
+- **Einrichtung** (Einstellungen → Kalender und Benachrichtigungen): Brim startet sich einmal erhöht (`--trust-identity`) und legt das Zertifikat unter „Vertrauenswürdige Personen“ des Computers ab. Dann registriert es das Paket für den Nutzer (`AddPackageByUriAsync` mit `ExternalLocationUri`) und startet neu (`--wait-for`). Beim Deinstallieren wird das Paket wieder entfernt.
+- `app.manifest` trägt das passende `<msix>`-Element; ohne registriertes Paket hat es keine Wirkung. Für WinUI mit Identität liegt `Brim.pri` zusätzlich als `resources.pri` bei.
+- **Kalender** (`CalendarModule`, `AppointmentStore`, nur Konten aus der Windows-Kalender-App, nicht das klassische Outlook): nächster Termin unter der Uhr, 15 min vorher kompakt mit Countdown, zu Beginn ein HUD, „Beitreten“ bei Online-Besprechungen.
+- **Benachrichtigungen** (`NotificationModule`, `UserNotificationListener`): Vorschau neuer Benachrichtigungen als HUD (App, Titel, Text), stumm schaltbare Apps.
+- **winget** (`build/winget`): Manifeste 1.6 aus dem Velopack-Setup, pro Release als Zip am GitHub-Release. Das erste Einreichen bei microsoft/winget-pkgs geht von Hand; danach automatisch, wenn das Secret `WINGET_TOKEN` gesetzt ist.
+
+Noch offen:
+- Alles in 7f ist nicht unter Windows erprobt, vor allem der Bau des Identitätspakets in der Pipeline und WinUI mit Paketidentität.
+- „Nicht stören“ von Windows wird bei Benachrichtigungen noch nicht beachtet (die Schnittstelle dafür braucht ein neueres SDK).
+- Klick auf eine Benachrichtigung öffnet die App noch nicht.
 
 Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das fertige Ausblende-System.
 

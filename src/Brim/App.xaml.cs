@@ -36,7 +36,8 @@ public partial class App : Application
         _settings!,
         _allModules.Where(m => m.Id is not (ClockModule.ModuleId or UpdateModule.ModuleId)).Select(m => (m.Id, m.DisplayName)).ToList(),
         _updater?.CurrentVersion,
-        () => _windows?.ToggleExpanded());
+        () => _windows?.ToggleExpanded(),
+        () => PackageIdentity.Restart(ExitApp));
 
     public App()
     {

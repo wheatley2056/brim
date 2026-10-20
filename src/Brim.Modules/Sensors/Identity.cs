@@ -11,8 +11,9 @@ public static class Identity
             {
                 return Windows.ApplicationModel.Package.Current?.Id is not null;
             }
-            catch (InvalidOperationException)
+            catch (Exception)
             {
+                // Ohne Identität wirft Windows InvalidOperationException; ohne WinRT (Tests unter Linux) anderes.
                 return false;
             }
         }

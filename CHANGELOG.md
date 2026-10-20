@@ -13,6 +13,8 @@ Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der 
 - Timer und Stoppuhr: im Tab „Jetzt“ über das Stoppuhr-Symbol neben der Uhr. Läuft kompakt mit Ring und Restzeit; wenn die Zeit um ist, klappt die Notch kurz auf.
 - Bluetooth: Der Tab „System“ zeigt alle verbundenen Geräte. Verbindet sich eines neu, zeigt die Notch es kurz an – jeweils mit Akkustand, wenn Windows ihn kennt.
 - Einstellungen: eigenes Fenster im Windows-11-Stil (Rechtsklick auf das Brim-Symbol im Infobereich → Einstellungen) für Monitore, Ausblenden mit Regeln pro App, Animation, Module, Ablage, Teilen, Spiele und Updates.
+- Kalender und Benachrichtigungen (nach einmaliger Einrichtung unter Einstellungen → Kalender und Benachrichtigungen): Der nächste Termin steht unter der Uhr und erscheint 15 Minuten vorher mit Countdown und „Beitreten“. Neue Windows-Benachrichtigungen zeigt die Notch kurz als Vorschau.
+- Brim gibt es auch über winget: `winget install wheatley2056.Brim`.
 - Behoben: Bluetooth-Geräte zeigen jetzt ihren Akkustand, auch Mäuse wie die MX Master.
 - Behoben: Beim Wechsel des Audio-Ausgabegeräts in der Notch hing Brim sich auf.
 

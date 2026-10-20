@@ -59,6 +59,10 @@ vpk pack --packId BrimNotch --packVersion $Version --packDir $publish --mainExe 
     --releaseNotes $notes --runtime $Runtime --outputDir $Output
 if ($LASTEXITCODE) { throw "vpk pack fehlgeschlagen" }
 
+# 3b. winget-Manifeste (build/winget)
+& (Join-Path $PSScriptRoot "winget/make.ps1") -Version $Version -Output $Output -Repository $Repository
+Compress-Archive -Path (Join-Path $Output "winget/manifests") -DestinationPath (Join-Path $Output "winget-manifests-$Version.zip") -Force
+
 # 4. Hochladen
 if ($Upload) {
     vpk upload github --repoUrl $Repository --outputDir $Output --token $Token `

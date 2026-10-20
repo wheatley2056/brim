@@ -21,6 +21,7 @@ internal sealed class SettingsWindow : Window
     private readonly IReadOnlyList<(string Id, string Name)> _modules;
     private readonly string? _version;
     private readonly Action _preview;
+    private readonly Action _restart;
     private readonly NavigationView _navigation = new()
     {
         IsBackButtonVisible = NavigationViewBackButtonVisible.Collapsed,
@@ -33,24 +34,25 @@ internal sealed class SettingsWindow : Window
     private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(400) };
 
     /// <summary>Öffnet das Fenster oder holt das offene nach vorn.</summary>
-    public static void Show(SettingsStore store, IReadOnlyList<(string Id, string Name)> modules, string? version, Action preview)
+    public static void Show(SettingsStore store, IReadOnlyList<(string Id, string Name)> modules, string? version, Action preview, Action restart)
     {
         if (_open is not null)
         {
             _open.Activate();
             return;
         }
-        _open = new SettingsWindow(store, modules, version, preview);
+        _open = new SettingsWindow(store, modules, version, preview, restart);
         _open.Closed += (_, _) => _open = null;
         _open.Activate();
     }
 
-    private SettingsWindow(SettingsStore store, IReadOnlyList<(string Id, string Name)> modules, string? version, Action preview)
+    private SettingsWindow(SettingsStore store, IReadOnlyList<(string Id, string Name)> modules, string? version, Action preview, Action restart)
     {
         _store = store;
         _modules = modules;
         _version = version;
         _preview = preview;
+        _restart = restart;
         Title = "Brim – Einstellungen";
         SystemBackdrop = new MicaBackdrop();
         AppWindow.Resize(new SizeInt32(980, 720));
@@ -93,6 +95,7 @@ internal sealed class SettingsWindow : Window
         ("autohide", "Ausblenden", ""),
         ("animation", "Animation", ""),
         ("modules", "Module", ""),
+        ("identity", "Kalender und Benachrichtigungen", ""),
         ("shelf", "Ablage und Teilen", ""),
         ("games", "Spiele", ""),
         ("plugins", "Plugins", ""),
@@ -139,6 +142,9 @@ internal sealed class SettingsWindow : Window
                 break;
             case "modules":
                 Modules(panel);
+                break;
+            case "identity":
+                IdentitySection(panel);
                 break;
             case "shelf":
                 ShelfAndShare(panel);
@@ -273,6 +279,62 @@ internal sealed class SettingsWindow : Window
         p.Children.Add(Toggle("Beim Laden kompakt zeigen", null, S.Battery.CompactWhileCharging, v => S.Battery.CompactWhileCharging = v));
         p.Children.Add(Number("Warnung ab (%)", "Kurzer Hinweis und kompakte Anzeige.", 5, 50, 1, S.Battery.LowPercent, v => S.Battery.LowPercent = v));
         p.Children.Add(Number("Kritisch ab (%)", "Die Notch klappt kurz auf.", 1, 30, 1, S.Battery.CriticalPercent, v => S.Battery.CriticalPercent = v));
+    }
+
+    /// <summary>Einrichtung der Paketidentität (Plan 7f): einmal Adminrechte, dann registrieren, dann neu starten.</summary>
+    private void IdentitySection(StackPanel p)
+    {
+        p.Children.Add(Hint("Für den nächsten Termin aus dem Windows-Kalender und die Vorschau neuer Benachrichtigungen braucht Brim eine Paketidentität. "
+            + "Dafür vertraut dein PC einmalig dem Zertifikat, mit dem Brim dieses kleine Paket signiert (Windows fragt nach Adminrechten). Brim selbst bleibt, wie es ist."));
+
+        var status = new TextBlock { TextWrapping = TextWrapping.Wrap };
+        var action = new Button { Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+        void Update(string? message = null)
+        {
+            if (PackageIdentity.HasIdentity)
+            {
+                status.Text = message ?? "Eingerichtet.";
+                action.Visibility = Visibility.Collapsed;
+            }
+            else if (PackageIdentity.IsRegistered)
+            {
+                status.Text = message ?? "Eingerichtet – wirkt nach einem Neustart von Brim.";
+                action.Content = "Brim neu starten";
+                action.Visibility = Visibility.Visible;
+            }
+            else if (!PackageIdentity.Available)
+            {
+                status.Text = "Nur in der installierten Fassung möglich (nicht beim Start aus dem Quellcode).";
+                action.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                status.Text = message ?? "Noch nicht eingerichtet.";
+                action.Content = "Einrichten";
+                action.Visibility = Visibility.Visible;
+            }
+        }
+        action.Click += async (_, _) =>
+        {
+            if (PackageIdentity.IsRegistered)
+            {
+                _restart();
+                return;
+            }
+            action.IsEnabled = false;
+            status.Text = "Wird eingerichtet …";
+            var error = await PackageIdentity.SetupAsync();
+            action.IsEnabled = true;
+            Update(error is null ? null : "Hat nicht geklappt: " + error);
+        };
+        Update();
+        p.Children.Add(Card("Status", null, new StackPanel { Spacing = 8, Children = { status, action } }));
+
+        p.Children.Add(Header("Benachrichtigungen"));
+        p.Children.Add(Hint("Windows fragt beim ersten Start nach dem Zugriff. Zurücknehmen kannst du ihn unter Datenschutz → Benachrichtigungen."));
+        p.Children.Add(Text("Stumm schalten", "Apps, deren Benachrichtigungen die Notch nicht zeigt, durch Komma getrennt (Name wie im Info-Center).",
+            string.Join(", ", S.Notifications.MutedApps),
+            v => S.Notifications.MutedApps = [.. v.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]));
     }
 
     private void ShelfAndShare(StackPanel p)
