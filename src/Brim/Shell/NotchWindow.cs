@@ -198,6 +198,10 @@ internal sealed partial class NotchWindow : WindowEx
             SetExpanded(false, pinned: false);
             return;
         }
+        if (_hidden)
+        {
+            PeekFromKeyboard();
+        }
         SetExpanded(true, pinned: true);
         Win32.Activate(Handle);
         View.FocusTabs();
@@ -222,6 +226,7 @@ internal sealed partial class NotchWindow : WindowEx
         if (!expanded)
         {
             // Lag inzwischen ein Fenster unter der Notch, zieht sie sich jetzt zurück.
+            EndKeyboardPeek();
             ApplyAutoHide();
         }
     }

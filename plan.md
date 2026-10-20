@@ -306,7 +306,7 @@ Kerbe.sln
 | 1 · Ablage | Shelf komplett inkl. Persistenz und Herausziehen | A4 fertig |
 | 1b · Teilen | Brim-zu-Brim im LAN, danach per Code übers Internet | A10 fertig |
 | 2 · System | Akku, Ressourcen, Helligkeit, Kamera/Mikro | A5–A7 fertig (siehe 7a) |
-| 3 · Ausblenden | Regelwerk, App-Ausnahmen, Animationseinstellungen, Rand-Reveal | A9 fertig |
+| 3 · Ausblenden | Regelwerk, App-Ausnahmen, Animationseinstellungen, Rand-Reveal | A9 fertig (siehe 7b) |
 | 4 · Plugins | Protokoll, Host, SDK, zwei Beispiel-Plugins | A2 fertig |
 | 5 · Spiele | Telemetrie-Dienst, FPS/Latenz, Spielmodus | A8 fertig |
 | 6 · Mac-Paket | Timer, Kalender, Benachrichtigungen, Bluetooth, Teilen | A3 vollständig |
@@ -328,6 +328,21 @@ Noch offen:
 - Optionaler kompakter CPU/RAM-Pegel als Aktivität (4.7).
 - „Task-Manager direkt auf der Leistungsseite“: dafür gibt es keinen dokumentierten Schalter, Brim öffnet ihn normal.
 - Automatische Helligkeit (Umgebungslicht) löst das HUD ebenfalls aus; ggf. abschaltbar machen.
+
+### 7b. Stand Phase 3 (20.10.2026)
+
+Umgesetzt:
+- **Regelwerk** als reine Funktion `AutoHideRules.Evaluate` in Brim.Core, voll getestet. Reihenfolge: Fenster Richtung Snap-Leiste ziehen → Bildschirmfreigabe → Regel der App im Vordergrund → Vollbild → maximiert → Fenster im Bereich → „nur Desktop“ → Leerlauf.
+- **Einstellungen** (`AutoHide` in `settings.json`): `WhenFullscreen`, `WhenMaximized`, `WhenOverlapped`, `WhenAnyForeground`, `WhenScreenSharing`, `IdleSeconds`, `HideDelayMs`, `Apps` (Prozessname + `AlwaysShow`/`AlwaysHide`), `ScreenShareMarkers`. Fenster von „immer zeigen“-Apps verdecken die Notch nie.
+- **Fensterlage** pro Monitor über die bestehenden WinEvent-Hooks: Fenster im Bereich und Vordergrund mit Prozess, Vollbild (Rahmen deckt den Monitor) und maximiert (`IsZoomed`).
+- **Bildschirmfreigabe**: Windows hat dafür keine Schnittstelle. Brim erkennt die Freigabeleisten von Zoom, Teams, Chrome/Edge und Webex an Fensterklasse oder Titel. Die Merkmale stehen in den Einstellungen und lassen sich ergänzen.
+- **Leerlauf** über `GetLastInputInfo`, nur bei eingeschalteter Regel; **Verzögerung** vor dem Zurückziehen (Zurückkommen sofort, beim Ziehen nie verzögert).
+- **Zurückholen per Tastenkürzel:** Win+Alt+N holt die versteckte Notch und klappt sie auf; nach dem Zuklappen zieht sie sich wieder zurück.
+
+Noch offen:
+- Oberfläche für diese Regeln kommt mit dem Einstellungsfenster (Phase 7); bis dahin `settings.json`.
+- Merkmale für die Freigabe sind aus der Erinnerung zusammengestellt und unter Windows zu prüfen, vor allem für das neue Teams und Discord (Discord zeigt keine eigene Leiste).
+- Animationsstil und -dauer sind schon einstellbar (`Animation`), ein Vorschau-Knopf fehlt bis zum Einstellungsfenster.
 
 Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das fertige Ausblende-System.
 

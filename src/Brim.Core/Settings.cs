@@ -70,8 +70,32 @@ public sealed class ShelfSettings
 
 public sealed class AutoHideSettings
 {
-    /// <summary>Zurückziehen, wenn ein App-Fenster im Bereich der Notch liegt (auch maximiert/Vollbild).</summary>
+    /// <summary>Zurückziehen, wenn ein normales App-Fenster im Bereich der Notch liegt.</summary>
     public bool WhenOverlapped { get; set; } = true;
+
+    /// <summary>Zurückziehen bei Vollbild (Spiel, Video, F11, Präsentation).</summary>
+    public bool WhenFullscreen { get; set; } = true;
+
+    /// <summary>Zurückziehen, wenn ein maximiertes Fenster unter der Notch liegt.</summary>
+    public bool WhenMaximized { get; set; } = true;
+
+    /// <summary>„Nur Desktop“: zurückziehen, sobald irgendein App-Fenster auf diesem Monitor im Vordergrund ist.</summary>
+    public bool WhenAnyForeground { get; set; }
+
+    /// <summary>Zurückziehen, solange der Bildschirm in Teams, Zoom, Meet usw. geteilt wird (Privatsphäre).</summary>
+    public bool WhenScreenSharing { get; set; } = true;
+
+    /// <summary>Merkmale laufender Freigaben (siehe <see cref="ScreenShare.DefaultMarkers"/>).</summary>
+    public List<string> ScreenShareMarkers { get; set; } = [.. ScreenShare.DefaultMarkers];
+
+    /// <summary>Nach so vielen Sekunden ohne Eingabe zurückziehen; 0 = aus.</summary>
+    public int IdleSeconds { get; set; }
+
+    /// <summary>Verzögerung vor dem Zurückziehen in ms (0–2000); Zurückkommen ist immer sofort.</summary>
+    public int HideDelayMs { get; set; }
+
+    /// <summary>Regeln pro App, z. B. OBS immer zeigen.</summary>
+    public List<AppRule> Apps { get; set; } = [];
 
     /// <summary>Zurückziehen, während ein Fenster Richtung Oberkante gezogen wird (Snap-Leiste).</summary>
     public bool WhileDraggingWindows { get; set; } = true;

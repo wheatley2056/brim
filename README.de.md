@@ -63,7 +63,7 @@ Dateien oder Ordner auf die Notch ziehen – sie bleiben, bis du sie entfernst, 
 Der Tab „System“ zeigt CPU, RAM, GPU und Netzwerk mit Verlauf der letzten Minute und die drei Prozesse mit der meisten Last – aus denselben Leistungsindikatoren wie der Task-Manager, die Werte stimmen also überein. Gemessen wird nur, solange der Tab offen ist. Auf Laptops zeigt Brim Akkustand und Restzeit, ein HUD beim Einstecken und warnt einmal, wenn der Akku zur Neige geht. Helligkeit bekommt ein eigenes HUD, und ein grüner oder oranger Punkt zeigt, wenn eine App Kamera oder Mikrofon benutzt.
 
 ### 🫥 Macht Platz
-Liegt ein Fenster unter der Notch – maximiert, im Vollbild oder einfach hochgeschoben –, schmilzt Brim in die Kante. Auch beim Ziehen eines Fensters zur Snap-Leiste zieht sie sich zurück. Maus an die Oberkante, und sie kommt wieder herunter.
+Liegt ein Fenster unter der Notch – maximiert, im Vollbild oder einfach hochgeschoben –, schmilzt Brim in die Kante. Auch beim Ziehen eines Fensters zur Snap-Leiste zieht sie sich zurück. Teilst du deinen Bildschirm in Teams, Zoom, Meet oder Webex, bleibt sie aus dem Bild. Regeln pro App (OBS immer zeigen, Premiere immer ausblenden), „nur Desktop“, Ausblenden bei Leerlauf und eine Verzögerung stehen in `settings.json`. Maus an die Oberkante oder Win+Alt+N, und sie kommt wieder herunter.
 
 ### 🔄 Updates, die du nicht merkst
 Brim aktualisiert sich im Hintergrund aus den GitHub-Releases, lädt nur, was sich geändert hat, und startet erst neu, wenn du ein paar Minuten nicht am Rechner bist. Danach erzählt die Notch, was neu ist.
@@ -144,7 +144,7 @@ Eingebaute Funktionen sind Module mit derselben Schnittstelle, die Plugins bekom
 - [x] **Ablage** – hineinziehen, behalten, herausziehen
 - [x] **Teilen** – in der Nähe (LAN) und per Code (Magic Wormhole), mit Proxy
 - [x] **Unbemerkte Updates** mit Changelog in der Notch
-- [ ] **Ausblenden** – Regeln pro App, Bildschirmfreigabe erkennen *(Überlappung und Oberkante sind fertig)*
+- [x] **Ausblenden** – Vollbild, maximiert, Überlappung, nur Desktop, Leerlauf, Regeln pro App, Bildschirmfreigabe, Oberkante *(Einstellungsfenster kommt mit 1.0)*
 - [x] **System** – Akku, CPU, RAM, GPU, Netzwerk, Helligkeit, Kamera/Mikrofon *(Datenträger und externe Monitore per DDC/CI folgen)*
 - [ ] **Plugins** – offenes Protokoll und SDK für eigene Inhalte
 - [ ] **Spiele** – FPS und Latenz als Mini-Pille

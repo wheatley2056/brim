@@ -50,14 +50,58 @@ internal sealed class NotchWindowManager : IDisposable
         _windowWatcher = new WindowWatcher(dispatcher);
         _windowWatcher.Changed += EvaluateAutoHide;
         _windowWatcher.DraggingChanged += _ => EvaluateAutoHide();
-        _windowWatcher.DragMoved += EvaluateAutoHide;
+        // Beim Ziehen rund 30-mal pro Sekunde: Freigabe nicht jedes Mal neu suchen.
+        _windowWatcher.DragMoved += () => EvaluateAutoHide(checkSharing: false);
+
+        // Leerlauf-Regel: nur wenn eingeschaltet, und gemeldet wird nur das Überschreiten der Schwelle.
+        _idleTimer = dispatcher.CreateTimer();
+        _idleTimer.IsRepeating = true;
+        _idleTimer.Interval = TimeSpan.FromMilliseconds(500);
+        _idleTimer.Tick += (_, _) =>
+        {
+            var idle = IsIdle();
+            if (idle != _wasIdle)
+            {
+                EvaluateAutoHide(checkSharing: false);
+            }
+        };
     }
 
-    private void EvaluateAutoHide()
+    private readonly DispatcherQueueTimer _idleTimer;
+    private bool _sharing;
+    private bool _wasIdle;
+
+    private bool IsIdle() =>
+        _settings.Current.AutoHide.IdleSeconds is > 0 and var seconds && Win32.IdleTime() >= TimeSpan.FromSeconds(seconds);
+
+    private void EvaluateAutoHide() => EvaluateAutoHide(checkSharing: true);
+
+    private void EvaluateAutoHide(bool checkSharing)
     {
+        var rules = _settings.Current.AutoHide;
+        if (checkSharing)
+        {
+            var sharing = rules.WhenScreenSharing && _windowWatcher.IsScreenSharing(rules.ScreenShareMarkers);
+            if (sharing != _sharing)
+            {
+                Log.Info(sharing ? "Bildschirmfreigabe erkannt" : "Bildschirmfreigabe beendet");
+            }
+            _sharing = sharing;
+        }
+        _wasIdle = IsIdle();
+        var idle = rules.IdleSeconds > 0 ? Win32.IdleTime() : TimeSpan.Zero;
         foreach (var window in _windows)
         {
-            window.EvaluateAutoHide(_windowWatcher);
+            window.EvaluateAutoHide(_windowWatcher, _sharing, idle);
+        }
+
+        if (rules.IdleSeconds > 0 && !_idleTimer.IsRunning)
+        {
+            _idleTimer.Start();
+        }
+        else if (rules.IdleSeconds <= 0 && _idleTimer.IsRunning)
+        {
+            _idleTimer.Stop();
         }
     }
 
@@ -178,6 +222,7 @@ internal sealed class NotchWindowManager : IDisposable
     {
         _hub.Changed -= QueueRefresh;
         _watcher?.Stop();
+        _idleTimer.Stop();
         _windowWatcher.Dispose();
         _watcher = null;
         UnregisterHotkey();

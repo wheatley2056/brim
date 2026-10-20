@@ -5,17 +5,18 @@ using Windows.Win32.Foundation;
 namespace Brim.Shell;
 
 /// <summary>
-/// Automatisches Ausblenden (Plan 4.9): Die Notch zieht sich zurück, wenn ein App-Fenster in ihrem
-/// Bereich liegt (maximiert, Vollbild, einfach hochgeschoben) oder wenn ein Fenster Richtung Oberkante
-/// gezogen wird und Windows die Snap-Leiste zeigt. Die Maus an der Oberkante holt sie zurück.
+/// Automatisches Ausblenden (Plan 4.9): Die Shell sammelt die Fensterlage, <see cref="AutoHideRules"/>
+/// entscheidet – Vollbild, maximiert, Fenster im Bereich, Vordergrund, App-Regeln, Bildschirmfreigabe,
+/// Leerlauf und Ziehen Richtung Snap-Leiste. Die Maus an der Oberkante oder Win+Alt+N holt sie zurück.
 /// </summary>
 internal sealed partial class NotchWindow
 {
     private readonly DispatcherQueueTimer _peekPoll;
     private int _top;
-    private bool _overlapped;
-    private string? _overlapClass;
-    private bool _dragHide;
+    private AutoHideReason _reason;
+    private DispatcherQueueTimer? _hideDelay;
+    private bool _keyboardPeek;
+    private bool _hideDelayDone;
     private bool _windowDragging;
     private bool _peeking;
     private long? _peekSince;
@@ -24,33 +25,90 @@ internal sealed partial class NotchWindow
     /// <summary>Wie lange die Maus die zurückgeholte Notch verlassen darf, bevor sie sich wieder versteckt.</summary>
     private const int PeekLeaveMs = 400;
 
-    /// <summary>Von <see cref="NotchWindowManager"/> bei jeder Änderung der Fensterlage aufgerufen.</summary>
-    public void EvaluateAutoHide(WindowWatcher watcher)
+    /// <summary>
+    /// Von <see cref="NotchWindowManager"/> bei jeder Änderung der Fensterlage aufgerufen.
+    /// Freigabe und Leerlauf gelten für alle Monitore und kommen deshalb fertig mit.
+    /// </summary>
+    public void EvaluateAutoHide(WindowWatcher watcher, bool screenSharing, TimeSpan idle)
     {
         var rules = _settings.Current.AutoHide;
         _windowDragging = watcher.IsDragging;
-        _overlapped = rules.WhenOverlapped && watcher.AnyWindowIn(NotchZone(), out _overlapClass);
-        _dragHide = rules.WhileDraggingWindows && watcher.IsDragging && CursorNearTop(rules.DragZone);
+        var bounds = Display.OuterBounds;
+        var scene = new AutoHideScene
+        {
+            Windows = watcher.Scene(NotchZone(), new RECT
+            {
+                left = bounds.X,
+                top = bounds.Y,
+                right = bounds.X + bounds.Width,
+                bottom = bounds.Y + bounds.Height,
+            }),
+            DraggingNearTop = watcher.IsDragging && CursorNearTop(rules.DragZone),
+            ScreenSharing = screenSharing,
+            Idle = idle,
+        };
+        var reason = AutoHideRules.Evaluate(rules, scene);
+        if (reason != _reason && reason != AutoHideReason.None)
+        {
+            var app = scene.Windows.FirstOrDefault(w => w.Foreground || w.InZone);
+            Log.Info($"Ausblende-Grund: {AutoHideRules.Describe(reason)}{(app is null ? "" : $" ({app.Process}, {app.Class})")}");
+        }
+        _reason = reason;
         ApplyAutoHide();
     }
 
     private void ApplyAutoHide()
     {
         var rules = _settings.Current.AutoHide;
-        var reason = _overlapped || _dragHide;
+        var reason = _reason != AutoHideReason.None;
+        var dragHide = _reason == AutoHideReason.Dragging;
         if (!reason)
         {
             _peeking = false;
+            _keyboardPeek = false;
         }
 
         // Nie unter der Maus wegziehen, solange jemand mit der Notch arbeitet.
         var busy = _expanded || _inside || _dropTarget || _draggingOut || _popupOpen;
-        var hide = reason && !_peeking && (!busy || _dragHide);
+        var hide = reason && !_peeking && (!busy || dragHide);
+
+        // Zurückziehen auf Wunsch verzögert (Plan 4.9), Zurückkommen immer sofort. Beim Ziehen eines
+        // Fensters zählt jeder Moment, damit die Snap-Leiste frei ist.
+        var delay = Math.Clamp(rules.HideDelayMs, 0, 2000);
+        var wantHide = hide;
+        if (wantHide && !_hidden && delay > 0 && !dragHide && !_hideDelayDone)
+        {
+            if (_hideDelay is null)
+            {
+                _hideDelay = DispatcherQueue.CreateTimer();
+                _hideDelay.IsRepeating = false;
+                _hideDelay.Tick += (_, _) =>
+                {
+                    _hideDelayDone = true;
+                    ApplyAutoHide();
+                };
+            }
+            if (!_hideDelay.IsRunning)
+            {
+                _hideDelay.Interval = TimeSpan.FromMilliseconds(delay);
+                _hideDelay.Start();
+            }
+            hide = false;
+        }
+        else
+        {
+            _hideDelay?.Stop();
+        }
+        if (!wantHide || _hidden)
+        {
+            _hideDelayDone = false;
+        }
+
         if (hide != _hidden)
         {
             Log.Info(hide
-                ? $"Notch zieht sich zurück ({(_dragHide ? "Fenster wird gezogen" : $"Fenster im Bereich: {_overlapClass}")})"
-                : $"Notch kommt zurück ({(_peeking ? "Oberkante" : "Bereich frei")})");
+                ? $"Notch zieht sich zurück ({AutoHideRules.Describe(_reason)})"
+                : $"Notch kommt zurück ({(_keyboardPeek ? "Tastenkürzel" : _peeking ? "Oberkante" : "kein Grund mehr")})");
             _hidden = hide;
             if (hide)
             {
@@ -91,6 +149,7 @@ internal sealed partial class NotchWindow
             else if (now - _peekLeftSince >= PeekLeaveMs && !_expanded)
             {
                 _peeking = false;
+                _keyboardPeek = false;
                 _peekLeftSince = null;
                 ApplyAutoHide();
             }
@@ -108,6 +167,27 @@ internal sealed partial class NotchWindow
             _peeking = true;
             _peekSince = null;
             ApplyAutoHide();
+        }
+    }
+
+    /// <summary>
+    /// Win+Alt+N bei versteckter Notch: zurückholen und aufklappen. Nach dem Zuklappen zieht sie sich
+    /// wieder zurück, sobald die Maus nicht über ihr ist.
+    /// </summary>
+    private void PeekFromKeyboard()
+    {
+        _peeking = true;
+        _keyboardPeek = true;
+        ApplyAutoHide();
+    }
+
+    /// <summary>Nach dem Zuklappen: ein Zurückholen per Tastenkürzel endet, wenn die Maus nicht auf der Notch ist.</summary>
+    private void EndKeyboardPeek()
+    {
+        if (_keyboardPeek && !CursorInside() && !CursorAtTopEdge())
+        {
+            _keyboardPeek = false;
+            _peeking = false;
         }
     }
 
