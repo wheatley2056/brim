@@ -52,6 +52,8 @@ public sealed class MediaModule : IBrimModule
     public async Task StartAsync(ModuleContext context, CancellationToken cancellationToken)
     {
         _context = context;
+        context.DefineTile("player", "Musik", [TileSize.Medium, TileSize.Large], "Medien", Glyphs.Play, "Was gerade läuft, mit Wiedergabe");
+        context.TilePlacementsChanged += PublishTiles;
         if (_demo is not null)
         {
             await StartDemoAsync(_demo);
@@ -187,6 +189,7 @@ public sealed class MediaModule : IBrimModule
     private void Publish()
     {
         var context = _context!;
+        PublishTiles();
         if (string.IsNullOrWhiteSpace(_title))
         {
             context.End(ActivityId);
@@ -214,6 +217,87 @@ public sealed class MediaModule : IBrimModule
             Announcement = $"{_title}, {subtitle}",
             Expanded = PlayerView(accent, placeholder, subtitle, position, progress),
         });
+    }
+
+    // ───────── Kachel für „Jetzt“ ─────────
+
+    private void PublishTiles()
+    {
+        if (_context is not { } context)
+        {
+            return;
+        }
+        foreach (var size in context.PlacedSizes("player"))
+        {
+            context.SetTile("player", size, PlayerTile(size));
+        }
+    }
+
+    private Widget PlayerTile(TileSize size)
+    {
+        if (string.IsNullOrWhiteSpace(_title))
+        {
+            return new StackWidget(
+                new IconWidget(Glyphs.Play) { Size = 18, Color = BrimColors.Slate },
+                new TextWidget("Keine Musik") { Style = TextStyle.Secondary })
+            {
+                Spacing = 10,
+                Justify = Justify.Center,
+                Grow = 1,
+            };
+        }
+        var accent = _accent ?? BrimColors.DefaultAccent;
+        (string, string) placeholder = (accent, "#6C5CFF");
+        var large = size == TileSize.Large;
+        var play = new ButtonWidget("toggle")
+        {
+            Glyph = _isPlaying ? Glyphs.Pause : Glyphs.Play,
+            Kind = ButtonKind.Primary,
+            Size = large ? 44 : 36,
+            GlyphSize = large ? 16 : 14,
+            AccessibleName = _isPlaying ? "Pause" : "Wiedergabe",
+        };
+        var titles = new StackWidget(
+            new TextWidget(_title!) { Style = TextStyle.Title, FontSize = large ? 16 : 14 },
+            new TextWidget(_artist ?? "") { Style = TextStyle.Secondary, FontSize = 12 })
+        {
+            Orientation = StackOrientation.Vertical,
+            Align = CrossAlign.Stretch,
+            Spacing = 1,
+            Grow = 1,
+        };
+        if (!large)
+        {
+            return new StackWidget(
+                new ImageWidget(_cover) { Width = 52, Height = 52, CornerRadius = 10, Placeholder = placeholder, AccessibleName = "Cover" },
+                titles,
+                play)
+            {
+                Spacing = 10,
+            };
+        }
+        var progress = _duration > TimeSpan.Zero ? CurrentPosition() / _duration : 0;
+        return new StackWidget(
+            new StackWidget(
+                new ImageWidget(_cover) { Width = 64, Height = 64, CornerRadius = 12, Placeholder = placeholder, AccessibleName = "Cover" },
+                titles)
+            {
+                Spacing = 12,
+            },
+            new ProgressWidget(Math.Clamp(progress, 0, 1)) { Color = accent, AccessibleName = "Fortschritt" },
+            new StackWidget(
+                new ButtonWidget("previous") { Glyph = Glyphs.Previous, GlyphSize = 16, Size = 36, AccessibleName = "Vorheriger Titel" },
+                play,
+                new ButtonWidget("next") { Glyph = Glyphs.Next, GlyphSize = 16, Size = 36, AccessibleName = "Nächster Titel" })
+            {
+                Spacing = 12,
+                Justify = Justify.Center,
+            })
+        {
+            Orientation = StackOrientation.Vertical,
+            Align = CrossAlign.Stretch,
+            Spacing = 8,
+        };
     }
 
     // ───────── Ansichten im Tab „Jetzt“ ─────────

@@ -12,6 +12,7 @@ public sealed class ClockModule : IBrimModule
     private readonly Func<string?>? _agenda;
     private ModuleContext? _context;
     private ITimer? _timer;
+    private readonly Lock _timerGate = new();
 
     /// <param name="agenda">Liefert den nächsten Termin für den Tab „Jetzt“ (Kalender), sonst <c>null</c>.</param>
     public ClockModule(Func<string?>? agenda = null)
@@ -25,6 +26,15 @@ public sealed class ClockModule : IBrimModule
     public Task StartAsync(ModuleContext context, CancellationToken cancellationToken)
     {
         _context = context;
+        foreach (var (id, name, description, sizes) in ClockTiles.All)
+        {
+            context.DefineTile(id, name, sizes, ClockTiles.Category, Glyphs.Clock, description);
+        }
+        context.TilePlacementsChanged += () =>
+        {
+            PublishTiles();
+            ScheduleNext();
+        };
         Publish();
         ScheduleNext();
         return Task.CompletedTask;
@@ -32,8 +42,18 @@ public sealed class ClockModule : IBrimModule
 
     private void ScheduleNext()
     {
+        // Vom Timer und von der Shell (neue Kacheln) aufgerufen: nie zwei Timer gleichzeitig.
+        lock (_timerGate)
+        {
+            ScheduleNextLocked();
+        }
+    }
+
+    private void ScheduleNextLocked()
+    {
         var now = _context!.Time.GetLocalNow();
-        var showSeconds = _context.Settings.Clock.ShowSeconds;
+        // Kacheln mit Sekundenzeiger oder Sekunden brauchen jede Sekunde ein Bild.
+        var showSeconds = _context.Settings.Clock.ShowSeconds || TilesPlaced;
         // Auf die nächste volle Minute (bzw. Sekunde) ausrichten, damit die Anzeige nie nachhinkt.
         var next = showSeconds
             ? now.AddTicks(-(now.Ticks % TimeSpan.TicksPerSecond)).AddSeconds(1)
@@ -43,8 +63,36 @@ public sealed class ClockModule : IBrimModule
         _timer = _context.Time.CreateTimer(_ =>
         {
             Publish();
+            PublishTiles();
             ScheduleNext();
         }, null, due, Timeout.InfiniteTimeSpan);
+    }
+
+    private bool TilesPlaced => _context is { } context && ClockTiles.All.Any(t => context.PlacedSizes(t.Id).Count > 0);
+
+    /// <summary>Uhren-Kacheln, die liegen, solange „Jetzt“ irgendwo offen ist.</summary>
+    private void PublishTiles()
+    {
+        if (_context is not { } context || !context.IsTabVisible(NotchTab.Now))
+        {
+            return;
+        }
+        var now = context.Time.GetLocalNow();
+        foreach (var (id, _, _, _) in ClockTiles.All)
+        {
+            foreach (var size in context.PlacedSizes(id))
+            {
+                context.SetTile(id, size, ClockTiles.Build(id, size, now, CultureInfo.CurrentCulture));
+            }
+        }
+    }
+
+    public void OnTabVisibilityChanged(NotchTab tab, bool visible)
+    {
+        if (tab == NotchTab.Now && visible)
+        {
+            PublishTiles();
+        }
     }
 
     private void Publish()

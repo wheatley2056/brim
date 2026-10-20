@@ -245,6 +245,7 @@ public sealed class BrimSettings
     public MonitorMode Monitors { get; set; } = MonitorMode.Primary;
     public AnimationSettings Animation { get; set; } = new();
     public AppearanceSettings Appearance { get; set; } = new();
+    public NowSettings Now { get; set; } = new();
     public InteractionSettings Interaction { get; set; } = new();
     public ClockSettings Clock { get; set; } = new();
 

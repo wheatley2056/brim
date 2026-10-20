@@ -65,6 +65,23 @@ public sealed class ModuleContext
 
     public bool IsTabVisible(NotchTab tab) => _hub.IsTabVisible(tab);
 
+    /// <summary>Bietet eine Kachel für „Jetzt“ an (Galerie).</summary>
+    public void DefineTile(string id, string name, IReadOnlyList<TileSize> sizes, string category = "Brim", string? glyph = null, string? description = null) =>
+        _hub.DefineTile(new TileDefinition { ModuleId = ModuleId, Id = id, Name = name, Sizes = sizes, Category = category, Glyph = glyph, Description = description });
+
+    /// <summary>Inhalt einer Kachel in einer Größe.</summary>
+    public void SetTile(string id, TileSize size, Widget content) => _hub.SetTile(ModuleId, id, size, content);
+
+    /// <summary>Größen, in denen die Kachel gerade liegt (oder in der Galerie zu sehen ist); leer = nichts zu tun.</summary>
+    public IReadOnlyList<TileSize> PlacedSizes(string id) => _hub.PlacedSizes(ModuleId, id);
+
+    /// <summary>Gelegte Kacheln haben sich geändert.</summary>
+    public event Action? TilePlacementsChanged
+    {
+        add => _hub.TilePlacementsChanged += value;
+        remove => _hub.TilePlacementsChanged -= value;
+    }
+
     /// <summary>Löst eine Aktion in einem anderen Modul aus, z. B. „Audio-Menü öffnen“ aus dem Player.</summary>
     public void Send(string moduleId, string actionId, double? value = null) =>
         _hub.Invoke(new ActionInvocation(moduleId, actionId, value));

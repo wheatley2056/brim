@@ -74,6 +74,8 @@ public static class WidgetValidator
                 ?? Size(s.Padding.Left, "padding") ?? Size(s.Padding.Top, "padding") ?? Size(s.Padding.Right, "padding") ?? Size(s.Padding.Bottom, "padding"),
             ListWidget l => (l.Items is null || l.Items.Any(c => c is null) ? "items enthält null" : null) ?? Size(l.Spacing, "spacing"),
             SpacerWidget s => Size(s.Size, "size"),
+            ClockFaceWidget c => Range(c.Hour, 0, 24, "hour") ?? Range(c.Minute, 0, 60, "minute") ?? Range(c.Second, 0, 60, "second")
+                ?? Range(c.Size, 16, 400, "size") ?? Color(c.Color) ?? Color(c.AccentColor) ?? Color(c.Background),
             _ => "unbekannter Baustein",
         };
     }

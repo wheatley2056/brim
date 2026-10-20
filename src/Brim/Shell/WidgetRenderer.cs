@@ -49,6 +49,7 @@ internal sealed class WidgetRenderer
             StackWidget w => RenderStack(w, existing as StackView),
             ListWidget w => RenderList(w, existing as ListView2),
             SpacerWidget w => RenderSpacer(w, existing as SpacerView),
+            ClockFaceWidget w => RenderClockFace(w, existing as ClockFaceView),
             _ => new TextBlock { Text = $"[{widget.GetType().Name}]" },
         };
         if (widget.AccessibleName is { } name)
@@ -329,6 +330,146 @@ internal sealed class WidgetRenderer
                 SweepDirection = SweepDirection.Clockwise,
             });
             _arc.Data = new PathGeometry { Figures = { figure } };
+        }
+    }
+
+    // ───────── Analoge Uhr ─────────
+
+    private static ClockFaceView RenderClockFace(ClockFaceWidget w, ClockFaceView? view)
+    {
+        view ??= new ClockFaceView();
+        view.Update(w);
+        return view;
+    }
+
+    /// <summary>
+    /// Zifferblatt aus Ellipse, Strichen oder Ziffern und drei Zeigern. Das Blatt wird nur bei geänderter Größe
+    /// oder Art neu gebaut; jede Sekunde drehen sich nur die Zeiger.
+    /// </summary>
+    private sealed class ClockFaceView : Grid
+    {
+        private readonly Canvas _dial = new();
+        private readonly Ellipse _face = new();
+        private readonly Rectangle _hour = new() { RadiusX = 2, RadiusY = 2 };
+        private readonly Rectangle _minute = new() { RadiusX = 1.5, RadiusY = 1.5 };
+        private readonly Rectangle _second = new() { RadiusX = 0.6, RadiusY = 0.6 };
+        private readonly Ellipse _pin = new();
+        private (double Size, ClockFaceStyle Style, string Color)? _built;
+
+        public ClockFaceView()
+        {
+            Children.Add(_face);
+            Children.Add(_dial);
+            foreach (var hand in new[] { _hour, _minute, _second })
+            {
+                hand.HorizontalAlignment = HorizontalAlignment.Left;
+                hand.VerticalAlignment = VerticalAlignment.Top;
+                Children.Add(hand);
+            }
+            _pin.HorizontalAlignment = HorizontalAlignment.Center;
+            _pin.VerticalAlignment = VerticalAlignment.Center;
+            Children.Add(_pin);
+        }
+
+        public void Update(ClockFaceWidget w)
+        {
+            var size = w.Size;
+            var color = w.Color ?? BrimColors.Fog;
+            Width = Height = size;
+            _face.Fill = w.Background is { } background ? Brushes.Get(background) : null;
+            _face.Stroke = w.Style == ClockFaceStyle.Minimal ? null : Brushes.Get(BrimColors.Track);
+            _face.StrokeThickness = Math.Max(1, size / 60);
+            if (_built != (size, w.Style, color))
+            {
+                _built = (size, w.Style, color);
+                BuildDial(size, w.Style, color);
+            }
+
+            var c = size / 2;
+            var hour = (w.Hour % 12 + w.Minute / 60) * 30;
+            var minute = (w.Minute + w.Second / 60) * 6;
+            Hand(_hour, c, size * 0.26, Math.Max(2.5, size / 26), hour, color);
+            Hand(_minute, c, size * 0.38, Math.Max(2, size / 36), minute, color);
+            Hand(_second, c, size * 0.42, Math.Max(1, size / 90), w.Second * 6, w.AccentColor ?? BrimColors.Warning);
+            _second.Visibility = w.ShowSeconds ? Visibility.Visible : Visibility.Collapsed;
+            _pin.Width = _pin.Height = Math.Max(4, size / 18);
+            _pin.Fill = Brushes.Get(w.ShowSeconds ? w.AccentColor ?? BrimColors.Warning : color);
+        }
+
+        /// <summary>Zeiger als Rechteck vom Mittelpunkt nach oben, mit kurzem Überstand nach hinten.</summary>
+        private static void Hand(Rectangle hand, double center, double length, double thickness, double angle, string color)
+        {
+            var tail = length * 0.16;
+            hand.Width = thickness;
+            hand.Height = length + tail;
+            hand.Fill = Brushes.Get(color);
+            hand.Margin = new Thickness(center - thickness / 2, center - length, 0, 0);
+            hand.RenderTransform = new RotateTransform { Angle = angle, CenterX = thickness / 2, CenterY = length };
+        }
+
+        private void BuildDial(double size, ClockFaceStyle style, string color)
+        {
+            _dial.Children.Clear();
+            var c = size / 2;
+            var brush = Brushes.Get(color);
+            var dim = Brushes.Get(BrimColors.Slate);
+            switch (style)
+            {
+                case ClockFaceStyle.Classic:
+                    for (var i = 0; i < 60; i++)
+                    {
+                        var major = i % 5 == 0;
+                        if (!major && size < 70)
+                        {
+                            continue;
+                        }
+                        var angle = i * Math.PI / 30;
+                        var outer = c - size * 0.06;
+                        var inner = outer - (major ? size * 0.09 : size * 0.035);
+                        _dial.Children.Add(new Line
+                        {
+                            X1 = c + inner * Math.Sin(angle), Y1 = c - inner * Math.Cos(angle),
+                            X2 = c + outer * Math.Sin(angle), Y2 = c - outer * Math.Cos(angle),
+                            Stroke = major ? brush : dim,
+                            StrokeThickness = major ? Math.Max(1.5, size / 50) : Math.Max(0.75, size / 120),
+                            StrokeStartLineCap = PenLineCap.Round,
+                            StrokeEndLineCap = PenLineCap.Round,
+                        });
+                    }
+                    break;
+                case ClockFaceStyle.Minimal:
+                    for (var i = 0; i < 4; i++)
+                    {
+                        var angle = i * Math.PI / 2;
+                        var r = c - size * 0.08;
+                        var dot = Math.Max(3, size / 22);
+                        var ellipse = new Ellipse { Width = dot, Height = dot, Fill = dim };
+                        Canvas.SetLeft(ellipse, c + r * Math.Sin(angle) - dot / 2);
+                        Canvas.SetTop(ellipse, c - r * Math.Cos(angle) - dot / 2);
+                        _dial.Children.Add(ellipse);
+                    }
+                    break;
+                case ClockFaceStyle.Numbers:
+                    var fontSize = Math.Max(8, size / 7);
+                    foreach (var (text, i) in new[] { ("12", 0), ("3", 1), ("6", 2), ("9", 3) })
+                    {
+                        var angle = i * Math.PI / 2;
+                        var r = c - fontSize * 0.95;
+                        var label = new TextBlock
+                        {
+                            Text = text,
+                            FontSize = fontSize,
+                            FontWeight = FontWeights.SemiBold,
+                            Foreground = brush,
+                            FontFamily = (FontFamily)Application.Current.Resources["NotchDisplayFont"],
+                        };
+                        label.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+                        Canvas.SetLeft(label, c + r * Math.Sin(angle) - label.DesiredSize.Width / 2);
+                        Canvas.SetTop(label, c - r * Math.Cos(angle) - label.DesiredSize.Height / 2);
+                        _dial.Children.Add(label);
+                    }
+                    break;
+            }
         }
     }
 

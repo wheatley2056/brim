@@ -45,6 +45,7 @@ public sealed partial class NotchView : UserControl
         ElementCompositionPreview.SetElementChildVisual(BlurHost, _blur);
         InitializeTabs(compositor);
         InitializeClock();
+        InitializeBoard(hub, settings);
 
         _layers = [IdleLayer, CompactLayer, HudLayer, AlertLayer, DropLayer, ExpandedLayer, MiniLayer];
         foreach (var layer in _layers)
@@ -122,6 +123,12 @@ public sealed partial class NotchView : UserControl
         _animation = animation;
         _reducedMotion = reducedMotion;
         var modeChanged = previous?.Mode != p.Mode;
+
+        // Zugeklappt: Bearbeiten von „Jetzt“ endet.
+        if (p.Mode != NotchMode.Expanded)
+        {
+            _board?.SetEditing(false);
+        }
 
         // 1. Form
         var shape = ShapeFor(p.Mode);
@@ -384,6 +391,11 @@ public sealed partial class NotchView : UserControl
             _shelfView?.Refresh();
         }
         ShelfPresenter.Visibility = shelfShown ? Visibility.Visible : Visibility.Collapsed;
+        if (p.Tab != NotchTab.Now)
+        {
+            _board!.Visibility = Visibility.Collapsed;
+            _board.SetEditing(false);
+        }
         var cardsShown = p.Tab is NotchTab.System or NotchTab.Plugins && UpdateTabViews(p.Tab);
         TabViewPanel.Visibility = cardsShown ? Visibility.Visible : Visibility.Collapsed;
         if (p.Tab == NotchTab.Shelf || cardsShown)
@@ -397,6 +409,8 @@ public sealed partial class NotchView : UserControl
             Render("now", NowPresenter, source, source?.Activity.Expanded);
             NowPresenter.Visibility = Visibility.Visible;
             PlaceholderPanel.Visibility = Visibility.Collapsed;
+            _board!.Visibility = Visibility.Visible;
+            _board.Update();
 
             // Anderer Inhalt im offenen Zustand (z. B. Audio-Menü statt Player): weich hereinholen.
             var sourceKey = source?.Key;
@@ -699,5 +713,45 @@ public sealed partial class NotchView : UserControl
             p.Mode == NotchMode.Alert ? AutomationNotificationProcessing.ImportantMostRecent : AutomationNotificationProcessing.MostRecent,
             text,
             "Brim." + p.Mode);
+    }
+
+    // ───────── Kacheln auf „Jetzt“ ─────────
+
+    private NowBoard? _board;
+    private Button? _boardDone;
+
+    /// <summary>
+    /// Das Raster ersetzt den einfachen Inhalt von „Jetzt“; der bisherige Inhalt (NowPresenter) wird zur Kachel
+    /// „Laufende Aktivität“. Beim Bearbeiten bleibt die Notch offen, und „Fertig“ steht statt der Uhr oben rechts.
+    /// </summary>
+    private void InitializeBoard(ActivityHub hub, SettingsStore settings)
+    {
+        var host = (Panel)NowPresenter.Parent;
+        var index = host.Children.IndexOf(NowPresenter);
+        host.Children.Remove(NowPresenter);
+        _board = new NowBoard(hub, settings, NowPresenter);
+        host.Children.Insert(index, _board);
+
+        _boardDone = new Button
+        {
+            Content = "Fertig",
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            Padding = new Thickness(12, 2, 12, 3),
+            CornerRadius = new CornerRadius(12),
+            Visibility = Visibility.Collapsed,
+        };
+        _boardDone.Click += (_, _) => _board.SetEditing(false);
+        HeaderRow.Children.Add(_boardDone);
+
+        _board.EditingChanged += editing =>
+        {
+            _boardDone.Visibility = editing ? Visibility.Visible : Visibility.Collapsed;
+            PopupChanged?.Invoke(editing);
+            if (_current is { } current)
+            {
+                UpdateClock(current, new Spring(_animation.ExpandMs / 1000.0, _animation.Damping), modeChanged: false);
+            }
+        };
     }
 }

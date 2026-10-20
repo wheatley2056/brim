@@ -62,6 +62,9 @@ public sealed class CalendarModule : IBrimModule
     public async Task StartAsync(ModuleContext context, CancellationToken cancellationToken)
     {
         _context = context;
+        context.DefineTile("agenda", "Termine", [TileSize.Medium, TileSize.Wide, TileSize.Large], "Kalender", Glyphs.Calendar,
+            "Die nächsten Termine aus dem Windows-Kalender");
+        context.TilePlacementsChanged += () => PublishTiles(context.Time.GetUtcNow());
         if (_source is null)
         {
             if (!Identity.Present)
@@ -165,9 +168,79 @@ public sealed class CalendarModule : IBrimModule
         return minutes <= 0 ? "jetzt" : $"in {minutes} min";
     }
 
+    // ───────── Kachel für „Jetzt“ ─────────
+
+    private void PublishTiles(DateTimeOffset now)
+    {
+        if (_context is not { } context)
+        {
+            return;
+        }
+        foreach (var size in context.PlacedSizes("agenda"))
+        {
+            context.SetTile("agenda", size, AgendaTile(size, now, Identity.Present || _source is not null));
+        }
+    }
+
+    /// <summary>Kommende Termine (laufende zuerst); oben der nächste groß.</summary>
+    public Widget AgendaTile(TileSize size, DateTimeOffset now, bool available)
+    {
+        List<CalendarEntry> upcoming;
+        lock (_gate)
+        {
+            upcoming = _entries.Where(e => e.End > now).OrderBy(e => e.Start).ToList();
+        }
+        if (upcoming.Count == 0)
+        {
+            return new StackWidget(
+                new IconWidget(Glyphs.Calendar) { Size = 18, Color = BrimColors.Slate },
+                new TextWidget(available ? "Keine Termine mehr" : "Kalender einrichten (Einstellungen)") { Style = TextStyle.Secondary })
+            {
+                Spacing = 10,
+                Justify = Justify.Center,
+                Grow = 1,
+            };
+        }
+        var culture = CultureInfo.CurrentCulture;
+        var rows = size switch { TileSize.Large => 4, _ => 1 };
+        var items = new List<Widget>();
+        foreach (var entry in upcoming.Take(rows))
+        {
+            var countdown = entry.Start <= now ? "jetzt" : Countdown(entry, now);
+            var soon = entry.Start - now <= TimeSpan.FromMinutes(5);
+            var when = entry.Start.ToLocalTime().ToString("t", culture);
+            var line = new List<Widget>
+            {
+                new StackWidget(
+                    new TextWidget(entry.Subject) { Style = TextStyle.Title, FontSize = 14 },
+                    new TextWidget(entry.Location is null ? when : $"{when} · {entry.Location}") { Style = TextStyle.Secondary, FontSize = 12 })
+                {
+                    Orientation = StackOrientation.Vertical,
+                    Align = CrossAlign.Stretch,
+                    Grow = 1,
+                },
+            };
+            if (size != TileSize.Medium && entry.MeetingLink is not null && entry == upcoming[0])
+            {
+                line.Add(new ButtonWidget("join") { Kind = ButtonKind.Secondary, Label = "Beitreten" });
+            }
+            line.Add(new TextWidget(countdown) { Style = TextStyle.Mono, Color = soon ? BrimColors.Warning : BrimColors.Slate });
+            items.Add(new StackWidget(line) { Spacing = 10 });
+        }
+        return new StackWidget(items)
+        {
+            Orientation = StackOrientation.Vertical,
+            Align = CrossAlign.Stretch,
+            Justify = Justify.Center,
+            Spacing = 8,
+            Grow = 1,
+        };
+    }
+
     private void Publish(DateTimeOffset now)
     {
         var context = _context!;
+        PublishTiles(now);
         var next = Next(now);
         if (next is null || next.Start - now > Lead || now - next.Start > Linger)
         {

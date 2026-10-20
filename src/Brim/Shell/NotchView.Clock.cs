@@ -49,7 +49,8 @@ public sealed partial class NotchView
             AutomationProperties.SetName(SharedClock, text);
         }
 
-        var visible = p.Mode is NotchMode.Idle or NotchMode.Expanded && text.Length > 0;
+        // Beim Bearbeiten von „Jetzt“ steht oben rechts „Fertig“ statt der Uhr.
+        var visible = p.Mode is NotchMode.Idle or NotchMode.Expanded && text.Length > 0 && _board?.IsEditing != true;
         if (!visible)
         {
             FadeClock(false);
