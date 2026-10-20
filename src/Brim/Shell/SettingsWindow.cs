@@ -263,6 +263,16 @@ internal sealed class SettingsWindow : Window
             a.Form, v => a.Form = v));
         p.Children.Add(Toggle("Glas", "Der Desktop scheint weichgezeichnet durch die Notch, statt Schwarz. Braucht etwas mehr Grafikleistung.",
             a.Glass, v => a.Glass = v));
+        p.Children.Add(Choice("Schrift", "Bahnschrift und Cascadia Mono gehören zu Windows 11.",
+            [("Segoe UI (Standard)", NotchFont.Standard), ("Bahnschrift – schmal, technisch", NotchFont.Bahnschrift),
+             ("Cascadia Mono – alles in Monospace", NotchFont.Mono),
+             (a.CustomFontFamily is { } family ? $"Eigene: {family}" : "Eigene Schrift (Datei wählen)", NotchFont.Custom)],
+            a.Font, v => a.Font = v));
+        var upload = new Button { Content = "Schriftdatei wählen …" };
+        upload.Click += async (_, _) => await ImportFontAsync();
+        p.Children.Add(Card("Eigene Schrift", a.CustomFontFamily is { } current
+            ? $"Geladen: {current}. Eine neue Datei ersetzt sie."
+            : "Eine .ttf-, .otf- oder .ttc-Datei. Brim kopiert sie in seinen Datenordner; installieren musst du nichts.", upload));
         p.Children.Add(Slider("Größe (%)", NotchGeometry.MinSize * 100, NotchGeometry.MaxSize * 100, 5, a.Size * 100,
             v => a.Size = Math.Round(v) / 100));
         var preview = new Button { Content = "Aufklappen" };
@@ -272,6 +282,43 @@ internal sealed class SettingsWindow : Window
             _preview();
         };
         p.Children.Add(Card("Vorschau", "Klappt die Notch einmal auf.", preview));
+    }
+
+    private async Task ImportFontAsync()
+    {
+        var picker = new Windows.Storage.Pickers.FileOpenPicker();
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
+        foreach (var extension in FontFile.Extensions)
+        {
+            picker.FileTypeFilter.Add(extension);
+        }
+        if (await picker.PickSingleFileAsync() is not { } file)
+        {
+            return;
+        }
+        try
+        {
+            var (path, family) = NotchFonts.Import(file.Path);
+            var a = S.Appearance;
+            a.CustomFontFile = path;
+            a.CustomFontFamily = family;
+            a.Font = NotchFont.Custom;
+            Changed();
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
+        {
+            Log.Warn("Schrift nicht übernommen", ex);
+            await new ContentDialog
+            {
+                Title = "Schrift nicht übernommen",
+                Content = ex.Message,
+                CloseButtonText = "OK",
+                XamlRoot = Content.XamlRoot,
+            }.ShowAsync();
+            return;
+        }
+        // Neu aufbauen, damit Auswahl und Text die neue Schrift zeigen.
+        ShowSection("appearance");
     }
 
     private void Animation(StackPanel p)

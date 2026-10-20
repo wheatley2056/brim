@@ -205,6 +205,16 @@ public sealed partial class NotchView : UserControl
         CanvasRoot.Padding = new Thickness(0, NotchGeometry.Gap(_form), 0, 0);
         CanvasRoot.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0);
         CanvasRoot.RenderTransform = appearance.Size == 1 ? null : new Microsoft.UI.Xaml.Media.ScaleTransform { ScaleX = appearance.Size, ScaleY = appearance.Size };
+
+        // Schrift: Widgets lesen die Ressourcen beim nächsten Zeichnen; Uhr, Tabs und feste Texte hier.
+        var (text, clock) = NotchFonts.Apply(appearance);
+        FontFamily = text;
+        SharedClock.FontFamily = clock;
+        foreach (var tab in TabStrip.Children.OfType<Button>())
+        {
+            tab.FontFamily = text;
+        }
+        _clockPlaced = false;
     }
 
     public NotchForm Form => _form;

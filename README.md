@@ -165,7 +165,7 @@ Built-in features are modules that use the same interface plugins will: they pos
 - [x] **Games** — FPS, 1 % low, frametime and ping, as a mini pill or on demand
 - [x] **Timer, stopwatch, calendar, notification preview**
 - [x] **Settings window**, winget manifests
-- [x] **Appearance** — four shapes (notch, island, edge, tab), size, glass
+- [x] **Appearance** — four shapes (notch, island, edge, tab), size, glass, fonts (including your own)
 - [ ] **Next** — colors and themes, English interface, display latency like PresentMon, Vulkan/OpenGL, external monitor brightness (DDC/CI), code signing
 
 ## Credits

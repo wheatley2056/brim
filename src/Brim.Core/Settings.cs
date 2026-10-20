@@ -35,6 +35,19 @@ public sealed class AnimationSettings
     };
 }
 
+/// <summary>Schrift der Notch: drei mitgelieferte von Windows oder eine eigene Datei.</summary>
+public enum NotchFont
+{
+    /// <summary>Segoe UI Variable, Uhr in Cascadia Mono (Design).</summary>
+    Standard,
+    /// <summary>Bahnschrift: schmal und technisch, wie eine Anzeige.</summary>
+    Bahnschrift,
+    /// <summary>Alles in Cascadia Mono.</summary>
+    Mono,
+    /// <summary>Eigene Schriftdatei (<see cref="AppearanceSettings.CustomFontFile"/>).</summary>
+    Custom,
+}
+
 /// <summary>Aussehen der Notch (Personalisierung, Plan 7h).</summary>
 public sealed class AppearanceSettings
 {
@@ -46,10 +59,22 @@ public sealed class AppearanceSettings
     /// <summary>Glas: Der Desktop scheint weichgezeichnet durch, statt Schwarz.</summary>
     public bool Glass { get; set; }
 
+    public NotchFont Font { get; set; } = NotchFont.Standard;
+
+    /// <summary>Kopie der eigenen Schrift in Brims Datenordner und ihr Familienname (aus der Datei gelesen).</summary>
+    public string? CustomFontFile { get; set; }
+
+    public string? CustomFontFamily { get; set; }
+
     public AppearanceSettings Clamped() => new()
     {
         Form = Enum.IsDefined(Form) ? Form : NotchForm.Notch,
         Glass = Glass,
+        // Ohne Datei bleibt es bei der Standardschrift.
+        Font = Font == NotchFont.Custom && (CustomFontFile is null || CustomFontFamily is null) ? NotchFont.Standard
+            : Enum.IsDefined(Font) ? Font : NotchFont.Standard,
+        CustomFontFile = CustomFontFile,
+        CustomFontFamily = CustomFontFamily,
         Size = double.IsFinite(Size) ? Math.Clamp(Size, NotchGeometry.MinSize, NotchGeometry.MaxSize) : 1.0,
     };
 }

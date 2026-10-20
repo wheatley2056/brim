@@ -79,6 +79,8 @@ public class GeometryAndColorTests
         Assert.Equal(1.3, new AppearanceSettings { Size = 3 }.Clamped().Size);
         Assert.Equal(1.0, new AppearanceSettings { Size = double.NaN }.Clamped().Size);
         Assert.Equal(NotchForm.Notch, new AppearanceSettings { Form = (NotchForm)42 }.Clamped().Form);
+        Assert.Equal(NotchFont.Standard, new AppearanceSettings { Font = NotchFont.Custom }.Clamped().Font);
+        Assert.Equal(NotchFont.Custom, new AppearanceSettings { Font = NotchFont.Custom, CustomFontFile = "a.ttf", CustomFontFamily = "A" }.Clamped().Font);
     }
 
     [Fact]
