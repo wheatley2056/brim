@@ -6,6 +6,7 @@ Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der 
 ## 1.0.1
 
 - Benachrichtigungen: Neue Windows-Benachrichtigungen erscheinen jetzt zuverlässig in der Notch. Brim fragt das Info-Center zusätzlich alle 2 Sekunden ab, weil Windows das Ereignis an Desktop-Apps oft nicht zustellt. Auch Apps mit älteren Benachrichtigungsvorlagen werden angezeigt.
+- Plugins können den Lichtschein am unteren Rand mit einem Pegel pulsieren lassen (`glow`), etwa mit der Stimme im Telefonat.
 
 ## 1.0.0
 

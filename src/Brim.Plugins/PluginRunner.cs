@@ -416,6 +416,10 @@ internal sealed class PluginRunner : IAsyncDisposable
         {
             throw new JsonRpcException(JsonRpcException.InvalidParams, $"accent: „{accent}“ ist keine Farbe");
         }
+        if (p.Glow is { } glow && !double.IsFinite(glow))
+        {
+            throw new JsonRpcException(JsonRpcException.InvalidParams, "glow: keine Zahl");
+        }
         if (p.Announcement is { Length: > WidgetValidator.MaxTextLength })
         {
             throw new JsonRpcException(JsonRpcException.InvalidParams, "announcement zu lang");
@@ -442,6 +446,7 @@ internal sealed class PluginRunner : IAsyncDisposable
             Expanded = Prepare(p.Expanded, "expanded"),
             Bead = Prepare(p.Bead, "bead"),
             Accent = p.Accent,
+            Glow = p.Glow is { } level ? Math.Clamp(level, 0, 1) : null,
             Duration = duration,
             Rank = Math.Clamp(p.Rank, 0, 9),
             IsBackground = p.Background,

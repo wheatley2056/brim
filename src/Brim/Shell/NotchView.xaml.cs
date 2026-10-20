@@ -149,6 +149,7 @@ public sealed partial class NotchView : UserControl
         CanvasRoot.Opacity = p.Mode == NotchMode.Mini ? 0.75 : 1;
         var accent = p.Primary?.Activity.Accent;
         _surface.SetAccent(accent, p.Mode is NotchMode.Compact or NotchMode.Expanded);
+        _surface.SetGlow(accent is null ? null : p.Primary?.Activity.Glow, reducedMotion);
 
         // 2. Inhalte der Ebenen
         var target = p.Mode switch

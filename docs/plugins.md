@@ -86,12 +86,15 @@ Activity:
   "background": false,
   "durationMs": null,
   "accent": "#5BD98A",
+  "glow": 0.4,
   "announcement": "Spoken by screen readers when it appears"
 }
 ```
 
 - `priority`: `ongoing` (compact, left and right slot), `transient` (HUD, at most 10 s) or `critical` (pops open, needs `alerts`). `idle` is reserved for the clock.
 - `rank`: 0–9. Built-in modules such as playing music rank higher, and the second activity becomes a bead next to the notch.
+- `accent`: tints the glow along the bottom edge of the notch.
+- `glow`: optional level 0–1 that makes the glow pulse, taller and brighter the louder it is (for example a voice in a call). Send updates about 15 times per second; leave it out for a steady glow. Ignored when the user turned off animations.
 - `background`: true keeps the activity out of the compact notch but still reachable in the Now tab.
 
 Every `id` is 1–64 characters, without `/` or `|`. Invalid parameters come back as a JSON-RPC error (`-32602`) with a readable message, for example a color that isn't `#RRGGBB`. More than 120 messages per second are refused (`-32000`).
