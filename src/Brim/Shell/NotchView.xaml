@@ -85,7 +85,7 @@
                     </Border>
                 </Grid>
 
-                <Grid Grid.Row="1">
+                <Grid x:Name="TabContentHost" Grid.Row="1">
                     <ContentPresenter x:Name="NowPresenter" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
                     <ContentPresenter x:Name="ShelfPresenter" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Visibility="Collapsed" />
                     <!-- Tabs „System“ und „Plugins“: Karten in zwei Spalten (NotchView.TabViews.cs). -->

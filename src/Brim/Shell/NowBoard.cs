@@ -28,6 +28,9 @@ internal sealed class NowBoard : Grid
     private readonly StackPanel _dots = new() { Orientation = Orientation.Horizontal, Spacing = 5, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom };
     private readonly Dictionary<string, (Border Tile, WidgetRenderer Renderer)> _tiles = new();
     private readonly HashSet<Border> _wiggling = [];
+
+    // Wo jeder Inhalt gerade hängt. FrameworkElement.Parent ist vor dem ersten Laden leer und taugt dafür nicht.
+    private readonly Dictionary<FrameworkElement, FrameworkElement> _owners = [];
     private readonly DispatcherTimer _pressTimer = new() { Interval = LongPress };
     private Gallery? _gallery;
     private int _pageIndex;
@@ -115,8 +118,14 @@ internal sealed class NowBoard : Grid
         }
         foreach (var stale in _tiles.Keys.Where(k => !used.Contains(k)).ToList())
         {
-            _wiggling.Remove(_tiles[stale].Tile);
+            var old = _tiles[stale].Tile;
+            _wiggling.Remove(old);
             _tiles.Remove(stale);
+            // Inhalte, die nur in der alten Kachel hingen, vergessen (nicht die Aktivität, die zieht weiter).
+            foreach (var content in _owners.Where(o => ReferenceEquals(o.Value, old) && !ReferenceEquals(o.Key, _activity)).Select(o => o.Key).ToList())
+            {
+                _owners.Remove(content);
+            }
         }
 
         _dots.Children.Clear();
@@ -193,31 +202,37 @@ internal sealed class NowBoard : Grid
             {
                 Detach(content);
                 tile.Child = content;
+                _owners[content] = tile;
             }
         }
         return tile;
     }
 
-    /// <summary>Im Bearbeiten-Modus: Inhalt nicht bedienbar, oben links „−“, unten rechts die Größe.</summary>
-    private static void Detach(FrameworkElement element)
+    private void Detach(FrameworkElement element)
     {
-        switch (element.Parent)
+        if (!_owners.Remove(element, out var owner))
+        {
+            return;
+        }
+        switch (owner)
         {
             case Panel panel:
                 panel.Children.Remove(element);
                 break;
-            case Border border:
+            case Border border when ReferenceEquals(border.Child, element):
                 border.Child = null;
                 break;
         }
     }
 
+    /// <summary>Im Bearbeiten-Modus: Inhalt nicht bedienbar, oben links „−“, unten rechts die Größe.</summary>
     private Grid EditChrome(FrameworkElement content, TilePlacement placement, int index)
     {
         Detach(content);
         content.IsHitTestVisible = false;
         var grid = new Grid { Tag = "edit" };
         grid.Children.Add(content);
+        _owners[content] = grid;
 
         var remove = Badge("", "Entfernen", HorizontalAlignment.Left);
         remove.Click += (_, _) =>
