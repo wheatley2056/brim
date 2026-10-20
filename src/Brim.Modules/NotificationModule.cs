@@ -18,8 +18,13 @@ public sealed class NotificationModule : IBrimModule
 {
     public const string ModuleId = "notifications";
 
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
+
     private ModuleContext? _context;
     private UserNotificationListener? _listener;
+    private bool _subscribed;
+    private readonly NotificationTracker _tracker = new();
+    private readonly CancellationTokenSource _stop = new();
 
     /// <summary>
     /// Gibt eine Benachrichtigung an ein Plugin weiter (z. B. Swyx Messenger an das SwyxIt!-Plugin).
@@ -48,12 +53,65 @@ public sealed class NotificationModule : IBrimModule
                 Log.Info($"Zugriff auf Benachrichtigungen: {access} (Windows-Einstellungen → Datenschutz → Benachrichtigungen)");
                 return;
             }
-            _listener.NotificationChanged += OnChanged;
+            // Was jetzt schon im Info-Center liegt, ist nicht neu.
+            _tracker.Seed(await ReadIdsAsync(_listener));
+            try
+            {
+                _listener.NotificationChanged += OnChanged;
+                _subscribed = true;
+            }
+            catch (Exception ex)
+            {
+                // Für Desktop-Apps wirft das Ereignis oft „Element nicht gefunden“; dann reicht das Abfragen.
+                Log.Info($"Benachrichtigungs-Ereignis nicht verfügbar, frage alle {PollInterval.TotalSeconds:0} s ab: {ex.Message}");
+            }
+            _ = Task.Run(() => PollAsync(_listener, _stop.Token), CancellationToken.None);
             Log.Info("Benachrichtigungen werden gespiegelt");
         }
         catch (Exception ex)
         {
             Log.Warn("Benachrichtigungen nicht verfügbar", ex);
+        }
+    }
+
+    private static async Task<IReadOnlyList<UserNotification>> ReadAsync(UserNotificationListener listener) =>
+        [.. await listener.GetNotificationsAsync(NotificationKinds.Toast)];
+
+    private static async Task<IEnumerable<uint>> ReadIdsAsync(UserNotificationListener listener) =>
+        (await ReadAsync(listener)).Select(n => n.Id);
+
+    /// <summary>
+    /// Auch mit Ereignis: Desktop-Apps bekommen es nicht zuverlässig. Doppelte meldet der <see cref="NotificationTracker"/> nicht.
+    /// </summary>
+    private async Task PollAsync(UserNotificationListener listener, CancellationToken token)
+    {
+        using var timer = new PeriodicTimer(PollInterval);
+        var failures = 0;
+        try
+        {
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                try
+                {
+                    var current = await ReadAsync(listener);
+                    var fresh = _tracker.Update(current.Select(n => n.Id)).ToHashSet();
+                    foreach (var notification in current.Where(n => fresh.Contains(n.Id)))
+                    {
+                        Handle(notification);
+                    }
+                    failures = 0;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    if (failures++ == 0)
+                    {
+                        Log.Warn("Benachrichtigungen abfragen fehlgeschlagen", ex);
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
         }
     }
 
@@ -65,14 +123,26 @@ public sealed class NotificationModule : IBrimModule
         }
         try
         {
-            var notification = sender.GetNotification(args.UserNotificationId);
-            if (notification is null)
+            if (_tracker.Add(args.UserNotificationId) && sender.GetNotification(args.UserNotificationId) is { } notification)
             {
-                return;
+                Handle(notification);
             }
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("Benachrichtigung nicht lesbar", ex);
+        }
+    }
+
+    private void Handle(UserNotification notification)
+    {
+        try
+        {
             var app = notification.AppInfo?.DisplayInfo?.DisplayName ?? "";
-            var texts = notification.Notification?.Visual?.GetBinding(KnownNotificationBindings.ToastGeneric)?
-                .GetTextElements().Select(t => t.Text).Where(t => !string.IsNullOrWhiteSpace(t)).ToList() ?? [];
+            var visual = notification.Notification?.Visual;
+            // Ältere Apps nutzen die alten Vorlagen (ToastText02 …) statt ToastGeneric.
+            var binding = visual?.GetBinding(KnownNotificationBindings.ToastGeneric) ?? visual?.Bindings.FirstOrDefault();
+            var texts = binding?.GetTextElements().Select(t => t.Text).Where(t => !string.IsNullOrWhiteSpace(t)).ToList() ?? [];
             if (Preview(app, texts) is { } preview && Route?.Invoke(preview) != true)
             {
                 Show(preview);
@@ -118,7 +188,8 @@ public sealed class NotificationModule : IBrimModule
 
     public ValueTask DisposeAsync()
     {
-        if (_listener is not null)
+        _stop.Cancel();
+        if (_listener is not null && _subscribed)
         {
             try
             {
@@ -130,5 +201,49 @@ public sealed class NotificationModule : IBrimModule
             }
         }
         return ValueTask.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Merkt sich gesehene Benachrichtigungen, damit Ereignis und Abfrage dieselbe nur einmal zeigen.
+/// Entfernte vergisst er erst ab <see cref="Capacity"/>: Eine per Ereignis gemeldete kann in der Abfrage noch fehlen.
+/// </summary>
+public sealed class NotificationTracker
+{
+    public const int Capacity = 1000;
+
+    private readonly HashSet<uint> _seen = [];
+    private readonly Lock _gate = new();
+
+    public void Seed(IEnumerable<uint> ids)
+    {
+        lock (_gate)
+        {
+            _seen.UnionWith(ids);
+        }
+    }
+
+    /// <summary><c>true</c>, wenn die Benachrichtigung neu ist.</summary>
+    public bool Add(uint id)
+    {
+        lock (_gate)
+        {
+            return _seen.Add(id);
+        }
+    }
+
+    /// <summary>Gleicht mit dem Info-Center ab und gibt die neuen zurück.</summary>
+    public IReadOnlyList<uint> Update(IEnumerable<uint> current)
+    {
+        var ids = current.ToHashSet();
+        lock (_gate)
+        {
+            var fresh = ids.Where(_seen.Add).ToList();
+            if (_seen.Count > Capacity)
+            {
+                _seen.IntersectWith(ids);
+            }
+            return fresh;
+        }
     }
 }
