@@ -96,10 +96,13 @@ public class BluetoothModuleTests
     private sealed class FakeSource : IBluetoothSource
     {
         public event Action<BluetoothGadget, bool>? Connected;
+        public event Action<BluetoothGadget>? Updated;
         public event Action<string>? Disconnected;
         public void Start() { }
         public void Connect(BluetoothGadget gadget, bool initial) => Connected?.Invoke(gadget, initial);
-        public void Dispose() => Disconnected?.Invoke("");
+        public void Update(BluetoothGadget gadget) => Updated?.Invoke(gadget);
+        public void Disconnect(string id) => Disconnected?.Invoke(id);
+        public void Dispose() { }
     }
 
     [Fact]
@@ -118,5 +121,27 @@ public class BluetoothModuleTests
         Assert.Equal(ActivityPriority.Transient, hud.Priority);
         Assert.Equal("AirPods Pro verbunden, Akku 15 %", hud.Activity.Announcement);
         Assert.True(BluetoothModule.LooksLikeHeadphones("Sony WH-1000XM5"));
+    }
+
+    [Fact]
+    public async Task System_tab_lists_all_connected_devices_including_those_from_startup()
+    {
+        var hub = new ActivityHub(new FakeTimeProvider());
+        var source = new FakeSource();
+        var module = new BluetoothModule(() => source);
+        await module.StartAsync(new ModuleContext(BluetoothModule.ModuleId, hub, new BrimSettings()), CancellationToken.None);
+
+        source.Connect(new BluetoothGadget("1", "MX Master 3S", null), initial: true);
+        source.Connect(new BluetoothGadget("2", "AirPods Pro", 80), initial: false);
+        source.Update(new BluetoothGadget("1", "MX Master 3S", 55));
+
+        var card = Assert.Single(hub.Views(NotchTab.System));
+        Assert.Equal(TabColumn.Side, card.Column);
+        var texts = Brim.Core.Widgets.WidgetTree.All(card.Content).OfType<TextWidget>().Select(t => t.Text).ToList();
+        Assert.Equal(["Bluetooth", "AirPods Pro", "80 %", "MX Master 3S", "55 %"], texts);
+
+        source.Disconnect("1");
+        source.Disconnect("2");
+        Assert.Empty(hub.Views(NotchTab.System));
     }
 }
