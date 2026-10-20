@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Brim.Core;
 using Brim.Core.Widgets;
 using Windows.Devices.Bluetooth;
@@ -26,7 +27,7 @@ public interface IBluetoothSource : IDisposable
 /// verbindet (Kopfhörer, Maus, Controller), jeweils mit Akkustand, wenn Windows ihn kennt. Den Akkustand liest Brim aus derselben Geräteeigenschaft wie die
 /// Windows-Einstellungen; eine eigene GATT-Verbindung baut es nicht auf.
 /// </summary>
-public sealed class BluetoothModule : IBrimModule
+public sealed partial class BluetoothModule : IBrimModule
 {
     public const string ModuleId = "bluetooth";
 
@@ -171,6 +172,20 @@ public sealed class BluetoothModule : IBrimModule
         });
     }
 
+    [GeneratedRegex("(?:[0-9a-f]{2}:){5}[0-9a-f]{2}", RegexOptions.IgnoreCase)]
+    private static partial Regex MacPattern();
+
+    /// <summary>
+    /// MAC-Adresse des Geräts aus der Kennung des Bluetooth-Endpunkts, z. B.
+    /// <c>BluetoothLE#BluetoothLEb4:8c:9d:01:02:03-c8:a0:f1:2b:4e:21</c> → <c>C8A0F12B4E21</c>
+    /// (die erste Adresse ist der eigene Adapter). So heißt der Geräteknoten, an dem der Akkustand hängt.
+    /// </summary>
+    public static string? RemoteAddress(string endpointId)
+    {
+        var matches = MacPattern().Matches(endpointId);
+        return matches.Count == 0 ? null : matches[^1].Value.Replace(":", "").ToUpperInvariant();
+    }
+
     public static bool LooksLikeHeadphones(string name) =>
         new[] { "kopfh", "headphone", "headset", "airpods", "buds", "ohrh", "wh-", "wf-", "jabra", "bose" }
             .Any(k => name.Contains(k, StringComparison.OrdinalIgnoreCase));
@@ -189,11 +204,16 @@ public sealed class BluetoothModule : IBrimModule
 
     /// <summary>
     /// Zwei <see cref="DeviceWatcher"/> (klassisch und Low Energy) auf verbundene Geräte. Der Akkustand steht in
-    /// <c>{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2</c>, sofern das Gerät ihn über HFP oder den Battery Service meldet.
+    /// <c>{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2</c> – aber nicht am Bluetooth-Endpunkt, sondern an den
+    /// PnP-Geräteknoten des Geräts (<c>BTHLE\DEV_&lt;MAC&gt;…</c>, bei Headsets am Freisprech-Knoten). Die findet
+    /// Brim über die MAC-Adresse und fragt sie nach dem Verbinden und dann jede Minute ab, wie die
+    /// Windows-Einstellungen.
     /// </summary>
     private sealed class DeviceWatcherSource : IBluetoothSource
     {
         private const string BatteryKey = "{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2";
+        private static readonly TimeSpan BatteryInterval = TimeSpan.FromMinutes(1);
+        private Timer? _batteryTimer;
 
         private readonly List<DeviceWatcher> _watchers = [];
         private readonly HashSet<string> _initial = [];
@@ -214,7 +234,7 @@ public sealed class BluetoothModule : IBrimModule
             })
             {
                 var watcher = DeviceInformation.CreateWatcher(selector, [BatteryKey]);
-                watcher.Added += (_, info) =>
+                watcher.Added += (sender, info) =>
                 {
                     var initial = Volatile.Read(ref _completed) < _watchers.Count;
                     var gadget = new BluetoothGadget(info.Id, info.Name, Battery(info.Properties));
@@ -223,6 +243,7 @@ public sealed class BluetoothModule : IBrimModule
                         _known[info.Id] = gadget;
                     }
                     Connected?.Invoke(gadget, initial);
+                    Task.Run(() => RefreshBatteryAsync(gadget.Id));
                 };
                 // Der Akkustand kommt oft erst nach dem Verbinden; Windows meldet ihn dann als Änderung.
                 watcher.Updated += (_, update) =>
@@ -256,6 +277,7 @@ public sealed class BluetoothModule : IBrimModule
                 watcher.EnumerationCompleted += (_, _) => Interlocked.Increment(ref _completed);
                 _watchers.Add(watcher);
             }
+            _batteryTimer = new Timer(_ => RefreshAll(), null, BatteryInterval, BatteryInterval);
             foreach (var watcher in _watchers)
             {
                 try
@@ -270,6 +292,53 @@ public sealed class BluetoothModule : IBrimModule
             }
         }
 
+        /// <summary>Akkustand am Geräteknoten lesen und als Änderung melden, wenn er neu oder anders ist.</summary>
+        private async Task RefreshBatteryAsync(string endpointId)
+        {
+            if (RemoteAddress(endpointId) is not { } mac)
+            {
+                return;
+            }
+            int? battery = null;
+            try
+            {
+                var nodes = await DeviceInformation.FindAllAsync(
+                    $"System.Devices.DeviceInstanceId:~~\"{mac}\"", [BatteryKey], DeviceInformationKind.Device);
+                battery = nodes.Select(n => Battery(n.Properties)).FirstOrDefault(b => b is not null);
+            }
+            catch (Exception ex)
+            {
+                Log.Info($"Akkustand für {mac} nicht lesbar: {ex.Message}");
+                return;
+            }
+            BluetoothGadget? changed = null;
+            lock (_known)
+            {
+                if (battery is not null && _known.TryGetValue(endpointId, out var known) && known.BatteryPercent != battery)
+                {
+                    changed = known with { BatteryPercent = battery };
+                    _known[endpointId] = changed;
+                }
+            }
+            if (changed is not null)
+            {
+                Updated?.Invoke(changed);
+            }
+        }
+
+        private void RefreshAll()
+        {
+            string[] ids;
+            lock (_known)
+            {
+                ids = [.. _known.Keys];
+            }
+            foreach (var id in ids)
+            {
+                _ = RefreshBatteryAsync(id);
+            }
+        }
+
         private static int? Battery(IReadOnlyDictionary<string, object> properties) =>
             properties.TryGetValue(BatteryKey, out var value) && value is byte or int or uint
                 ? Math.Clamp(Convert.ToInt32(value), 0, 100)
@@ -277,6 +346,7 @@ public sealed class BluetoothModule : IBrimModule
 
         public void Dispose()
         {
+            _batteryTimer?.Dispose();
             foreach (var watcher in _watchers)
             {
                 try

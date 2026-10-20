@@ -123,6 +123,15 @@ public class BluetoothModuleTests
         Assert.True(BluetoothModule.LooksLikeHeadphones("Sony WH-1000XM5"));
     }
 
+    [Theory]
+    [InlineData("BluetoothLE#BluetoothLEb4:8c:9d:01:02:03-c8:a0:f1:2b:4e:21", "C8A0F12B4E21")]
+    [InlineData("Bluetooth#Bluetooth00:1a:7d:da:71:13-00:1b:66:aa:bb:cc", "001B66AABBCC")]
+    [InlineData("kaputt", null)]
+    public void Device_node_is_found_by_the_remote_address(string endpoint, string? expected)
+    {
+        Assert.Equal(expected, BluetoothModule.RemoteAddress(endpoint));
+    }
+
     [Fact]
     public async Task System_tab_lists_all_connected_devices_including_those_from_startup()
     {
