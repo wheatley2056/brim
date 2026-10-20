@@ -45,6 +45,11 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
     /// <summary>Der Pinsel kam nicht oder das Einbinden schlug fehl.</summary>
     public event Action? Failed;
 
+    /// <summary>Das Material liegt als Vektorform im Umriss.</summary>
+    public event Action? Attached;
+
+    public bool IsAttached => _island is not null;
+
     /// <param name="parent">Insel des XAML-Inhalts (<c>XamlRoot.ContentIsland</c>).</param>
     /// <param name="placement">Leeres Visual ganz unten in der Form der Notch; hier erscheint das Material.</param>
     /// <exception cref="NotSupportedException">Das System kann dieses Material nicht.</exception>
@@ -71,7 +76,9 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
         // Wie bei MaterialBackdrop: erst die Konfiguration, dann das Ziel.
         _configuration = new SystemBackdropConfiguration { IsInputActive = true, Theme = SystemBackdropTheme.Dark };
         _controller.SetSystemBackdropConfiguration(_configuration);
+        Log.Info($"Material: {material} als Vektorform, melde Ziel an");
         _controller.AddSystemBackdropTarget(this);
+        Log.Info("Material: Ziel angemeldet");
     }
 
     /// <summary>Vom Controller gesetzt: der Pinsel des Materials (System-Compositor).</summary>
@@ -189,6 +196,7 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
                 root.Children.InsertAtTop(bead);
             }
 
+            Log.Info("Material: Pinsel erhalten, binde ein");
             _island = ContentIsland.CreateForSystemVisual(_queue, root);
             _link = ChildSiteLink.Create(_parent, _placement);
             _link.ActualSize = _size;
@@ -201,6 +209,7 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
                 Update(outline);
             }
             Log.Info("Material: als Vektorform im Umriss der Notch");
+            Attached?.Invoke();
         }
         catch (Exception ex)
         {
@@ -287,18 +296,26 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
         }
         _disposed = true;
         _timeout.Stop();
-        _controller.RemoveAllSystemBackdropTargets();
-        (_controller as IDisposable)?.Dispose();
-        _link?.Dispose();
-        _island?.Dispose();
-        foreach (var o in _owned)
+        // Aufräumen darf das Fenster nie mitreißen, auch wenn das System hier schon aufgegeben hat.
+        try
         {
-            o.Dispose();
+            _controller.RemoveAllSystemBackdropTargets();
+            (_controller as IDisposable)?.Dispose();
+            _link?.Dispose();
+            _island?.Dispose();
+            foreach (var o in _owned)
+            {
+                o.Dispose();
+            }
+            if (_placement.Parent is { } parent)
+            {
+                parent.Children.Remove(_placement);
+            }
+            _placement.Dispose();
         }
-        if (_placement.Parent is { } parent)
+        catch (Exception ex)
         {
-            parent.Children.Remove(_placement);
+            Log.Warn("Material: Aufräumen fehlgeschlagen", ex);
         }
-        _placement.Dispose();
     }
 }

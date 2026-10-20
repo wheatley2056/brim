@@ -609,7 +609,15 @@ internal sealed partial class NotchWindow : WindowEx
     /// </summary>
     private void UseMaterial(NotchMaterial material)
     {
-        _materialLayer?.Dispose();
+        if (_materialLayer is { } old)
+        {
+            old.Dispose();
+            if (!old.IsAttached)
+            {
+                // Abgebrochen, bevor es lief: kein Absturz, die Markierung muss weg.
+                VectorMaterialGuard.End();
+            }
+        }
         _materialLayer = null;
         var transparent = new TransparentTintBackdrop { TintColor = Microsoft.UI.Colors.Transparent };
         if (material == NotchMaterial.Black)
@@ -617,17 +625,20 @@ internal sealed partial class NotchWindow : WindowEx
             SystemBackdrop = transparent;
             return;
         }
-        if (!_vectorMaterialFailed && View.XamlRoot?.ContentIsland is { } island)
+        if (!_vectorMaterialFailed && !VectorMaterialGuard.Blocked && View.XamlRoot?.ContentIsland is { } island)
         {
             Microsoft.UI.Composition.ContainerVisual? host = null;
             try
             {
                 host = View.CreateMaterialHost();
+                VectorMaterialGuard.Begin();
                 Win32.UseHostBackdrop(Handle);
                 var (width, height) = NotchGeometry.Canvas;
                 var layer = new MaterialLayer(material, island, host, new System.Numerics.Vector2((float)width, (float)height), DispatcherQueue);
+                layer.Attached += VectorMaterialGuard.Attached;
                 layer.Failed += () => DispatcherQueue.TryEnqueue(() =>
                 {
+                    VectorMaterialGuard.End();
                     if (_materialLayer == layer)
                     {
                         _vectorMaterialFailed = true;
@@ -643,6 +654,7 @@ internal sealed partial class NotchWindow : WindowEx
             catch (Exception ex)
             {
                 Log.Info($"Material als Vektorform nicht möglich ({ex.Message}), Rückfall auf die Fensterregion");
+                VectorMaterialGuard.End();
                 _vectorMaterialFailed = true;
                 if (host?.Parent is { } parent)
                 {
