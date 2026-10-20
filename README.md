@@ -157,7 +157,8 @@ Built-in features are modules that use the same interface plugins will: they pos
 - [x] **System** — battery, CPU, RAM, GPU, network, brightness, camera/mic indicators *(disk and external monitors via DDC/CI still to come)*
 - [x] **Plugins** — open protocol and SDK for your own notch content *(shelf actions and a plugin gallery still to come)*
 - [x] **Games** — FPS, 1 % low, frametime and ping, as a mini pill or on demand *(display latency like PresentMon and Vulkan/OpenGL titles still to come)*
-- [ ] **More** — timer, calendar, notifications, Bluetooth battery, settings window, code signing, winget
+- [x] **Timer, stopwatch, Bluetooth connect HUD**
+- [ ] **More** — calendar and notifications (need MSIX), settings window, code signing, winget
 
 ## Credits
 

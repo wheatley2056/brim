@@ -309,7 +309,7 @@ Kerbe.sln
 | 3 · Ausblenden | Regelwerk, App-Ausnahmen, Animationseinstellungen, Rand-Reveal | A9 fertig (siehe 7b) |
 | 4 · Plugins | Protokoll, Host, SDK, zwei Beispiel-Plugins | A2 fertig (siehe 7c) |
 | 5 · Spiele | Telemetrie-Dienst, FPS/Latenz, Spielmodus | A8 fertig (siehe 7d) |
-| 6 · Mac-Paket | Timer, Kalender, Benachrichtigungen, Bluetooth, Teilen | A3 vollständig |
+| 6 · Mac-Paket | Timer, Kalender, Benachrichtigungen, Bluetooth, Teilen | A3 vollständig (siehe 7e) |
 | 7 · Auslieferung | MSIX, Signatur, winget, Auto-Update, Einstellungsfenster | Version 1.0 |
 
 ### 7a. Stand Phase 2 (20.10.2026)
@@ -379,6 +379,19 @@ Noch offen:
 - Alternative Quelle Intel-PresentMon-Dienst, falls installiert.
 - Die Mini-Pille nimmt Klicks in ihrem kleinen Bereich an (Fensterregion), ohne darauf zu reagieren.
 - Einschalten bisher nur über `settings.json` (`Games.Enabled`), mit Neustart; das Einstellungsfenster folgt in Phase 7.
+
+### 7e. Stand Phase 6 (20.10.2026)
+
+Umgesetzt:
+- **Timer und Stoppuhr** (`TimerModule`): Auswahl über das Stoppuhr-Symbol im Tab „Jetzt“ (1, 5, 10, 25 min oder Stoppuhr). Der Timer läuft kompakt mit Ring und Restzeit (Rang 30, vor Musik), lässt sich anhalten, um +1 min verlängern und beenden. Abgelaufen kommt ein kritischer Hinweis mit „Noch mal“. Die Stoppuhr läuft kompakt; angehalten ist sie nur noch im Tab „Jetzt“.
+- **Bluetooth** (`BluetoothModule`): `DeviceWatcher` auf verbundene klassische und LE-Geräte; HUD beim Verbinden mit Akkustand aus der Geräteeigenschaft `{104EA319-…} 2`, ohne eigene GATT-Verbindung. Schon beim Start verbundene Geräte zeigt Brim nicht.
+- **Teilen** ist seit 4.4a fertig (LAN, Magic Wormhole, Windows-Teilen).
+
+Noch offen:
+- **Kalender** (`AppointmentStore`) und **Benachrichtigungen** (`UserNotificationListener`) brauchen Paketidentität. Sie kommen mit dem MSIX bzw. Sparse Package aus Phase 7. Bis dahin wäre nur ein Outlook-Plugin möglich.
+- Ob die Akku-Eigenschaft bei allen Geräten ankommt, ist unter Windows zu prüfen; manche melden sie nur am Unterknoten (HFP).
+- Bildschirmaufnahme aktiv (niedrige Priorität, 4.3).
+- Der Timer ist bei laufender Musik nur über die kompakte Notch erreichbar, solange er läuft; ein Knopf im Player fehlt noch.
 
 Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das fertige Ausblende-System.
 

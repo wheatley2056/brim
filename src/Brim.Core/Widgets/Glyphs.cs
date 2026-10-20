@@ -35,6 +35,8 @@ public static class Glyphs
     public static readonly string OpenInNew = G(0xE8A7);
     public static readonly string Dot = G(0xE91F);
     public static readonly string Shield = G(0xE72E);
+    public static readonly string Stopwatch = G(0xE916);
+    public static readonly string Bluetooth = G(0xE702);
 
     /// <summary>Akkusymbol in elf Stufen (MobBattery0–10), beim Laden mit Blitz, im Energiesparmodus mit Blatt.</summary>
     public static string Battery(int percent, bool charging, bool saver)

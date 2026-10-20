@@ -157,7 +157,8 @@ Eingebaute Funktionen sind Module mit derselben Schnittstelle, die Plugins bekom
 - [x] **System** – Akku, CPU, RAM, GPU, Netzwerk, Helligkeit, Kamera/Mikrofon *(Datenträger und externe Monitore per DDC/CI folgen)*
 - [x] **Plugins** – offenes Protokoll und SDK für eigene Inhalte *(Ablage-Aktionen und Plugin-Galerie folgen)*
 - [x] **Spiele** – FPS, 1 % Low, Frametime und Ping, als Mini-Pille oder auf Abruf *(Anzeige-Latenz wie PresentMon und Vulkan/OpenGL folgen)*
-- [ ] **Mehr** – Timer, Kalender, Benachrichtigungen, Bluetooth-Akku, Einstellungsfenster, Signatur, winget
+- [x] **Timer, Stoppuhr, Bluetooth-HUD**
+- [ ] **Mehr** – Kalender und Benachrichtigungen (brauchen MSIX), Einstellungsfenster, Signatur, winget
 
 ## Danke
 

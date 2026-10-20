@@ -152,12 +152,14 @@ public partial class App : Application
                 TimeSpan.FromSeconds(83), TimeSpan.FromSeconds(214), Path.Combine(DataDirectory, "cover.png")));
         }
         yield return new AudioModule(_audio);
+        yield return new TimerModule();
         if (!IsDemo)
         {
             // System (Phase 2): Akku und Helligkeit nur, wo es sie gibt; Ressourcen messen nur bei offenem Tab.
             yield return new BatteryModule();
             yield return new BrightnessModule();
             yield return new PrivacyModule();
+            yield return new BluetoothModule();
             yield return new GamesModule(new TelemetryLauncher(Path.Combine(DataDirectory, "logs")));
         }
         yield return new ResourcesModule();

@@ -67,6 +67,7 @@ public sealed class ClockModule : IBrimModule
                 new SpacerWidget { Grow = 1 },
                 new StackWidget(
                     new TextWidget("Gerade läuft nichts.") { Style = TextStyle.Secondary, Grow = 1 },
+                    new ButtonWidget("timer") { Glyph = Glyphs.Stopwatch, GlyphColor = BrimColors.Slate, AccessibleName = "Timer und Stoppuhr" },
                     new ButtonWidget("output") { Glyph = Glyphs.Speakers, GlyphColor = BrimColors.Slate, AccessibleName = "Audioausgabe wählen" },
                     new ButtonWidget("mixer") { Glyph = Glyphs.Volume, GlyphColor = BrimColors.Slate, AccessibleName = "Lautstärke" }))
             {
@@ -87,6 +88,9 @@ public sealed class ClockModule : IBrimModule
                 break;
             case "mixer":
                 _context?.Send(AudioModule.ModuleId, AudioModule.ShowMixer);
+                break;
+            case "timer":
+                _context?.Send(TimerModule.ModuleId, TimerModule.ShowPanel);
                 break;
         }
     }
