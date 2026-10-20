@@ -52,6 +52,8 @@ public enum TextStyle
     MonoCaption,
     /// <summary>Große Ziffern, z. B. Uhr im erweiterten Zustand.</summary>
     Display,
+    /// <summary>Werte neben der Uhr in der ruhenden Notch: Schrift der Uhr, 12 px, Slate, Ziffern gleich breit.</summary>
+    Status,
 }
 
 public sealed record TextWidget(string Text) : Widget

@@ -65,6 +65,12 @@ public sealed record Activity
     /// </summary>
     public bool IsOverlay { get; init; }
 
+    /// <summary>
+    /// Vorübergehend als breiteres, zweizeiliges HUD (<see cref="NotchGeometry.HudWide"/>), z. B. Benachrichtigungen
+    /// mit Titel und Text.
+    /// </summary>
+    public bool Wide { get; init; }
+
     /// <summary>Text für die Sprachausgabe, wenn die Aktivität erscheint.</summary>
     public string? Announcement { get; init; }
 

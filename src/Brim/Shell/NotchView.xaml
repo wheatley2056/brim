@@ -4,7 +4,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     HorizontalAlignment="Stretch"
-    VerticalAlignment="Stretch">
+    VerticalAlignment="Stretch"
+    RequestedTheme="Dark">
 
     <!-- Zeichenfläche: Form im Compositor (ShapeHost), darüber die Inhaltsebenen, beschnitten auf die Form. -->
     <Grid x:Name="CanvasRoot" HorizontalAlignment="Center" VerticalAlignment="Top" Background="Transparent">
@@ -115,7 +116,8 @@
         <Grid x:Name="ClockHost" IsHitTestVisible="False">
             <TextBlock x:Name="SharedClock"
                        HorizontalAlignment="Left" VerticalAlignment="Top"
-                       FontFamily="{StaticResource NotchMonoFont}" FontSize="13"
+                       FontFamily="{StaticResource NotchClockFont}" FontSize="13"
+                       Typography.NumeralAlignment="Tabular"
                        Foreground="{StaticResource FogBrush}"
                        TextLineBounds="Tight" />
         </Grid>

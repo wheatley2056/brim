@@ -39,3 +39,4 @@ CreateRoundRectRgn
 CreateEllipticRgn
 CombineRgn
 DeleteObject
+GetSystemMetrics

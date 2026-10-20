@@ -108,10 +108,25 @@ internal sealed class ShelfView : Grid
     private T Popup<T>(T flyout) where T : Microsoft.UI.Xaml.Controls.Primitives.FlyoutBase
     {
         flyout.ShouldConstrainToRootBounds = false;
+        // Eigene Fenster erben das Design der Notch nicht; sie ist immer dunkel, die Menüs auch.
+        switch (flyout)
+        {
+            case MenuFlyout menu:
+                menu.MenuFlyoutPresenterStyle = Dark(typeof(MenuFlyoutPresenter));
+                break;
+            case Flyout panel:
+                panel.FlyoutPresenterStyle = Dark(typeof(FlyoutPresenter));
+                break;
+        }
         flyout.Opened += (_, _) => PopupChanged?.Invoke(true);
         flyout.Closed += (_, _) => PopupChanged?.Invoke(false);
         return flyout;
     }
+
+    private static Style Dark(Type presenter) => new(presenter)
+    {
+        Setters = { new Setter(FrameworkElement.RequestedThemeProperty, ElementTheme.Dark) },
+    };
 
     // ───────── Per Code empfangen ─────────
 

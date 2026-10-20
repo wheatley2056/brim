@@ -87,7 +87,12 @@ public sealed class ClockModule : IBrimModule
         }
     }
 
-    public void OnSettingsChanged() => Publish();
+    /// <summary>Datum und Sekunden wirken sofort: neu zeichnen und den Takt (Minute oder Sekunde) neu ansetzen.</summary>
+    public void OnSettingsChanged()
+    {
+        Publish();
+        ScheduleNext();
+    }
 
     public void OnTabVisibilityChanged(NotchTab tab, bool visible)
     {
@@ -109,8 +114,9 @@ public sealed class ClockModule : IBrimModule
         }
         var time = now.ToString(timePattern, culture);
         // Datum neben der Uhr in der ruhenden Notch (Einstellungen → Aussehen → In der Notch).
-        context.SetStatus("date", context.Settings.Display.Date
-            ? new TextWidget(now.ToString("ddd d.", culture)) { Style = TextStyle.Mono, Color = BrimColors.Slate, AccessibleName = now.ToString("D", culture) }
+        var display = context.Settings.Display;
+        context.SetStatus("date", display.Date
+            ? new TextWidget(now.ToString(DateFormats.Pattern(display.DateFormat), culture)) { Style = TextStyle.Status, AccessibleName = now.ToString("D", culture) }
             : null);
         var week = ISOWeek.GetWeekOfYear(now.DateTime);
         var date = now.ToString("dddd", culture) + ", " + now.ToString(culture.DateTimeFormat.MonthDayPattern, culture);

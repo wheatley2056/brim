@@ -41,6 +41,9 @@ public static class NotchGeometry
 {
     public static readonly NotchShape Idle = new(180, 30, 15, 10);
     public static readonly NotchShape Compact = new(300, 34, 17, 10);
+
+    /// <summary>Breites HUD in zwei Zeilen (<see cref="Activity.Wide"/>), z. B. eine Benachrichtigung.</summary>
+    public static readonly NotchShape HudWide = new(420, 56, 22, 12);
     public static readonly NotchShape Alert = new(480, 88, 28, 12);
     public static readonly NotchShape Expanded = new(620, 248, 38, 12);
 

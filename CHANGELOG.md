@@ -3,6 +3,22 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 2.1.0
+
+Feinschliff nach dem Review: ruhigere, aufgeräumte Notch und Einstellungen, die zu Windows passen.
+
+- Ruhende Notch: Sie „atmet“ nicht mehr bei jeder Messung. Jeder Wert behält seine Breite und schrumpft erst, wenn er eine Weile kleiner war; Ziffern sind gleich breit. Die Werte haben feste Seiten wie im Infobereich (CPU/RAM und Netzwerk links, Datum und Akku rechts). Wird es zu breit, fällt erst das Netzwerk weg, dann CPU und RAM, statt über den Rand zu laufen. Neu: „Ganzen Inhalt zentrieren“.
+- Alle Werte neben der Uhr in einer Schrift und Größe (die der Uhr) mit gemeinsamer Grundlinie. Der Akku ist nur noch farbig, wenn er lädt, fast leer ist oder Energie spart.
+- Datum: Format wählbar (Di 20., Di 20. Okt., 20.10.); die Beispiele in den Einstellungen zeigen das echte Format.
+- Netzwerk: wahlweise in Bit/s wie der Task-Manager (Standard) oder in Byte/s.
+- Benachrichtigungen: breitere Vorschau in zwei Zeilen mit App-Symbol, Titel und Text, beides mit Auslassungspunkten. Ein Klick öffnet die App. In Präsentationen, bei Vollbild und bei „Nicht stören“ erscheint nur der blaue Punkt (abschaltbar).
+- Einstellungsfenster: Titelleiste im Fenster mit durchgehendem Mica, hell oder dunkel wie Windows; die Notch bleibt dunkel. Größe passt zur Anzeigeskalierung, mit Mindestgröße. Navigation breiter und einheitlich benannt („Kalender und Benachrichtigungen“); Schriften stehen jetzt direkt unter Aussehen.
+- Uhr: „Sekunden anzeigen“ liegt unter Aussehen → Uhr und wirkt sofort. Für Einstellungen, die einen Neustart brauchen, gibt es „Jetzt neu starten“.
+- Monitore: neue Option „Monitor mit der Maus“ – die Notch folgt dem Mauszeiger.
+- Weniger Last im Leerlauf: CPU, RAM und Netzwerk neben der Uhr werden nicht gemessen, solange die Notch versteckt oder aufgeklappt, der PC gesperrt oder der Bildschirm aus ist.
+- Schärfere Rundungen: Die Ohren der Notch sind jetzt Vektorformen, sauber geglättet und ohne Saum an der Naht.
+- Neues App-Symbol in Pfirsich mit schwarzer Notch, gut sichtbar auf heller und dunkler Taskleiste, mit eigenen 16- und 24-px-Fassungen.
+
 ## 2.0.0
 
 Brim 2.0 – „Jetzt“ zum Selbstgestalten, Einstellungen in der Notch und eine Einführung beim ersten Start.

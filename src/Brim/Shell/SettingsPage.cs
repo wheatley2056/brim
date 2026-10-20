@@ -1,19 +1,21 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using Brim.Plugins;
 using Brim.Core;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Markup;
 using Windows.Graphics;
 
 namespace Brim.Shell;
 
 /// <summary>
 /// Einstellungen im Windows-11-Stil (Plan 5): Navigation links. Jede Änderung wird sofort gespeichert; was nur
-/// beim Start gelesen wird, ist als solches gekennzeichnet. Komplett in Code statt XAML, weil es nur aus
-/// Standard-Steuerelementen besteht. Steckt im <see cref="SettingsWindow"/> und, über das Zahnrad, in der Notch.
+/// beim Start gelesen wird, ist als solches gekennzeichnet und bietet „Jetzt neu starten“ an. Komplett in Code statt
+/// XAML, weil es nur aus Standard-Steuerelementen besteht. Steckt im <see cref="SettingsWindow"/> (folgt Hell/Dunkel
+/// des Systems) und, über das Zahnrad, in der Notch (immer dunkel).
 /// </summary>
 internal sealed class SettingsPage : UserControl
 {
@@ -37,10 +39,21 @@ internal sealed class SettingsPage : UserControl
         IsSettingsVisible = false,
         PaneDisplayMode = NavigationViewPaneDisplayMode.Left,
         IsPaneToggleButtonVisible = false,
-        OpenPaneLength = 220,
+        OpenPaneLength = 280,
     };
     private readonly ScrollViewer _page = new() { Padding = new Thickness(32, 24, 32, 32) };
     private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(400) };
+
+    /// <summary>Erscheint, sobald etwas geändert wurde, das erst nach einem Neustart wirkt.</summary>
+    private readonly InfoBar _restartBar = new()
+    {
+        Severity = InfoBarSeverity.Informational,
+        Title = "Neustart nötig",
+        Message = "Einige Änderungen wirken erst, wenn Brim neu startet.",
+        IsClosable = true,
+        IsOpen = false,
+        Margin = new Thickness(32, 16, 32, 0),
+    };
 
     /// <param name="window">Fenster, in dem die Seite steckt (für die Dateiauswahl).</param>
     public SettingsPage(SettingsStore store, IReadOnlyList<(string Id, string Name)> modules, string? version, Action preview, Action restart,
@@ -71,13 +84,7 @@ internal sealed class SettingsPage : UserControl
 
         foreach (var (tag, label, glyph) in Sections)
         {
-            var item = new NavigationViewItem { Content = label, Tag = tag, Icon = new FontIcon { Glyph = glyph } };
-            if (tag == "appearance")
-            {
-                // Untermenü: Schriften je Bereich.
-                item.MenuItems.Add(new NavigationViewItem { Content = "Schriften", Tag = "fonts", Icon = new FontIcon { Glyph = "\uE8D2" } });
-            }
-            _navigation.MenuItems.Add(item);
+            _navigation.MenuItems.Add(new NavigationViewItem { Content = label, Tag = tag, Icon = new FontIcon { Glyph = glyph } });
         }
         _navigation.SelectionChanged += (_, e) =>
         {
@@ -86,7 +93,20 @@ internal sealed class SettingsPage : UserControl
                 ShowSection(tag);
             }
         };
-        _navigation.Content = _page;
+        var restartNow = new Button { Content = "Jetzt neu starten" };
+        restartNow.Click += (_, _) =>
+        {
+            Save();
+            _restart();
+        };
+        _restartBar.ActionButton = restartNow;
+        var content = new Grid();
+        content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        Grid.SetRow(_page, 1);
+        content.Children.Add(_restartBar);
+        content.Children.Add(_page);
+        _navigation.Content = content;
         Content = _navigation;
         _navigation.SelectedItem = _navigation.MenuItems[0];
     }
@@ -98,8 +118,7 @@ internal sealed class SettingsPage : UserControl
         ("appearance", "Aussehen", ""),
         ("animation", "Animation", ""),
         ("modules", "Module", ""),
-        // Kurz, damit es auch in der schmaleren Navigation der Notch ganz passt; die Seite heißt ausführlich.
-        ("identity", "Kalender & Mitteilungen", ""),
+        ("identity", "Kalender und Benachrichtigungen", ""),
         ("shelf", "Ablage und Teilen", ""),
         ("games", "Spiele", ""),
         ("plugins", "Plugins", ""),
@@ -112,25 +131,6 @@ internal sealed class SettingsPage : UserControl
     {
         _saveTimer.Stop();
         _saveTimer.Start();
-    }
-
-    /// <summary>Wechselt zu einem Bereich, auch zu einem im Untermenü.</summary>
-    private void Select(string tag)
-    {
-        foreach (var item in _navigation.MenuItems.OfType<NavigationViewItem>())
-        {
-            if (item.Tag as string == tag)
-            {
-                _navigation.SelectedItem = item;
-                return;
-            }
-            if (item.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(c => c.Tag as string == tag) is { } child)
-            {
-                item.IsExpanded = true;
-                _navigation.SelectedItem = child;
-                return;
-            }
-        }
     }
 
     private void Save()
@@ -150,12 +150,7 @@ internal sealed class SettingsPage : UserControl
     private void ShowSection(string tag)
     {
         var panel = new StackPanel { Spacing = 6, MaxWidth = 760, HorizontalAlignment = HorizontalAlignment.Left };
-        var title = tag switch
-        {
-            "fonts" => "Schriften",
-            "identity" => "Kalender und Benachrichtigungen",
-            _ => Sections.First(s => s.Tag == tag).Label,
-        };
+        var title = Sections.First(s => s.Tag == tag).Label;
         panel.Children.Add(new TextBlock { Text = title, FontSize = 28, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 12) });
         switch (tag)
         {
@@ -167,9 +162,6 @@ internal sealed class SettingsPage : UserControl
                 break;
             case "appearance":
                 Appearance(panel);
-                break;
-            case "fonts":
-                Fonts(panel);
                 break;
             case "animation":
                 Animation(panel);
@@ -199,7 +191,7 @@ internal sealed class SettingsPage : UserControl
     private void General(StackPanel p)
     {
         p.Children.Add(Choice("Monitore", "Wo die Notch erscheint.",
-            [("Nur Hauptmonitor", MonitorMode.Primary), ("Auf allen Monitoren", MonitorMode.All)],
+            [("Nur Hauptmonitor", MonitorMode.Primary), ("Auf allen Monitoren", MonitorMode.All), ("Monitor mit der Maus", MonitorMode.Mouse)],
             S.Monitors, v => S.Monitors = v));
         p.Children.Add(Toggle("Mit Windows starten", "Gilt für die installierte Fassung.", Autostart.IsEnabled, on =>
         {
@@ -218,7 +210,6 @@ internal sealed class SettingsPage : UserControl
             S.Interaction.HoverExpandDelayMs, v => S.Interaction.HoverExpandDelayMs = v));
         p.Children.Add(Number("Zuklappen nach (ms)", "Verzögerung, nachdem die Maus die Notch verlassen hat.", 0, 2000, 50,
             S.Interaction.HoverCollapseDelayMs, v => S.Interaction.HoverCollapseDelayMs = v));
-        p.Children.Add(Toggle("Sekunden anzeigen", "Uhr im Ruhezustand mit Sekunden.", S.Clock.ShowSeconds, v => S.Clock.ShowSeconds = v, restart: true));
     }
 
     private void AutoHide(StackPanel p)
@@ -281,6 +272,8 @@ internal sealed class SettingsPage : UserControl
     {
         var a = S.Appearance;
         p.Children.Add(Hint("Änderungen siehst du sofort an der Notch."));
+
+        p.Children.Add(Header("Form und Material"));
         p.Children.Add(Choice("Form", "Die Insel schwebt mit etwas Abstand unter der Kante.",
             [("Notch – wächst aus der Kante", NotchForm.Notch), ("Insel – schwebende Pille", NotchForm.Island),
              ("Kante – rund, ohne Ohren", NotchForm.Edge), ("Tab – eckig wie ein Reiter", NotchForm.Tab)],
@@ -288,22 +281,6 @@ internal sealed class SettingsPage : UserControl
         p.Children.Add(Choice("Material", "Acryl zeigt den Desktop weichgezeichnet, Mica und Mica Alt sind aus dem Hintergrundbild getönt (Windows 11). Braucht etwas mehr Grafikleistung.",
             [("Schwarz", NotchMaterial.Black), ("Acryl", NotchMaterial.Acrylic), ("Mica", NotchMaterial.Mica), ("Mica Alt", NotchMaterial.MicaAlt)],
             a.Material, v => a.Material = v));
-        p.Children.Add(Header("In der Notch"));
-        var d = S.Display;
-        p.Children.Add(Choice("Uhr", "Wo die Uhrzeit in der ruhenden Notch steht; daneben die Werte, die du hier einschaltest.",
-            [("Mittig", ClockAlignment.Center), ("Links", ClockAlignment.Left), ("Rechts", ClockAlignment.Right)],
-            d.Clock, v => d.Clock = v));
-        p.Children.Add(Toggle("Datum", "z. B. „Di. 20.“", d.Date, v => d.Date = v));
-        p.Children.Add(Toggle("CPU und RAM", "Auslastung in Prozent, alle 2 Sekunden.", d.Load, v => d.Load = v));
-        p.Children.Add(Toggle("Netzwerk", "Aktuelle Download- und Uploadrate.", d.Network, v => d.Network = v));
-        p.Children.Add(Toggle("Akku", "Ladestand in den Akku-Farben (nur mit Akku).", d.Battery, v => d.Battery = v));
-        p.Children.Add(Choice("Benachrichtigungen", "„Nur Punkt“: Die Uhr bleibt stehen, ein blauer Punkt erscheint, bis du die Notch aufklappst.",
-            [("Vorschau zeigen", NotificationStyle.Preview), ("Nur blauer Punkt", NotificationStyle.Dot)],
-            S.Notifications.Style, v => S.Notifications.Style = v));
-
-        var fonts = new Button { Content = "Einstellen" };
-        fonts.Click += (_, _) => Select("fonts");
-        p.Children.Add(Card("Schriften", "Für Uhr, Menü, Überschriften, Texte und Zahlen je eine eigene Schrift, auch aus eigenen Dateien.", fonts));
         p.Children.Add(Slider("Größe (%)", NotchGeometry.MinSize * 100, NotchGeometry.MaxSize * 100, 5, a.Size * 100,
             v => a.Size = Math.Round(v) / 100));
         var preview = new Button { Content = "Aufklappen" };
@@ -313,6 +290,36 @@ internal sealed class SettingsPage : UserControl
             _preview();
         };
         p.Children.Add(Card("Vorschau", "Klappt die Notch einmal auf.", preview));
+
+        var d = S.Display;
+        p.Children.Add(Header("Uhr"));
+        p.Children.Add(Choice("Position", "Wo die Uhrzeit in der ruhenden Notch steht.",
+            [("Mittig", ClockAlignment.Center), ("Links", ClockAlignment.Left), ("Rechts", ClockAlignment.Right)],
+            d.Clock, v => d.Clock = v));
+        p.Children.Add(Toggle("Ganzen Inhalt zentrieren", "Bei mittiger Uhr: Ist eine Seite länger, steht alles zusammen in der Mitte statt nur die Uhr.",
+            d.CenterContent, v => d.CenterContent = v));
+        p.Children.Add(Toggle("Sekunden anzeigen", null, S.Clock.ShowSeconds, v => S.Clock.ShowSeconds = v));
+        var today = DateTime.Now;
+        string Example(DateFormat format) => today.ToString(DateFormats.Pattern(format), CultureInfo.CurrentCulture);
+        p.Children.Add(Toggle("Datum", "Neben der Uhr, rechts.", d.Date, v => d.Date = v));
+        p.Children.Add(Choice("Datumsformat", null,
+            [(Example(DateFormat.WeekdayDay), DateFormat.WeekdayDay), (Example(DateFormat.WeekdayDayMonth), DateFormat.WeekdayDayMonth),
+             (Example(DateFormat.DayMonth), DateFormat.DayMonth)],
+            d.DateFormat, v => d.DateFormat = v));
+
+        p.Children.Add(Header("Werte neben der Uhr"));
+        p.Children.Add(Hint("Systemwerte stehen links der Uhr, Datum und Akku rechts. Wird es zu breit, fällt zuerst das Netzwerk weg, dann CPU und RAM."));
+        p.Children.Add(Toggle("CPU und RAM", "Auslastung in Prozent, alle 2 Sekunden, solange die Notch ruht.", d.Load, v => d.Load = v));
+        p.Children.Add(Toggle("Netzwerk", "Aktuelle Download- und Uploadrate.", d.Network, v => d.Network = v));
+        p.Children.Add(Choice("Einheit", "Bit pro Sekunde zeigt dieselben Werte wie der Task-Manager.",
+            [("Bit/s (wie Task-Manager)", NetworkUnit.Bits), ("Byte/s (wie Downloads)", NetworkUnit.Bytes)],
+            d.NetworkUnit, v => d.NetworkUnit = v));
+        p.Children.Add(Toggle("Akku", "Ladestand (nur mit Akku); farbig, wenn er lädt, fast leer ist oder Energie spart.", d.Battery, v => d.Battery = v));
+        p.Children.Add(Choice("Benachrichtigungen", "„Nur Punkt“: Die Uhr bleibt stehen, ein blauer Punkt erscheint, bis du die Notch aufklappst.",
+            [("Vorschau zeigen", NotificationStyle.Preview), ("Nur blauer Punkt", NotificationStyle.Dot)],
+            S.Notifications.Style, v => S.Notifications.Style = v));
+
+        Fonts(p);
     }
 
     private static readonly (FontRole Role, string Label, string Description)[] FontRoles =
@@ -324,7 +331,7 @@ internal sealed class SettingsPage : UserControl
         (FontRole.Numbers, "Zahlen", "Messwerte wie FPS, Ping oder Prozent. Eine Monospace-Schrift verhindert springende Ziffern."),
     ];
 
-    /// <summary>Untermenü von Aussehen: Schrift je Bereich und eigene Schriftdateien.</summary>
+    /// <summary>Abschnitt in Aussehen: Schrift je Bereich und eigene Schriftdateien.</summary>
     private void Fonts(StackPanel p)
     {
         var fonts = S.Appearance.Fonts;
@@ -332,7 +339,8 @@ internal sealed class SettingsPage : UserControl
         (string, string?)[] Options(FontRole role) =>
             [($"Standard ({FontCatalog.DefaultName(role)})", null), .. available.Select(f => (f, (string?)f))];
 
-        p.Children.Add(Hint("Änderungen siehst du sofort an der Notch. Bahnschrift und Cascadia Mono gehören zu Windows 11."));
+        p.Children.Add(Header("Schriften"));
+        p.Children.Add(Hint("Für Uhr, Menü, Überschriften, Texte und Zahlen je eine eigene Schrift, auch aus eigenen Dateien. Bahnschrift und Cascadia Mono gehören zu Windows 11."));
         var all = new ComboBox { MinWidth = 220, PlaceholderText = "Schrift wählen" };
         foreach (var font in available)
         {
@@ -347,18 +355,16 @@ internal sealed class SettingsPage : UserControl
                     fonts.Set(role, font);
                 }
                 Changed();
-                ShowSection("fonts");
+                ShowSection("appearance");
             }
         };
         p.Children.Add(Card("Alle Bereiche", "Setzt eine Schrift überall; danach kannst du einzelne Bereiche ändern.", all));
 
-        p.Children.Add(Header("Je Bereich"));
         foreach (var (role, label, description) in FontRoles)
         {
             p.Children.Add(Choice(label, description, Options(role), fonts.Get(role), v => fonts.Set(role, v)));
         }
 
-        p.Children.Add(Header("Eigene Schriften"));
         var upload = new Button { Content = "Schriftdatei hinzufügen …" };
         upload.Click += async (_, _) => await ImportFontAsync();
         p.Children.Add(Card("Hinzufügen", "Eine .ttf-, .otf- oder .ttc-Datei. Brim kopiert sie in seinen Datenordner; installieren musst du nichts.", upload));
@@ -376,7 +382,7 @@ internal sealed class SettingsPage : UserControl
                     }
                 }
                 Changed();
-                ShowSection("fonts");
+                ShowSection("appearance");
             };
             p.Children.Add(Card(custom.Family, Path.GetFileName(custom.File), remove));
         }
@@ -411,11 +417,12 @@ internal sealed class SettingsPage : UserControl
                 Content = ex.Message,
                 CloseButtonText = "OK",
                 XamlRoot = this.XamlRoot,
+                RequestedTheme = ActualTheme,
             }.ShowAsync();
             return;
         }
         // Neu aufbauen, damit die neue Schrift in jeder Auswahl steht.
-        ShowSection("fonts");
+        ShowSection("appearance");
     }
 
     private void Animation(StackPanel p)
@@ -535,6 +542,8 @@ internal sealed class SettingsPage : UserControl
 
         p.Children.Add(Header("Benachrichtigungen"));
         p.Children.Add(Hint("Windows fragt beim ersten Start nach dem Zugriff. Zurücknehmen kannst du ihn unter Datenschutz → Benachrichtigungen."));
+        p.Children.Add(Toggle("In Präsentationen und bei „Nicht stören“ nur Punkt", "Auch bei Vollbild-Spielen und -Videos erscheint keine Vorschau, nur der blaue Punkt.",
+            S.Notifications.QuietWhenBusy, v => S.Notifications.QuietWhenBusy = v));
         p.Children.Add(Text("Stumm schalten", "Apps, deren Benachrichtigungen die Notch nicht zeigt, durch Komma getrennt (Name wie im Info-Center).",
             string.Join(", ", S.Notifications.MutedApps),
             v => S.Notifications.MutedApps = [.. v.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]));
@@ -633,13 +642,27 @@ internal sealed class SettingsPage : UserControl
         Margin = new Thickness(0, 18, 0, 4),
     };
 
-    private static TextBlock Hint(string text) => new()
+    private static TextBlock Hint(string text)
     {
-        Text = text,
-        TextWrapping = TextWrapping.Wrap,
-        Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-        Margin = new Thickness(0, 0, 0, 8),
-    };
+        var hint = Secondary(text);
+        hint.Margin = new Thickness(0, 0, 0, 8);
+        return hint;
+    }
+
+    // Farben über {ThemeResource}: So folgen sie dem Design des Elements (Fenster hell oder dunkel, Notch dunkel).
+    // Application.Current.Resources liefert dagegen immer die Farben des App-Designs.
+    private const string XamlNamespace = "xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'";
+
+    private static TextBlock Secondary(string text)
+    {
+        var block = (TextBlock)XamlReader.Load($"<TextBlock {XamlNamespace} TextWrapping='Wrap' Foreground='{{ThemeResource TextFillColorSecondaryBrush}}' />");
+        block.Text = text;
+        return block;
+    }
+
+    private static Border CardBorder() => (Border)XamlReader.Load(
+        $"<Border {XamlNamespace} Padding='16,12,16,12' CornerRadius='6' BorderThickness='1' MinHeight='64' "
+        + "Background='{ThemeResource CardBackgroundFillColorDefaultBrush}' BorderBrush='{ThemeResource CardStrokeColorDefaultBrush}' />");
 
     /// <summary>Zeile wie in den Windows-Einstellungen: Titel und Beschreibung links, Steuerelement rechts.</summary>
     private static Border Card(string title, string? description, FrameworkElement? control = null)
@@ -651,13 +674,9 @@ internal sealed class SettingsPage : UserControl
         text.Children.Add(new TextBlock { Text = title, TextWrapping = TextWrapping.Wrap });
         if (description is not null)
         {
-            text.Children.Add(new TextBlock
-            {
-                Text = description,
-                FontSize = 12,
-                TextWrapping = TextWrapping.Wrap,
-                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-            });
+            var secondary = Secondary(description);
+            secondary.FontSize = 12;
+            text.Children.Add(secondary);
         }
         grid.Children.Add(text);
         if (control is not null)
@@ -666,16 +685,9 @@ internal sealed class SettingsPage : UserControl
             Grid.SetColumn(control, 1);
             grid.Children.Add(control);
         }
-        return new Border
-        {
-            Child = grid,
-            Padding = new Thickness(16, 12, 16, 12),
-            CornerRadius = new CornerRadius(6),
-            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
-            BorderThickness = new Thickness(1),
-            MinHeight = 64,
-        };
+        var card = CardBorder();
+        card.Child = grid;
+        return card;
     }
 
     private const string RestartNote = " Wirkt nach dem nächsten Start von Brim.";
@@ -689,6 +701,10 @@ internal sealed class SettingsPage : UserControl
             if (save)
             {
                 Changed();
+            }
+            if (restart)
+            {
+                _restartBar.IsOpen = true;
             }
         };
         return Card(title, restart ? (description ?? "").TrimEnd() + RestartNote : description, toggle);

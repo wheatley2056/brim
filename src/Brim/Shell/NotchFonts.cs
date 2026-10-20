@@ -6,7 +6,7 @@ namespace Brim.Shell;
 
 /// <summary>
 /// Schriften der Notch je Bereich (Einstellungen → Aussehen → Schriften). Setzt die Ressourcen, die Widgets beim
-/// Zeichnen lesen (<c>NotchTextFont</c>, <c>NotchTitleFont</c>, <c>NotchDisplayFont</c>, <c>NotchMonoFont</c>),
+/// Zeichnen lesen (<c>NotchTextFont</c>, <c>NotchTitleFont</c>, <c>NotchDisplayFont</c>, <c>NotchMonoFont</c>, <c>NotchClockFont</c>),
 /// und liefert die Schriften für Menü und Uhr.
 /// Eigene Schriften werden nicht installiert: Brim kopiert die Datei in seinen Datenordner und lädt sie als
 /// „Pfad#Familie“.
@@ -31,9 +31,11 @@ internal static class NotchFonts
             resources["NotchTitleFont"] = new FontFamily(Of(FontRole.Headings));
             resources["NotchDisplayFont"] = new FontFamily(Of(FontRole.Headings));
             resources["NotchMonoFont"] = new FontFamily(Of(FontRole.Numbers));
+            // Werte neben der Uhr (TextStyle.Status) stehen in derselben Schrift wie die Uhr.
+            resources["NotchClockFont"] = new FontFamily(Of(FontRole.Clock));
             Log.Info($"Schriften: Uhr {fonts.Clock}, Menü {fonts.Menu}, Überschriften {fonts.Headings}, Text {fonts.Text}, Zahlen {fonts.Numbers}");
         }
-        return ((FontFamily)resources["NotchTextFont"], new FontFamily(Of(FontRole.Menu)), new FontFamily(Of(FontRole.Clock)));
+        return ((FontFamily)resources["NotchTextFont"], new FontFamily(Of(FontRole.Menu)), (FontFamily)resources["NotchClockFont"]);
     }
 
     /// <summary>

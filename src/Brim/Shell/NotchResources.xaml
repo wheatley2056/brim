@@ -23,6 +23,7 @@
     <FontFamily x:Key="NotchTitleFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="NotchDisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
     <FontFamily x:Key="NotchMonoFont">Cascadia Mono, Consolas</FontFamily>
+    <FontFamily x:Key="NotchClockFont">Cascadia Mono, Consolas</FontFamily>
     <FontFamily x:Key="NotchIconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
     <!-- Runder Knopf ohne Fokusrahmen-Spielereien; Hover/Pressed nur über die Deckkraft der Fläche. -->

@@ -9,6 +9,8 @@ public enum MonitorMode
     Primary,
     /// <summary>Auf jedem Monitor eine Notch.</summary>
     All,
+    /// <summary>Eine Notch, die dem Mauszeiger auf den Monitor folgt.</summary>
+    Mouse,
 }
 
 public enum AnimationStyle { Spring, EaseOut, Fade, None }
@@ -227,14 +229,51 @@ public enum NotificationStyle
 /// <summary>Uhr in der ruhenden Notch.</summary>
 public enum ClockAlignment { Center, Left, Right }
 
+/// <summary>Datum neben der Uhr.</summary>
+public enum DateFormat
+{
+    /// <summary>„Di 20.“</summary>
+    WeekdayDay,
+    /// <summary>„Di 20. Okt.“</summary>
+    WeekdayDayMonth,
+    /// <summary>„20.10.“</summary>
+    DayMonth,
+}
+
+/// <summary>Einheit der Netzwerkrate neben der Uhr.</summary>
+public enum NetworkUnit
+{
+    /// <summary>Bit pro Sekunde mit Basis 1000, wie der Task-Manager („12,4 Mbit/s“).</summary>
+    Bits,
+    /// <summary>Byte pro Sekunde mit Basis 1024, wie Downloads im Browser („1,50 MB/s“).</summary>
+    Bytes,
+}
+
+public static class DateFormats
+{
+    /// <summary>Muster für <see cref="DateTime.ToString(string, IFormatProvider)"/>.</summary>
+    public static string Pattern(DateFormat format) => format switch
+    {
+        DateFormat.WeekdayDayMonth => "ddd d. MMM",
+        DateFormat.DayMonth => "d.M.",
+        _ => "ddd d.",
+    };
+}
+
 /// <summary>Was die ruhende Notch zeigt (Einstellungen → Aussehen → In der Notch).</summary>
 public sealed class NotchDisplaySettings
 {
     public ClockAlignment Clock { get; set; } = ClockAlignment.Center;
+
+    /// <summary>Bei mittiger Uhr: den ganzen Inhalt zentrieren statt der Uhr, wenn eine Seite länger ist.</summary>
+    public bool CenterContent { get; set; }
+
     public bool Load { get; set; }
     public bool Date { get; set; }
+    public DateFormat DateFormat { get; set; } = DateFormat.WeekdayDay;
     public bool Battery { get; set; }
     public bool Network { get; set; }
+    public NetworkUnit NetworkUnit { get; set; } = NetworkUnit.Bits;
 
     /// <summary>Statuswerte im Hub (Modul/Kennung), die gerade eingeschaltet sind, in fester Reihenfolge.</summary>
     public IReadOnlyList<string> EnabledStatus()
@@ -278,6 +317,11 @@ public sealed class NotificationSettings
 
     /// <summary>Apps (Anzeigename wie in den Windows-Benachrichtigungen), deren Benachrichtigungen die Notch nicht zeigt.</summary>
     public List<string> MutedApps { get; set; } = [];
+
+    /// <summary>
+    /// Bei Präsentation, Vollbild und „Nicht stören“ keine Vorschau, nur der blaue Punkt – wie Windows selbst.
+    /// </summary>
+    public bool QuietWhenBusy { get; set; } = true;
 }
 
 public sealed class UpdateSettings

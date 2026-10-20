@@ -29,7 +29,9 @@ internal sealed class TrayIcon : IDisposable
             LeftClickCommand = new RelayCommand(toggle),
             NoLeftClickDelay = true,
         };
-        _icon.Icon = new System.Drawing.Icon(Path.Combine(AppContext.BaseDirectory, "Assets", "Brim.ico"));
+        // Die passende Größe aus der .ico wählen: 16 und 24 px sind eigens vereinfacht und bleiben so scharf.
+        var size = Math.Max(16, Win32.SmallIconSize);
+        _icon.Icon = new System.Drawing.Icon(Path.Combine(AppContext.BaseDirectory, "Assets", "Brim.ico"), size, size);
         _icon.ForceCreate(enablesEfficiencyMode: false);
     }
 

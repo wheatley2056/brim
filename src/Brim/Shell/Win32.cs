@@ -105,6 +105,9 @@ internal static class Win32
 
     public static uint GetDpi(nint hwnd) => PInvoke.GetDpiForWindow(new HWND(hwnd));
 
+    /// <summary>Kantenlänge kleiner Symbole (Infobereich) in Pixeln, z. B. 16 bei 100 %, 24 bei 150 %.</summary>
+    public static int SmallIconSize => PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXSMICON);
+
     /// <summary>Zeit seit der letzten Eingabe (Maus, Tastatur) an diesem Rechner.</summary>
     public static TimeSpan IdleTime()
     {
@@ -161,4 +164,60 @@ internal static class Win32
 
     /// <summary>ABE_TOP</summary>
     public const int EdgeTop = 1;
+
+    // ───────── Sperre und Bildschirm (Messungen pausieren) ─────────
+
+    public const uint WmWtsSessionChange = 0x02B1, WmPowerBroadcast = 0x0218;
+    public const int WtsSessionLock = 0x7, WtsSessionUnlock = 0x8, PbtPowerSettingChange = 0x8013;
+
+    /// <summary>GUID_CONSOLE_DISPLAY_STATE: Bildschirm aus (0), an (1), gedimmt (2).</summary>
+    private static readonly Guid ConsoleDisplayState = new("6FE69556-704A-47A0-8F24-C28D936FDA47");
+
+    /// <summary>Meldet Sperren/Entsperren und Bildschirm an/aus an das Fenster; liefert die Anmeldung für die Abmeldung.</summary>
+    public static nint WatchSession(nint hwnd)
+    {
+        _ = WTSRegisterSessionNotification(hwnd, 0);
+        var setting = ConsoleDisplayState;
+        return RegisterPowerSettingNotification(hwnd, ref setting, 0);
+    }
+
+    public static void UnwatchSession(nint hwnd, nint power)
+    {
+        _ = WTSUnRegisterSessionNotification(hwnd);
+        if (power != 0)
+        {
+            _ = UnregisterPowerSettingNotification(power);
+        }
+    }
+
+    /// <summary>Zustand des Bildschirms aus WM_POWERBROADCAST/PBT_POWERSETTINGCHANGE; <c>null</c> für andere Meldungen.</summary>
+    public static unsafe int? DisplayState(nint lParam)
+    {
+        if (lParam == 0)
+        {
+            return null;
+        }
+        var setting = (PowerBroadcastSetting*)lParam;
+        return setting->PowerSetting == ConsoleDisplayState && setting->DataLength >= sizeof(int) ? *(int*)&setting->Data : null;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PowerBroadcastSetting
+    {
+        public Guid PowerSetting;
+        public uint DataLength;
+        public byte Data;
+    }
+
+    [DllImport("wtsapi32.dll")]
+    private static extern bool WTSRegisterSessionNotification(nint hwnd, uint flags);
+
+    [DllImport("wtsapi32.dll")]
+    private static extern bool WTSUnRegisterSessionNotification(nint hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern nint RegisterPowerSettingNotification(nint recipient, ref Guid setting, uint flags);
+
+    [DllImport("user32.dll")]
+    private static extern bool UnregisterPowerSettingNotification(nint handle);
 }
