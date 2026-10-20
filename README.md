@@ -79,7 +79,7 @@ Brim measures FPS the way PresentMon does, from Windows' own DXGI and Direct3D 9
 A timer or stopwatch is one click away in the Now tab, even next to the player. It runs in the compact notch with a ring, and when time is up the notch opens. After a one-time setup, the next meeting from the Windows calendar shows under the clock and appears 15 minutes ahead with a countdown and Join. New Windows notifications show up briefly as a preview.
 
 ### 🧩 Plugins
-Add your own content to the notch: a compact status, a HUD, or cards in the Plugins tab. Plugins run as separate processes in any language and describe their UI as data, so they can't break the notch or freeze it. A plugin that crashes is restarted and switched off after the third crash. New plugins start switched off, and the Plugins tab shows what each one may do. See [`docs/plugins.md`](docs/plugins.md) and the [samples](samples). A first real plugin is [`plugins/SwyxIt`](plugins/SwyxIt). It shows incoming SwyxIt! calls with Answer and Decline, running calls, and chat messages.
+Add your own content to the notch: a compact status, a HUD, or cards in the Plugins tab. Plugins run as separate processes in any language and describe their UI as data, so they can't break the notch or freeze it. A plugin that crashes is restarted and switched off after the third crash. New plugins start switched off, and the Plugins tab shows what each one may do. See [`docs/plugins.md`](docs/plugins.md) and the [samples](samples).
 
 ### ♿ Built for everyone
 UI Automation names for everything, screen reader announcements for HUDs, keyboard access with <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd>, and a gentle fade instead of motion when Windows animations are turned off.
@@ -161,7 +161,7 @@ Built-in features are modules that use the same interface plugins will: they pos
 - [x] **Silent updates** with in-notch changelog
 - [x] **Auto-hide** — fullscreen, maximized, overlap, desktop-only, idle, per-app rules, screen-sharing detection, top-edge peek
 - [x] **System** — battery, CPU, RAM, GPU, disk, network, brightness, camera/mic, Bluetooth with battery
-- [x] **Plugins** — open protocol, SDK, settings and shelf actions; SwyxIt! plugin
+- [x] **Plugins** — open protocol, SDK, settings and shelf actions
 - [x] **Games** — FPS, 1 % low, frametime and ping, as a mini pill or on demand
 - [x] **Timer, stopwatch, calendar, notification preview**
 - [x] **Settings window**, winget manifests

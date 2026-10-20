@@ -366,13 +366,7 @@ Noch offen:
 
 ### 7c+. SwyxIt!-Plugin (20.10.2026)
 
-`plugins/SwyxIt`: erstes echtes Plugin, über die COM-Schnittstelle von SwyxIt! (`Swyx.Client.ClmgrAPI` 14.21, MIT).
-- Bei jeder Meldung `DispOnLineMgrNotification` liest es alle Leitungen neu (`DispGetLine`, `DispState`) und hängt damit nicht an den Nummern der Meldungen. Daraus entstehen: Klingeln (3) und Anklopfen (6) als kritischer Hinweis mit Ablehnen (`DispHookOn`) und Annehmen (`DispSelectLine` + `DispHookOff`), alle 5 s erneuert. Aktive oder gehaltene Gespräche erscheinen kompakt mit Dauer, Halten/Fortsetzen und Auflegen.
-- Chat über `DispRegisterChatMessageReader`/`DispReadChatMessage` als HUD, die letzten fünf als Karte; „Chat öffnen“ über `IClientLineMgrInstantMessaging`.
-- COM läuft auf einem STA-Thread mit WinForms-Nachrichtenschleife ohne Fenster. Es verbindet sich nur mit einem laufenden SwyxIt! und prüft das alle 10 s neu.
-- Version 1.1: Schnellmenü im Gespräch (Stumm über `DispMicroEnabled`, Tastentöne über `DispSendDtmf`, Weiterleiten: klingelnd über `DispForwardCall`, im Gespräch Ziel auf freier Leitung wählen und bei Klingeln/Annahme `DispTransferCall`, sonst nach 20 s zurück). Echte Wellenform aus den Core-Audio-Sitzungen von SwyxIt! (Lautsprecher und Mikrofon), etwa 15 Updates pro Sekunde, nur bei aufgeklappter Notch. Swyx Messenger hat keine Schnittstelle; seine Windows-Benachrichtigungen leitet Brim an das Plugin weiter (neues Recht `notifications`, Manifestfeld `notificationApps`).
-- Dafür neu in Brim: Baustein `wave` (Balken gleiten im Compositor), Benachrichtigungen `notch.expanded` und `notification.posted` im Protokoll.
-- Offen: unter Windows mit echtem SwyxIt! prüfen, vor allem Weiterleiten (ob SwyxIt! beim Wählen auf der zweiten Leitung von selbst hält) und den Anzeigenamen von Swyx Messenger; x86-Fassung für 32-Bit-SwyxIt!.
+Erstes echtes Plugin für SwyxIt! (Anrufe, Gespräche mit Wellenform und Schnellmenü, Chats aus SwyxIt! und Swyx Messenger). Es liegt seit 1.0 **nicht mehr in diesem Repository**, sondern im eigenen Repository `brim-swyxit`, und baut dort gegen `Brim.Sdk`. Für es neu in Brim und für alle Plugins nutzbar: Baustein `wave`, `notch.expanded`, `notification.posted` mit Recht `notifications` und Manifestfeld `notificationApps`.
 
 ### 7d. Stand Phase 5 (20.10.2026)
 
