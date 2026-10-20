@@ -239,12 +239,14 @@ internal sealed class PluginRunner : IAsyncDisposable
 
         if (restartIn is { } delay)
         {
-            SetState(PluginState.Restarting, reason);
+            // Erst den Timer stellen, dann den Zustand melden: Wer auf „startet neu“ reagiert (die Verwaltung,
+            // Tests mit gestellter Zeit), findet den Neustart schon geplant vor.
             lock (_gate)
             {
                 _restart?.Dispose();
                 _restart = _context.Time.CreateTimer(_ => _ = StartAsync(), null, delay, Timeout.InfiniteTimeSpan);
             }
+            SetState(PluginState.Restarting, reason);
         }
         else
         {
