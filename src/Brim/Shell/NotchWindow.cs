@@ -46,6 +46,7 @@ internal sealed partial class NotchWindow : WindowEx
 
     /// <summary>Einmal fehlgeschlagen: für diese Sitzung beim alten Weg bleiben.</summary>
     private bool _vectorMaterialFailed;
+    private bool _surfaceVisible = true;
 
     /// <summary>Material über die Fensterregion zugeschnitten (treppige Kanten) – nur noch als Rückfall.</summary>
     private bool RegionGlass => _glass == true && _materialLayer is null;
@@ -155,6 +156,11 @@ internal sealed partial class NotchWindow : WindowEx
                 SetInside(false);
                 StartCollapse();
             }
+        };
+        View.SurfaceVisibleChanging += (visible, delay) =>
+        {
+            _surfaceVisible = visible;
+            _materialLayer?.SetVisible(visible, delay);
         };
         View.Loaded += (_, _) =>
         {
@@ -625,16 +631,13 @@ internal sealed partial class NotchWindow : WindowEx
             SystemBackdrop = transparent;
             return;
         }
-        if (!_vectorMaterialFailed && !VectorMaterialGuard.Blocked && View.XamlRoot?.ContentIsland is { } island)
+        if (!_vectorMaterialFailed && !VectorMaterialGuard.Blocked && View.XamlRoot is not null)
         {
-            Microsoft.UI.Composition.ContainerVisual? host = null;
             try
             {
-                host = View.CreateMaterialHost();
                 VectorMaterialGuard.Begin();
                 Win32.UseHostBackdrop(Handle);
-                var (width, height) = NotchGeometry.Canvas;
-                var layer = new MaterialLayer(material, island, host, new System.Numerics.Vector2((float)width, (float)height), DispatcherQueue);
+                var layer = new MaterialLayer(material, Handle, DispatcherQueue);
                 layer.Attached += VectorMaterialGuard.Attached;
                 layer.Failed += () => DispatcherQueue.TryEnqueue(() =>
                 {
@@ -647,6 +650,7 @@ internal sealed partial class NotchWindow : WindowEx
                     }
                 });
                 _materialLayer = layer;
+                layer.SetVisible(_surfaceVisible, TimeSpan.Zero);
                 SystemBackdrop = transparent;
                 UpdateMaterialLayer();
                 return;
@@ -656,10 +660,6 @@ internal sealed partial class NotchWindow : WindowEx
                 Log.Info($"Material als Vektorform nicht möglich ({ex.Message}), Rückfall auf die Fensterregion");
                 VectorMaterialGuard.End();
                 _vectorMaterialFailed = true;
-                if (host?.Parent is { } parent)
-                {
-                    parent.Children.Remove(host);
-                }
             }
         }
         SystemBackdrop = new MaterialBackdrop(material);
@@ -667,7 +667,7 @@ internal sealed partial class NotchWindow : WindowEx
 
     /// <summary>Material auf die Form in diesem Moment legen (ohne Abstand der Insel: der steckt im Rand der Zeichenfläche).</summary>
     private void UpdateMaterialLayer() =>
-        _materialLayer?.Update(NotchGeometry.Outline(View.CurrentShape, View.BeadCount, 0));
+        _materialLayer?.Update(NotchGeometry.Outline(View.CurrentShape, View.BeadCount, 0), _scale);
 
     /// <summary>Bei Glas genau der gezeichnete Umriss, sonst schiene das Acryl um die Notch herum durch.</summary>
     private void ApplyGlassRegion() =>

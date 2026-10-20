@@ -245,8 +245,12 @@ public sealed partial class NotchView : UserControl
 
     public NotchForm Form => _form;
 
-    /// <summary>Platz für das Material unter der Form (siehe <see cref="NotchSurface.CreateMaterialHost"/>).</summary>
-    internal Microsoft.UI.Composition.ContainerVisual CreateMaterialHost() => _surface.CreateMaterialHost();
+    /// <summary>Die Form blendet ein oder aus (siehe <see cref="NotchSurface.VisibleChanging"/>).</summary>
+    internal event Action<bool, TimeSpan>? SurfaceVisibleChanging
+    {
+        add => _surface.VisibleChanging += value;
+        remove => _surface.VisibleChanging -= value;
+    }
 
     public void SetMaterial(NotchMaterial material) => _surface.SetGlass(material != NotchMaterial.Black,
         material is NotchMaterial.Mica or NotchMaterial.MicaAlt ? (byte)0x28 : NotchSurface.GlassTint);
