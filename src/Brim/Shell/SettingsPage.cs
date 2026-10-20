@@ -95,7 +95,8 @@ internal sealed class SettingsPage : UserControl
         ("appearance", "Aussehen", ""),
         ("animation", "Animation", ""),
         ("modules", "Module", ""),
-        ("identity", "Kalender und Benachrichtigungen", ""),
+        // Kurz, damit es auch in der schmaleren Navigation der Notch ganz passt; die Seite heißt ausführlich.
+        ("identity", "Kalender & Mitteilungen", ""),
         ("shelf", "Ablage und Teilen", ""),
         ("games", "Spiele", ""),
         ("plugins", "Plugins", ""),
@@ -146,7 +147,12 @@ internal sealed class SettingsPage : UserControl
     private void ShowSection(string tag)
     {
         var panel = new StackPanel { Spacing = 6, MaxWidth = 760, HorizontalAlignment = HorizontalAlignment.Left };
-        var title = tag == "fonts" ? "Schriften" : Sections.First(s => s.Tag == tag).Label;
+        var title = tag switch
+        {
+            "fonts" => "Schriften",
+            "identity" => "Kalender und Benachrichtigungen",
+            _ => Sections.First(s => s.Tag == tag).Label,
+        };
         panel.Children.Add(new TextBlock { Text = title, FontSize = 28, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 12) });
         switch (tag)
         {
