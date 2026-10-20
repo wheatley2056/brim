@@ -219,7 +219,8 @@ public sealed partial class NotchView : UserControl
 
     public NotchForm Form => _form;
 
-    public void SetGlass(bool glass) => _surface.SetGlass(glass);
+    public void SetMaterial(NotchMaterial material) => _surface.SetGlass(material != NotchMaterial.Black,
+        material is NotchMaterial.Mica or NotchMaterial.MicaAlt ? (byte)0x28 : NotchSurface.GlassTint);
 
     /// <summary>Eine Formänderung beginnt und dauert so lange (auch das Anschwellen beim Hover).</summary>
     public event Action<TimeSpan>? Morphing;

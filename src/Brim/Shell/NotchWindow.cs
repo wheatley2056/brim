@@ -181,7 +181,7 @@ internal sealed partial class NotchWindow : WindowEx
             SystemBackdrop = _glass == true
                 ? new MaterialBackdrop(appearance.Material)
                 : new TransparentTintBackdrop { TintColor = Microsoft.UI.Colors.Transparent };
-            View.SetGlass(_glass == true);
+            View.SetMaterial(appearance.Material);
             _regionTarget = default;
         }
         // Neue Form sofort zeigen, nicht erst bei der nächsten Aktivität.

@@ -34,6 +34,7 @@ internal sealed class NotchSurface : IDisposable
     private readonly CompositionColorBrush _fill;
     private readonly List<CompositionColorGradientStop> _earStops = [];
     private bool _glass;
+    private byte _tint;
     private string? _accent;
     private float _shimmerTarget = -1;
     private double? _glow;
@@ -188,14 +189,16 @@ internal sealed class NotchSurface : IDisposable
     }
 
     /// <summary>Körper, Ohren und Perlen in der Füllfarbe: Schwarz, oder bei Glas eine Tönung über dem Acryl.</summary>
-    public void SetGlass(bool glass)
+    /// <param name="tint">Deckkraft der Tönung über dem Material (0–255); Mica ist schon dunkel, Acryl nicht.</param>
+    public void SetGlass(bool glass, byte tint = GlassTint)
     {
-        if (glass == _glass)
+        if (glass == _glass && tint == _tint)
         {
             return;
         }
         _glass = glass;
-        var color = glass ? Color.FromArgb(GlassTint, 0, 0, 0) : Colors.Black;
+        _tint = tint;
+        var color = glass ? Color.FromArgb(tint, 0, 0, 0) : Colors.Black;
         var animation = _compositor.CreateColorKeyFrameAnimation();
         animation.InsertKeyFrame(1, color);
         animation.Duration = TimeSpan.FromMilliseconds(300);
@@ -207,7 +210,7 @@ internal sealed class NotchSurface : IDisposable
     }
 
     /// <summary>Deckkraft der Tönung bei Glas: dunkel genug für weiße Schrift, hell genug, dass der Desktop durchscheint.</summary>
-    private const byte GlassTint = 0x70;
+    public const byte GlassTint = 0x70;
 
     /// <summary>Form in diesem Moment, auch mitten in einer Feder (für die Region bei Glas).</summary>
     public NotchShape Current

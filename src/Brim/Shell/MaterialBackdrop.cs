@@ -27,9 +27,11 @@ internal sealed class MaterialBackdrop(NotchMaterial material) : SystemBackdrop
             Log.Info($"Material {material} wird von diesem System nicht unterstützt");
             return;
         }
+        // Erst die Konfiguration, dann das Ziel (wie in Microsofts Beispiel): Sonst zeigt Windows das helle,
+        // inaktive Material – ein flaches Grau.
         _configuration = new SystemBackdropConfiguration { IsInputActive = true, Theme = SystemBackdropTheme.Dark };
-        _controller.AddSystemBackdropTarget(connectedTarget);
         _controller.SetSystemBackdropConfiguration(_configuration);
+        _controller.AddSystemBackdropTarget(connectedTarget);
     }
 
     private ISystemBackdropControllerWithTargets? Create()
@@ -48,10 +50,15 @@ internal sealed class MaterialBackdrop(NotchMaterial material) : SystemBackdrop
                 }
                 : null;
         }
+        // Die dunklen Werte von Windows 11 ausdrücklich, damit es nie hell wird, egal was das System meldet.
+        var alt = material == NotchMaterial.MicaAlt;
         return MicaController.IsSupported()
             ? new MicaController
             {
-                Kind = material == NotchMaterial.MicaAlt ? MicaKind.BaseAlt : MicaKind.Base,
+                Kind = alt ? MicaKind.BaseAlt : MicaKind.Base,
+                TintColor = alt ? Color.FromArgb(255, 10, 10, 10) : Color.FromArgb(255, 32, 32, 32),
+                TintOpacity = alt ? 0f : 0.8f,
+                LuminosityOpacity = 1f,
                 FallbackColor = fallback,
             }
             : null;
