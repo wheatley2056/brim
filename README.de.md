@@ -63,7 +63,7 @@ Dateien oder Ordner auf die Notch ziehen – sie bleiben, bis du sie entfernst, 
 Der Tab „System“ zeigt CPU, RAM, GPU und Netzwerk mit Verlauf der letzten Minute und die drei Prozesse mit der meisten Last – aus denselben Leistungsindikatoren wie der Task-Manager, die Werte stimmen also überein. Gemessen wird nur, solange der Tab offen ist. Auf Laptops zeigt Brim Akkustand und Restzeit, ein HUD beim Einstecken und warnt einmal, wenn der Akku zur Neige geht. Helligkeit bekommt ein eigenes HUD, und ein grüner oder oranger Punkt zeigt, wenn eine App Kamera oder Mikrofon benutzt.
 
 ### 🫥 Macht Platz
-Liegt ein Fenster unter der Notch – maximiert, im Vollbild oder einfach hochgeschoben –, schmilzt Brim in die Kante. Auch beim Ziehen eines Fensters zur Snap-Leiste zieht sie sich zurück. Teilst du deinen Bildschirm in Teams, Zoom, Meet oder Webex, bleibt sie aus dem Bild. Regeln pro App (OBS immer zeigen, Premiere immer ausblenden), „nur Desktop“, Ausblenden bei Leerlauf und eine Verzögerung stehen in `settings.json`. Maus an die Oberkante oder Win+Alt+N, und sie kommt wieder herunter.
+Liegt ein Fenster unter der Notch – maximiert, im Vollbild oder einfach hochgeschoben –, schmilzt Brim in die Kante. Auch beim Ziehen eines Fensters zur Snap-Leiste zieht sie sich zurück. Teilst du deinen Bildschirm in Teams, Zoom, Meet oder Webex, bleibt sie aus dem Bild. Regeln pro App (OBS immer zeigen, Premiere immer ausblenden), „nur Desktop“, Ausblenden bei Leerlauf und eine Verzögerung stellst du in den Einstellungen ein. Maus an die Oberkante oder Win+Alt+N, und sie kommt wieder herunter.
 
 ### 🔄 Updates, die du nicht merkst
 Brim aktualisiert sich im Hintergrund aus den GitHub-Releases, lädt nur, was sich geändert hat, und startet erst neu, wenn du ein paar Minuten nicht am Rechner bist. Danach erzählt die Notch, was neu ist.
@@ -73,7 +73,7 @@ Brim aktualisiert sich im Hintergrund aus den GitHub-Releases, lädt nur, was si
 </p>
 
 ### 🎮 Spiele
-Brim misst die Bildrate wie PresentMon über die DXGI- und Direct3D-9-Ereignisse von Windows, und zwar für das Spiel im Vordergrund: FPS, 1 % Low, Frametime-Verlauf und auf Wunsch den Ping zu deinem Spielserver. Im Spiel macht die Notch Platz. Nach Wahl bleibt eine kleine, halbtransparente Pille mit „FPS · ms“ stehen, oder Win+Alt+F zeigt sie für fünf Sekunden. Einschalten mit `Games.Enabled` in `settings.json`. Beim ersten Mal fragt Brim einmal nach Adminrechten, um dich in die Gruppe „Leistungsprotokollbenutzer“ aufzunehmen. Danach misst Brim ohne Adminrechte.
+Brim misst die Bildrate wie PresentMon über die DXGI- und Direct3D-9-Ereignisse von Windows, und zwar für das Spiel im Vordergrund: FPS, 1 % Low, Frametime-Verlauf und auf Wunsch den Ping zu deinem Spielserver. Im Spiel macht die Notch Platz. Nach Wahl bleibt eine kleine, halbtransparente Pille mit „FPS · ms“ stehen, oder Win+Alt+F zeigt sie für fünf Sekunden. Einschalten unter Einstellungen → Spiele. Beim ersten Mal fragt Brim einmal nach Adminrechten, um dich in die Gruppe „Leistungsprotokollbenutzer“ aufzunehmen. Danach misst Brim ohne Adminrechte.
 
 ### 🧩 Plugins
 Eigene Inhalte für die Notch: kompakter Status, HUD oder Karten im Tab „Plugins“. Plugins laufen als eigene Programme in beliebiger Sprache und beschreiben ihre Oberfläche als Daten. So können sie die Notch weder verunstalten noch einfrieren. Ein abgestürztes Plugin startet neu und schaltet sich nach dem dritten Absturz ab. Neue Plugins sind zunächst aus, und der Tab „Plugins“ zeigt, was jedes darf. Siehe [`docs/plugins.md`](docs/plugins.md) und die [Beispiele](samples). Ein erstes echtes Plugin ist [`plugins/SwyxIt`](plugins/SwyxIt). Es zeigt eingehende SwyxIt!-Anrufe mit Annehmen und Ablehnen, laufende Gespräche und Chat-Nachrichten.
@@ -101,7 +101,7 @@ Namen für die Windows-Bedienungshilfen überall, Ansagen der Sprachausgabe für
 | Maus an die Oberkante | Versteckte Notch zurückholen |
 | Symbol im Infobereich | Einstellungsdatei, Protokolle, Beenden |
 
-Einstellungen stehen in `%LocalAppData%\Brim\settings.json` (Animation, Ausblende-Regeln, Proxy, Updates).
+Die Einstellungen öffnest du über das Brim-Symbol im Infobereich (Rechtsklick → Einstellungen); gespeichert werden sie in `%LocalAppData%\Brim\settings.json`.
 
 ## Datenschutz und Sicherheit
 

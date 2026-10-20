@@ -63,7 +63,7 @@ Drag files or folders onto the notch and they stay there until you remove them �
 The System tab shows CPU, RAM, GPU and network with one-minute history, plus the three busiest processes — read from the same performance counters as Task Manager, so the numbers match. It only measures while the tab is open. On laptops, Brim shows battery level and time left, a charging HUD when you plug in, and warns once when the battery runs low. Brightness changes get their own HUD, and a green or orange dot tells you when an app is using your camera or microphone.
 
 ### 🫥 Gets out of the way
-When a window sits under the notch — maximized, fullscreen, or just pushed up — Brim melts into the edge. Dragging a window toward the top for Snap Layouts hides it too. While you share your screen in Teams, Zoom, Meet or Webex it stays out of the picture. Per-app rules (always show for OBS, always hide for Premiere), a desktop-only mode, hiding when idle and a hide delay live in `settings.json`. Rest your mouse at the top edge or press Win+Alt+N and it drops back down.
+When a window sits under the notch — maximized, fullscreen, or just pushed up — Brim melts into the edge. Dragging a window toward the top for Snap Layouts hides it too. While you share your screen in Teams, Zoom, Meet or Webex it stays out of the picture. Per-app rules (always show for OBS, always hide for Premiere), a desktop-only mode, hiding when idle and a hide delay are in the settings. Rest your mouse at the top edge or press Win+Alt+N and it drops back down.
 
 ### 🔄 Updates you won't notice
 Brim updates itself from GitHub releases in the background, downloads only what changed, and restarts only when you're away for a few minutes. Afterwards the notch tells you what's new.
@@ -73,7 +73,7 @@ Brim updates itself from GitHub releases in the background, downloads only what 
 </p>
 
 ### 🎮 Games
-Brim measures FPS the way PresentMon does, from Windows' own DXGI and Direct3D 9 events, for the game in front of you: frame rate, 1 % low, a frametime graph and optionally the ping to your game server. While you play, the notch steps aside. If you like, a small translucent pill with "FPS · ms" stays at the top, or Win+Alt+F shows it for five seconds. Turn it on with `Games.Enabled` in `settings.json`. The first time, Brim asks once for admin rights to add you to the "Performance Log Users" group. After that, measuring runs without admin rights.
+Brim measures FPS the way PresentMon does, from Windows' own DXGI and Direct3D 9 events, for the game in front of you: frame rate, 1 % low, a frametime graph and optionally the ping to your game server. While you play, the notch steps aside. If you like, a small translucent pill with "FPS · ms" stays at the top, or Win+Alt+F shows it for five seconds. Turn it on under Settings → Games. The first time, Brim asks once for admin rights to add you to the "Performance Log Users" group. After that, measuring runs without admin rights.
 
 ### 🧩 Plugins
 Add your own content to the notch: a compact status, a HUD, or cards in the Plugins tab. Plugins run as separate processes in any language and describe their UI as data, so they can't break the notch or freeze it. A plugin that crashes is restarted and switched off after the third crash. New plugins start switched off, and the Plugins tab shows what each one may do. See [`docs/plugins.md`](docs/plugins.md) and the [samples](samples). A first real plugin is [`plugins/SwyxIt`](plugins/SwyxIt). It shows incoming SwyxIt! calls with Answer and Decline, running calls, and chat messages.
@@ -101,7 +101,7 @@ UI Automation names for everything, screen reader announcements for HUDs, keyboa
 | Mouse to the top edge | Bring a hidden notch back |
 | Tray icon | Settings file, logs, quit |
 
-Settings live in `%LocalAppData%\Brim\settings.json` (animation, auto-hide rules, proxy, updates). The interface is German for now; English is planned.
+Settings open from the tray icon (right-click → Settings) and are stored in `%LocalAppData%\Brim\settings.json`. The interface is German for now; English is planned.
 
 ## Privacy & security
 
