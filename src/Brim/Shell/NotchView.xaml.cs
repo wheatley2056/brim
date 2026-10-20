@@ -339,7 +339,9 @@ public sealed partial class NotchView : UserControl
             _shelfView?.Refresh();
         }
         ShelfPresenter.Visibility = shelfShown ? Visibility.Visible : Visibility.Collapsed;
-        if (p.Tab == NotchTab.Shelf)
+        var systemShown = p.Tab == NotchTab.System && UpdateSystem();
+        SystemPanel.Visibility = systemShown ? Visibility.Visible : Visibility.Collapsed;
+        if (p.Tab == NotchTab.Shelf || systemShown)
         {
             NowPresenter.Visibility = Visibility.Collapsed;
             PlaceholderPanel.Visibility = Visibility.Collapsed;
@@ -373,7 +375,7 @@ public sealed partial class NotchView : UserControl
             PlaceholderPanel.Visibility = Visibility.Visible;
             (PlaceholderIcon.Glyph, PlaceholderTitle.Text, PlaceholderText.Text) = p.Tab switch
             {
-                NotchTab.System => (Glyphs.Settings, "System", "Akku, CPU, RAM, GPU, Netzwerk – kommt in Phase 2."),
+                NotchTab.System => (Glyphs.Settings, "System", "Keine Messwerte verfügbar."),
                 _ => (Glyphs.Puzzle, "Plugins", "Eigene Inhalte über die Plugin-API – kommt in Phase 4."),
             };
         }
@@ -474,6 +476,11 @@ public sealed partial class NotchView : UserControl
             {
                 parts.AddRange(now.Children.Select((c, i) => (c, new Vector3(0, -14 - 6 * i, 0))));
             }
+            else if (SystemPanel.Visibility == Visibility.Visible)
+            {
+                parts.Add((SystemMain, new Vector3(0, -14, 0)));
+                parts.Add((SystemSide, new Vector3(0, -20, 0)));
+            }
             else
             {
                 parts.Add((ShelfPresenter.Visibility == Visibility.Visible ? ShelfPresenter : PlaceholderPanel, new Vector3(0, -14, 0)));
@@ -546,7 +553,10 @@ public sealed partial class NotchView : UserControl
         public string? ModuleId { get; set; }
     }
 
-    private void Render(string slotName, ContentPresenter presenter, ActiveActivity? source, Widget? widget)
+    private void Render(string slotName, ContentPresenter presenter, ActiveActivity? source, Widget? widget) =>
+        Render(slotName, presenter, source?.Activity.ModuleId, widget);
+
+    private void Render(string slotName, ContentPresenter presenter, string? moduleId, Widget? widget)
     {
         if (!_slots.TryGetValue(slotName, out var slot))
         {
@@ -565,7 +575,7 @@ public sealed partial class NotchView : UserControl
             _slots[slotName] = slot;
         }
 
-        if (widget is null || source is null)
+        if (widget is null || moduleId is null)
         {
             presenter.Content = null;
             slot.ModuleId = null;
@@ -573,8 +583,8 @@ public sealed partial class NotchView : UserControl
         }
 
         // Wechselt das Modul, nichts wiederverwenden: sonst gehörten Knöpfe dem falschen Besitzer.
-        var existing = slot.ModuleId == source.Activity.ModuleId ? presenter.Content as FrameworkElement : null;
-        slot.ModuleId = source.Activity.ModuleId;
+        var existing = slot.ModuleId == moduleId ? presenter.Content as FrameworkElement : null;
+        slot.ModuleId = moduleId;
         var element = slot.Renderer.Render(widget, existing);
         if (!ReferenceEquals(element, presenter.Content))
         {

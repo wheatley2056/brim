@@ -70,8 +70,32 @@ public sealed class ShelfSettings
 
 public sealed class AutoHideSettings
 {
-    /// <summary>Zurückziehen, wenn ein App-Fenster im Bereich der Notch liegt (auch maximiert/Vollbild).</summary>
+    /// <summary>Zurückziehen, wenn ein normales App-Fenster im Bereich der Notch liegt.</summary>
     public bool WhenOverlapped { get; set; } = true;
+
+    /// <summary>Zurückziehen bei Vollbild (Spiel, Video, F11, Präsentation).</summary>
+    public bool WhenFullscreen { get; set; } = true;
+
+    /// <summary>Zurückziehen, wenn ein maximiertes Fenster unter der Notch liegt.</summary>
+    public bool WhenMaximized { get; set; } = true;
+
+    /// <summary>„Nur Desktop“: zurückziehen, sobald irgendein App-Fenster auf diesem Monitor im Vordergrund ist.</summary>
+    public bool WhenAnyForeground { get; set; }
+
+    /// <summary>Zurückziehen, solange der Bildschirm in Teams, Zoom, Meet usw. geteilt wird (Privatsphäre).</summary>
+    public bool WhenScreenSharing { get; set; } = true;
+
+    /// <summary>Merkmale laufender Freigaben (siehe <see cref="ScreenShare.DefaultMarkers"/>).</summary>
+    public List<string> ScreenShareMarkers { get; set; } = [.. ScreenShare.DefaultMarkers];
+
+    /// <summary>Nach so vielen Sekunden ohne Eingabe zurückziehen; 0 = aus.</summary>
+    public int IdleSeconds { get; set; }
+
+    /// <summary>Verzögerung vor dem Zurückziehen in ms (0–2000); Zurückkommen ist immer sofort.</summary>
+    public int HideDelayMs { get; set; }
+
+    /// <summary>Regeln pro App, z. B. OBS immer zeigen.</summary>
+    public List<AppRule> Apps { get; set; } = [];
 
     /// <summary>Zurückziehen, während ein Fenster Richtung Oberkante gezogen wird (Snap-Leiste).</summary>
     public bool WhileDraggingWindows { get; set; } = true;
@@ -111,6 +135,18 @@ public sealed class ShareSettings
     public string? ProxyUrl { get; set; }
 }
 
+public sealed class BatterySettings
+{
+    /// <summary>Beim Laden Akkustand in der kompakten Notch zeigen (Plan 4.6).</summary>
+    public bool CompactWhileCharging { get; set; } = true;
+
+    /// <summary>Darunter zeigt die kompakte Notch den Akkustand und warnt einmal (Prozent).</summary>
+    public int LowPercent { get; set; } = 20;
+
+    /// <summary>Darunter klappt sich die Notch mit einem kritischen Hinweis kurz auf (Prozent).</summary>
+    public int CriticalPercent { get; set; } = 10;
+}
+
 public sealed class UpdateSettings
 {
     /// <summary>Automatisch aktualisieren (nur in der installierten Fassung).</summary>
@@ -126,6 +162,7 @@ public sealed class UpdateSettings
 public sealed class BrimSettings
 {
     public UpdateSettings Updates { get; set; } = new();
+    public BatterySettings Battery { get; set; } = new();
     public ShareSettings Share { get; set; } = new();
     public AutoHideSettings AutoHide { get; set; } = new();
     public ShelfSettings Shelf { get; set; } = new();

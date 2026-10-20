@@ -88,6 +88,23 @@ public sealed record RingWidget(double Value) : Widget
     public string? TrackColor { get; init; }
 }
 
+/// <summary>
+/// Verlauf als Linie, z. B. CPU-Last der letzten 60 s. Füllt die verfügbare Breite;
+/// der neueste Wert steht rechts.
+/// </summary>
+public sealed record ChartWidget(IReadOnlyList<double> Values) : Widget
+{
+    /// <summary>Oberer Rand der Skala. Ohne Wert richtet sich die Skala nach dem größten Wert.</summary>
+    public double? Max { get; init; }
+
+    /// <summary>So viele Punkte passen in die Breite; fehlende Werte am Anfang bleiben leer.</summary>
+    public int Capacity { get; init; } = 60;
+
+    public double Height { get; init; } = 30;
+    public double Thickness { get; init; } = 1.8;
+    public string? Color { get; init; }
+}
+
 /// <summary>Pegel aus fünf Balken (Musik läuft). Animiert, solange <see cref="Active"/>.</summary>
 public sealed record LevelWidget : Widget
 {
@@ -143,6 +160,11 @@ public sealed record StackWidget(IReadOnlyList<Widget> Children) : Widget
 
     /// <summary>Innenabstand links, oben, rechts, unten.</summary>
     public (double Left, double Top, double Right, double Bottom) Padding { get; init; }
+
+    /// <summary>Hintergrund (Hex), z. B. <see cref="BrimColors.Graphite"/> für Karten.</summary>
+    public string? Background { get; init; }
+
+    public double CornerRadius { get; init; }
 }
 
 public sealed record ListWidget(IReadOnlyList<Widget> Items) : Widget

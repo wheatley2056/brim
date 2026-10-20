@@ -31,3 +31,7 @@ GetWindowThreadProcessId
 GetAncestor
 DwmGetWindowAttribute
 GetLastInputInfo
+GetForegroundWindow
+IsZoomed
+GetWindowText
+GetWindowTextLength

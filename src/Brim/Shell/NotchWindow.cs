@@ -125,6 +125,8 @@ internal sealed partial class NotchWindow : WindowEx
             };
         };
 
+        Closed += (_, _) => _hub.NotifyVisibleTab(this, null);
+
         Place();
         Refresh();
         AppWindow.Show(activateWindow: false);
@@ -182,6 +184,8 @@ internal sealed partial class NotchWindow : WindowEx
         var presentation = NotchStateMachine.Resolve(_hub.Snapshot(), new NotchInput(_expanded, _hidden, _tab, _dropTarget));
         var animation = _settings.Current.Animation.Clamped();
         View.Present(presentation, animation, reducedMotion: !_uiSettings.AnimationsEnabled);
+        // Module mit teuren Abfragen (Ressourcen) messen nur, solange ihr Tab irgendwo offen ist.
+        _hub.NotifyVisibleTab(this, presentation.Mode == NotchMode.Expanded ? presentation.Tab : null);
         UpdateRegion(animation);
         ScheduleExpiry();
     }
@@ -193,6 +197,10 @@ internal sealed partial class NotchWindow : WindowEx
         {
             SetExpanded(false, pinned: false);
             return;
+        }
+        if (_hidden)
+        {
+            PeekFromKeyboard();
         }
         SetExpanded(true, pinned: true);
         Win32.Activate(Handle);
@@ -218,6 +226,7 @@ internal sealed partial class NotchWindow : WindowEx
         if (!expanded)
         {
             // Lag inzwischen ein Fenster unter der Notch, zieht sie sich jetzt zurück.
+            EndKeyboardPeek();
             ApplyAutoHide();
         }
     }

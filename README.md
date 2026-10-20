@@ -59,8 +59,11 @@ Drag files or folders onto the notch and they stay there until you remove them �
 - **Anywhere, by code:** send to anyone with a short code like `7-guitarist-revenge`. Brim speaks the open [Magic Wormhole](https://magic-wormhole.readthedocs.io) protocol, so the other side can be Brim — or `wormhole receive`, Warp, Winden and friends. End-to-end encrypted (SPAKE2), works behind NAT via relay and through HTTP or SOCKS5 proxies.
 - **Windows share** is still one click away for mail, Teams and other apps.
 
+### 📊 System at a glance
+The System tab shows CPU, RAM, GPU and network with one-minute history, plus the three busiest processes — read from the same performance counters as Task Manager, so the numbers match. It only measures while the tab is open. On laptops, Brim shows battery level and time left, a charging HUD when you plug in, and warns once when the battery runs low. Brightness changes get their own HUD, and a green or orange dot tells you when an app is using your camera or microphone.
+
 ### 🫥 Gets out of the way
-When a window sits under the notch — maximized, fullscreen, or just pushed up — Brim melts into the edge. Dragging a window toward the top for Snap Layouts hides it too. Rest your mouse at the top edge and it drops back down.
+When a window sits under the notch — maximized, fullscreen, or just pushed up — Brim melts into the edge. Dragging a window toward the top for Snap Layouts hides it too. While you share your screen in Teams, Zoom, Meet or Webex it stays out of the picture. Per-app rules (always show for OBS, always hide for Premiere), a desktop-only mode, hiding when idle and a hide delay live in `settings.json`. Rest your mouse at the top edge or press Win+Alt+N and it drops back down.
 
 ### 🔄 Updates you won't notice
 Brim updates itself from GitHub releases in the background, downloads only what changed, and restarts only when you're away for a few minutes. Afterwards the notch tells you what's new.
@@ -128,7 +131,7 @@ Network and interoperability tests against the original Magic Wormhole run when 
 | Project | What's inside |
 |---|---|
 | `src/Brim.Core` | Activities and the activity hub, the notch state machine, declarative widgets, shape geometry, spring physics, shelf store, settings. No Windows dependencies, fully unit-tested. |
-| `src/Brim.Modules` | Built-in modules — clock, media, audio, sharing (LAN and Magic Wormhole), updates. They describe their UI as widgets; no WinUI. |
+| `src/Brim.Modules` | Built-in modules — clock, media, audio, battery, resources, brightness, camera/mic, sharing (LAN and Magic Wormhole), updates. They describe their UI as widgets; no WinUI. |
 | `src/Brim` | The WinUI 3 shell: one window per monitor, the compositor-driven morph engine, widget renderer, shelf, auto-hide, tray and updater. |
 | `tests/` | State machine, springs, geometry, shelf, sharing protocol, SPAKE2 test vectors from the reference implementation, live interop with the original Magic Wormhole. |
 
@@ -141,8 +144,8 @@ Built-in features are modules that use the same interface plugins will: they pos
 - [x] **Shelf** — drag in, keep, drag out
 - [x] **Sharing** — nearby (LAN) and by code (Magic Wormhole), proxy support
 - [x] **Silent updates** with in-notch changelog
-- [ ] **Auto-hide** — per-app rules, screen-sharing detection *(window overlap and top-edge peek are done)*
-- [ ] **System** — battery, CPU, RAM, GPU, network, brightness, camera/mic indicators
+- [x] **Auto-hide** — fullscreen, maximized, overlap, desktop-only, idle, per-app rules, screen-sharing detection, top-edge peek *(settings window comes with 1.0)*
+- [x] **System** — battery, CPU, RAM, GPU, network, brightness, camera/mic indicators *(disk and external monitors via DDC/CI still to come)*
 - [ ] **Plugins** — open protocol and SDK for your own notch content
 - [ ] **Games** — FPS and latency in a mini pill
 - [ ] **More** — timer, calendar, notifications, Bluetooth battery, settings window, code signing, winget

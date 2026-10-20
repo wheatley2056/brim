@@ -138,28 +138,120 @@ internal sealed class WindowWatcher : IDisposable
     private static bool IsTopLevel(HWND hwnd) => PInvoke.GetAncestor(hwnd, GET_ANCESTOR_FLAGS.GA_ROOT) == hwnd;
 
     /// <summary>
-    /// Liegt irgendein sichtbares App-Fenster in <paramref name="zone"/> (physische Bildschirmpixel)?
-    /// Gezählt werden normale Fenster; Shell, Werkzeugfenster, verborgene und minimierte nicht.
+    /// Fensterlage für die Regeln (Plan 4.9) auf einem Monitor: Fenster im Bereich der Notch und das
+    /// Vordergrundfenster, jeweils mit Prozess, Vollbild und Maximiert. <paramref name="zone"/> und
+    /// <paramref name="monitor"/> in physischen Bildschirmpixeln.
     /// </summary>
-    public bool AnyWindowIn(RECT zone, out string? which)
+    public IReadOnlyList<SceneWindow> Scene(RECT zone, RECT monitor)
     {
-        string? found = null;
+        var result = new List<SceneWindow>();
         var own = _ownProcess;
+        var foreground = PInvoke.GetForegroundWindow();
         PInvoke.EnumWindows((hwnd, _) =>
         {
-            if (!Counts(hwnd, own, out var bounds))
+            if (!Counts(hwnd, own, out var b))
             {
                 return true;
             }
-            if (bounds.left < zone.right && bounds.right > zone.left && bounds.top < zone.bottom && bounds.bottom > zone.top)
+            var inZone = b.left < zone.right && b.right > zone.left && b.top < zone.bottom && b.bottom > zone.top;
+            // Vordergrund zählt nur, wenn das Fenster überwiegend auf diesem Monitor liegt (Mitte darin).
+            var centerX = (b.left + b.right) / 2;
+            var centerY = (b.top + b.bottom) / 2;
+            var onMonitor = centerX >= monitor.left && centerX < monitor.right && centerY >= monitor.top && centerY < monitor.bottom;
+            var isForeground = hwnd == foreground && onMonitor;
+            if (!inZone && !isForeground)
             {
-                found = ClassOf(hwnd);
-                return false;
+                return true;
+            }
+            result.Add(new SceneWindow(ProcessOf(hwnd), ClassOf(hwnd))
+            {
+                InZone = inZone,
+                Fullscreen = b.left <= monitor.left && b.top <= monitor.top && b.right >= monitor.right && b.bottom >= monitor.bottom,
+                Maximized = PInvoke.IsZoomed(hwnd),
+                Foreground = isForeground,
+            });
+            return true;
+        }, default);
+        return result;
+    }
+
+    /// <summary>
+    /// Läuft eine Bildschirmfreigabe? Durchsucht Klasse und Titel aller sichtbaren Fenster anderer Apps,
+    /// auch schwebender Werkzeugleisten, nach den Merkmalen aus den Einstellungen.
+    /// </summary>
+    public bool IsScreenSharing(IReadOnlyList<string> markers)
+    {
+        if (markers.Count == 0)
+        {
+            return false;
+        }
+        var windows = new List<(string, string)>();
+        var own = _ownProcess;
+        PInvoke.EnumWindows((hwnd, _) =>
+        {
+            if (PInvoke.IsWindowVisible(hwnd) && !IsCloaked(hwnd) && ProcessId(hwnd) != own)
+            {
+                windows.Add((ClassOf(hwnd), TitleOf(hwnd)));
             }
             return true;
         }, default);
-        which = found;
-        return found is not null;
+        return ScreenShare.IsSharing(windows, markers);
+    }
+
+    private readonly Dictionary<uint, string> _processNames = new();
+
+    /// <summary>Prozessname ohne Endung; zwischengespeichert, weil die Abfrage teuer ist.</summary>
+    private string ProcessOf(HWND hwnd)
+    {
+        var pid = ProcessId(hwnd);
+        if (_processNames.TryGetValue(pid, out var name))
+        {
+            return name;
+        }
+        if (_processNames.Count > 256)
+        {
+            // Prozess-IDs werden wiederverwendet; ab und zu neu anfangen genügt.
+            _processNames.Clear();
+        }
+        try
+        {
+            using var process = Process.GetProcessById((int)pid);
+            name = process.ProcessName;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            name = "";
+        }
+        _processNames[pid] = name;
+        return name;
+    }
+
+    private static unsafe uint ProcessId(HWND hwnd)
+    {
+        uint pid;
+        _ = PInvoke.GetWindowThreadProcessId(hwnd, &pid);
+        return pid;
+    }
+
+    private static unsafe bool IsCloaked(HWND hwnd)
+    {
+        int cloaked;
+        return PInvoke.DwmGetWindowAttribute(hwnd, DWMWINDOWATTRIBUTE.DWMWA_CLOAKED, &cloaked, sizeof(int)).Succeeded && cloaked != 0;
+    }
+
+    private static unsafe string TitleOf(HWND hwnd)
+    {
+        var length = PInvoke.GetWindowTextLength(hwnd);
+        if (length <= 0)
+        {
+            return "";
+        }
+        var buffer = new char[length + 1];
+        fixed (char* p = buffer)
+        {
+            var read = PInvoke.GetWindowText(hwnd, p, buffer.Length);
+            return new string(p, 0, read);
+        }
     }
 
     private static unsafe bool Counts(HWND hwnd, uint ownProcess, out RECT bounds)
@@ -169,9 +261,7 @@ internal sealed class WindowWatcher : IDisposable
         {
             return false;
         }
-        uint pid;
-        _ = PInvoke.GetWindowThreadProcessId(hwnd, &pid);
-        if (pid == ownProcess)
+        if (ProcessId(hwnd) == ownProcess)
         {
             return false;
         }
@@ -181,8 +271,7 @@ internal sealed class WindowWatcher : IDisposable
             return false;
         }
         // Verhüllte Fenster (andere virtuelle Desktops, angehaltene UWP-Apps) sind nicht zu sehen.
-        int cloaked;
-        if (PInvoke.DwmGetWindowAttribute(hwnd, DWMWINDOWATTRIBUTE.DWMWA_CLOAKED, &cloaked, sizeof(int)).Succeeded && cloaked != 0)
+        if (IsCloaked(hwnd))
         {
             return false;
         }
