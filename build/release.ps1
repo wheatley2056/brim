@@ -27,6 +27,18 @@ dotnet publish (Join-Path $root "src/Brim/Brim.csproj") -c Release -r $Runtime -
     -p:Platform=$platform -p:Version=$Version -o $publish
 if ($LASTEXITCODE) { throw "dotnet publish fehlgeschlagen" }
 
+# WinUI sucht seine Ressourcen mit Paketidentität unter resources.pri statt Brim.pri.
+Copy-Item (Join-Path $publish "Brim.pri") (Join-Path $publish "resources.pri") -Force
+
+# 1b. Identitätspaket für Kalender und Benachrichtigungen (selbst signiert, siehe build/identity)
+# Noch nicht erprobt: Schlägt es fehl, erscheint das Release trotzdem, nur ohne Kalender und Benachrichtigungen.
+try {
+    & (Join-Path $PSScriptRoot "identity/build.ps1") -Destination $publish
+}
+catch {
+    Write-Warning "Identitätspaket nicht gebaut: $_"
+}
+
 # 2. Changelog-Abschnitt dieser Version
 $changelog = Get-Content (Join-Path $root "CHANGELOG.md") -Raw
 $pattern = '(?ms)^## ' + [regex]::Escape($Version) + '\s*$(.*?)(?=^## |\z)'

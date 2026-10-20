@@ -9,8 +9,15 @@ public sealed class ClockModule : IBrimModule
 {
     public const string ModuleId = "clock";
 
+    private readonly Func<string?>? _agenda;
     private ModuleContext? _context;
     private ITimer? _timer;
+
+    /// <param name="agenda">Liefert den nächsten Termin für den Tab „Jetzt“ (Kalender), sonst <c>null</c>.</param>
+    public ClockModule(Func<string?>? agenda = null)
+    {
+        _agenda = agenda;
+    }
 
     public string Id => ModuleId;
     public string DisplayName => "Uhr";
@@ -66,7 +73,7 @@ public sealed class ClockModule : IBrimModule
                 new TextWidget($"Kalenderwoche {week}") { Style = TextStyle.Secondary, FontSize = 14 },
                 new SpacerWidget { Grow = 1 },
                 new StackWidget(
-                    new TextWidget("Gerade läuft nichts.") { Style = TextStyle.Secondary, Grow = 1 },
+                    new TextWidget(_agenda?.Invoke() ?? "Gerade läuft nichts.") { Style = TextStyle.Secondary, Grow = 1 },
                     new ButtonWidget("timer") { Glyph = Glyphs.Stopwatch, GlyphColor = BrimColors.Slate, AccessibleName = "Timer und Stoppuhr" },
                     new ButtonWidget("output") { Glyph = Glyphs.Speakers, GlyphColor = BrimColors.Slate, AccessibleName = "Audioausgabe wählen" },
                     new ButtonWidget("mixer") { Glyph = Glyphs.Volume, GlyphColor = BrimColors.Slate, AccessibleName = "Lautstärke" }))

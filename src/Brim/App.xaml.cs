@@ -147,7 +147,8 @@ public partial class App : Application
 
     private IEnumerable<IBrimModule> CreateModules(NearbyModule nearbyModule)
     {
-        yield return new ClockModule();
+        var calendar = new CalendarModule();
+        yield return new ClockModule(() => calendar.NextSummary);
         if (!IsDemo)
         {
             yield return new MediaModule();
@@ -167,6 +168,9 @@ public partial class App : Application
             yield return new BrightnessModule();
             yield return new PrivacyModule();
             yield return new BluetoothModule();
+            // Brauchen Paketidentität (Einstellungen → Kalender und Benachrichtigungen); ohne sie tun sie nichts.
+            yield return calendar;
+            yield return new NotificationModule();
             yield return new GamesModule(new TelemetryLauncher(Path.Combine(DataDirectory, "logs")));
         }
         yield return new ResourcesModule();

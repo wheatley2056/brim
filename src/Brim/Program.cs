@@ -16,7 +16,11 @@ public static class Program
         VelopackApp.Build()
             .OnAfterInstallFastCallback(_ => Autostart.Enable())
             .OnAfterUpdateFastCallback(_ => Autostart.Enable())
-            .OnBeforeUninstallFastCallback(_ => Autostart.Disable())
+            .OnBeforeUninstallFastCallback(_ =>
+            {
+                Autostart.Disable();
+                PackageIdentity.Remove();
+            })
             .Run();
 
         // Messdienst für FPS (Plan 4.8) und seine einmalige Einrichtung: derselbe Prozess, ohne Oberfläche.
@@ -27,6 +31,23 @@ public static class Program
         if (args is [Brim.Telemetry.PerformanceLogUsers.Argument, var user])
         {
             return Brim.Telemetry.PerformanceLogUsers.Add(user);
+        }
+        if (args is [PackageIdentity.Argument])
+        {
+            return PackageIdentity.Trust();
+        }
+        // Neustart aus Brim heraus: warten, bis die alte Instanz weg ist, sonst übernähme sie den Start.
+        if (args is ["--wait-for", var pidText] && int.TryParse(pidText, out var pid))
+        {
+            try
+            {
+                using var previous = System.Diagnostics.Process.GetProcessById(pid);
+                previous.WaitForExit(TimeSpan.FromSeconds(15));
+            }
+            catch (ArgumentException)
+            {
+                // Schon beendet.
+            }
         }
 
         WinRT.ComWrappersSupport.InitializeComWrappers();

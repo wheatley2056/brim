@@ -181,6 +181,12 @@ public sealed class GameSettings
     public string PingHost { get; set; } = "";
 }
 
+public sealed class NotificationSettings
+{
+    /// <summary>Apps (Anzeigename wie in den Windows-Benachrichtigungen), deren Benachrichtigungen die Notch nicht zeigt.</summary>
+    public List<string> MutedApps { get; set; } = [];
+}
+
 public sealed class UpdateSettings
 {
     /// <summary>Automatisch aktualisieren (nur in der installierten Fassung).</summary>
@@ -198,6 +204,7 @@ public sealed class BrimSettings
     public UpdateSettings Updates { get; set; } = new();
     public BatterySettings Battery { get; set; } = new();
     public GameSettings Games { get; set; } = new();
+    public NotificationSettings Notifications { get; set; } = new();
     public ShareSettings Share { get; set; } = new();
     public AutoHideSettings AutoHide { get; set; } = new();
     public ShelfSettings Shelf { get; set; } = new();
