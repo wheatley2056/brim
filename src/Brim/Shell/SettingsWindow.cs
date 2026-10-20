@@ -462,7 +462,13 @@ internal sealed class SettingsWindow : Window
                 status.Text = message ?? "Eingerichtet.";
                 action.Visibility = Visibility.Collapsed;
             }
-            else if (PackageIdentity.IsRegistered)
+            else if (PackageIdentity.RegisteredElsewhere && PackageIdentity.Available)
+            {
+                status.Text = message ?? $"Eingerichtet für einen anderen Brim-Ordner ({PackageIdentity.RegisteredLocation}). Für dieses Brim neu einrichten.";
+                action.Content = "Neu einrichten";
+                action.Visibility = Visibility.Visible;
+            }
+            else if (PackageIdentity.IsRegistered && !PackageIdentity.RegisteredElsewhere)
             {
                 status.Text = message ?? "Eingerichtet – wirkt nach einem Neustart von Brim.";
                 action.Content = "Brim neu starten";
@@ -482,19 +488,41 @@ internal sealed class SettingsWindow : Window
         }
         action.Click += async (_, _) =>
         {
-            if (PackageIdentity.IsRegistered)
+            var elsewhere = PackageIdentity.RegisteredElsewhere;
+            if (PackageIdentity.IsRegistered && !elsewhere)
             {
                 _restart();
                 return;
             }
             action.IsEnabled = false;
             status.Text = "Wird eingerichtet …";
-            var error = await PackageIdentity.SetupAsync();
+            var error = elsewhere ? await PackageIdentity.ReinstallAsync() : await PackageIdentity.SetupAsync();
             action.IsEnabled = true;
             Update(error is null ? null : "Hat nicht geklappt: " + error);
         };
         Update();
         p.Children.Add(Card("Status", null, new StackPanel { Spacing = 8, Children = { status, action } }));
+
+        // Diagnose: zeigt, woran es hängt, und lässt sich für eine Fehlermeldung kopieren.
+        var diagnosis = new TextBlock { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true, FontSize = 12, Text = PackageIdentity.Diagnose() };
+        var copy = new Button { Content = "Kopieren" };
+        copy.Click += (_, _) =>
+        {
+            var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+            package.SetText(diagnosis.Text);
+            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+        };
+        var refresh = new Button { Content = "Aktualisieren" };
+        refresh.Click += (_, _) =>
+        {
+            diagnosis.Text = PackageIdentity.Diagnose();
+            Update();
+        };
+        p.Children.Add(Card("Diagnose", null, new StackPanel
+        {
+            Spacing = 8,
+            Children = { diagnosis, new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { copy, refresh } } },
+        }));
 
         p.Children.Add(Header("Benachrichtigungen"));
         p.Children.Add(Hint("Windows fragt beim ersten Start nach dem Zugriff. Zurücknehmen kannst du ihn unter Datenschutz → Benachrichtigungen."));
