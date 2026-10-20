@@ -202,13 +202,6 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
         try
         {
             var compositor = brush.Compositor;
-            // Visuals und Fensterziel müssen auf dem Thread des Compositors entstehen; sonst gleich der alte Weg.
-            if (compositor.DispatcherQueue is { HasThreadAccess: false })
-            {
-                Log.Info("Material: Pinsel gehört zu einem anderen Thread, Rückfall auf die Fensterregion");
-                Failed?.Invoke();
-                return;
-            }
             var root = compositor.CreateContainerVisual();
             root.Opacity = _visible ? 1 : 0;
             _owned.Add(root);
