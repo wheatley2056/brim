@@ -2,6 +2,12 @@
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
   <assemblyIdentity version="1.0.0.0" name="Brim.app"/>
 
+  <!-- Paketidentität über das Identitätspaket (build/identity), wenn es registriert ist; sonst ohne Wirkung. -->
+  <msix xmlns="urn:schemas-microsoft-com:msix.v1"
+        publisher="CN=Brim"
+        packageName="Brim.Notch"
+        applicationId="Brim" />
+
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
       <!-- Windows 10 und 11 -->

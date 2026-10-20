@@ -1,9 +1,25 @@
+using System.Text.Json.Serialization;
+
 namespace Brim.Core.Widgets;
 
 // Deklarative Bausteine (Plan 4.2). Module und später Plugins beschreiben ihre Oberfläche
 // als Datenstruktur, die Shell zeichnet sie. Bewusst klein gehalten.
 
-/// <summary>Basis aller Bausteine.</summary>
+/// <summary>Basis aller Bausteine. Plugins schicken sie als JSON mit <c>"type"</c> (siehe docs/plugins.md).</summary>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(TextWidget), "text")]
+[JsonDerivedType(typeof(IconWidget), "icon")]
+[JsonDerivedType(typeof(ImageWidget), "image")]
+[JsonDerivedType(typeof(ProgressWidget), "progress")]
+[JsonDerivedType(typeof(RingWidget), "ring")]
+[JsonDerivedType(typeof(ChartWidget), "chart")]
+[JsonDerivedType(typeof(LevelWidget), "level")]
+[JsonDerivedType(typeof(WaveWidget), "wave")]
+[JsonDerivedType(typeof(ButtonWidget), "button")]
+[JsonDerivedType(typeof(SwitchWidget), "switch")]
+[JsonDerivedType(typeof(StackWidget), "stack")]
+[JsonDerivedType(typeof(ListWidget), "list")]
+[JsonDerivedType(typeof(SpacerWidget), "spacer")]
 public abstract record Widget
 {
     /// <summary>Optionaler Schlüssel; hilft dem Renderer, Elemente zwischen Aktualisierungen wiederzuverwenden.</summary>
@@ -105,6 +121,20 @@ public sealed record ChartWidget(IReadOnlyList<double> Values) : Widget
     public string? Color { get; init; }
 }
 
+/// <summary>
+/// Echte Wellenform, z. B. der Pegel eines Gesprächs: gespiegelte Balken um die Mitte, der neueste rechts.
+/// Die Shell gleitet zwischen zwei Aktualisierungen weich im Compositor, sodass 10–20 Updates pro Sekunde
+/// flüssig wirken.
+/// </summary>
+public sealed record WaveWidget(IReadOnlyList<double> Values) : Widget
+{
+    public double Height { get; init; } = 36;
+    public string? Color { get; init; }
+
+    /// <summary>Breite eines Balkens; der Abstand ist genauso breit.</summary>
+    public double BarWidth { get; init; } = 3;
+}
+
 /// <summary>Pegel aus fünf Balken (Musik läuft). Animiert, solange <see cref="Active"/>.</summary>
 public sealed record LevelWidget : Widget
 {
@@ -149,10 +179,8 @@ public enum Justify { Start, Center, End, SpaceBetween }
 
 public enum CrossAlign { Start, Center, End, Stretch }
 
-public sealed record StackWidget(IReadOnlyList<Widget> Children) : Widget
+public sealed record StackWidget(params IReadOnlyList<Widget> Children) : Widget
 {
-    public StackWidget(params Widget[] children) : this((IReadOnlyList<Widget>)children) { }
-
     public StackOrientation Orientation { get; init; } = StackOrientation.Horizontal;
     public double Spacing { get; init; }
     public Justify Justify { get; init; } = Justify.Start;

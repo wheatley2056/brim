@@ -263,7 +263,9 @@ public sealed class MediaModule : IBrimModule
                 Align = CrossAlign.Stretch,
             },
             new StackWidget(
-                new ButtonWidget("output") { Glyph = Glyphs.Speakers, GlyphColor = BrimColors.Slate, AccessibleName = "Audioausgabe wählen" },
+                new StackWidget(
+                    new ButtonWidget("output") { Glyph = Glyphs.Speakers, GlyphColor = BrimColors.Slate, AccessibleName = "Audioausgabe wählen" },
+                    new ButtonWidget("timer") { Glyph = Glyphs.Stopwatch, GlyphColor = BrimColors.Slate, AccessibleName = "Timer und Stoppuhr" }),
                 new StackWidget(
                     new ButtonWidget("previous") { Glyph = Glyphs.Previous, GlyphSize = 18, AccessibleName = "Vorheriger Titel" },
                     new ButtonWidget("toggle")
@@ -310,6 +312,9 @@ public sealed class MediaModule : IBrimModule
                 return;
             case "mixer":
                 _context?.Send(AudioModule.ModuleId, AudioModule.ShowMixer);
+                return;
+            case "timer":
+                _context?.Send(TimerModule.ModuleId, TimerModule.ShowPanel);
                 return;
         }
     }

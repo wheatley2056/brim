@@ -43,6 +43,7 @@ internal sealed class WidgetRenderer
             RingWidget w => RenderRing(w, existing as RingView),
             LevelWidget w => RenderLevel(w, existing as LevelView),
             ChartWidget w => RenderChart(w, existing as ChartView),
+            WaveWidget w => RenderWave(w, existing as WaveView),
             ButtonWidget w => RenderButton(w, existing as WidgetButton),
             SwitchWidget w => RenderSwitch(w, existing as ToggleSwitch),
             StackWidget w => RenderStack(w, existing as StackView),
@@ -380,6 +381,88 @@ internal sealed class WidgetRenderer
                 }
             }
             _line.Points = points;
+        }
+    }
+
+    // ───────── Wellenform ─────────
+
+    private static WaveView RenderWave(WaveWidget w, WaveView? view)
+    {
+        view ??= new WaveView();
+        view.Update(w);
+        return view;
+    }
+
+    /// <summary>
+    /// Gespiegelte Balken um die Mitte. Jeder Balken ist so hoch wie das Feld und wird im Compositor skaliert;
+    /// neue Werte gleiten in 120 ms dorthin. So wirkt die Welle auch bei wenigen Updates pro Sekunde flüssig
+    /// und kostet den UI-Thread kaum etwas.
+    /// </summary>
+    private sealed class WaveView : Canvas
+    {
+        private const float MinScale = 0.06f;
+        private readonly List<Rectangle> _bars = [];
+        private WaveWidget? _widget;
+
+        public WaveView()
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch;
+            SizeChanged += (_, _) => Layout();
+        }
+
+        public void Update(WaveWidget w)
+        {
+            var rebuild = _widget is null || _widget.Values.Count != w.Values.Count || _widget.BarWidth != w.BarWidth || _widget.Height != w.Height;
+            _widget = w;
+            Height = w.Height;
+            if (rebuild)
+            {
+                Layout();
+            }
+            var brush = Brushes.Get(w.Color ?? BrimColors.Charge);
+            for (var i = 0; i < _bars.Count && i < w.Values.Count; i++)
+            {
+                _bars[i].Fill = brush;
+                var visual = ElementCompositionPreview.GetElementVisual(_bars[i]);
+                var target = new Vector3(1, Math.Max(MinScale, (float)Math.Clamp(w.Values[i], 0, 1)), 1);
+                var glide = visual.Compositor.CreateVector3KeyFrameAnimation();
+                glide.InsertKeyFrame(1, target, visual.Compositor.CreateCubicBezierEasingFunction(new Vector2(0.2f, 0), new Vector2(0, 1)));
+                glide.Duration = TimeSpan.FromMilliseconds(120);
+                visual.StartAnimation("Scale", glide);
+            }
+        }
+
+        /// <summary>Balken über die verfügbare Breite verteilen; reicht sie nicht, zählen die neuesten (rechts).</summary>
+        private void Layout()
+        {
+            if (_widget is not { } w || ActualWidth <= 0)
+            {
+                return;
+            }
+            Children.Clear();
+            _bars.Clear();
+            var step = w.BarWidth * 2;
+            var count = w.Values.Count;
+            var start = ActualWidth - count * step + w.BarWidth;
+            for (var i = 0; i < count; i++)
+            {
+                var bar = new Rectangle
+                {
+                    Width = w.BarWidth,
+                    Height = w.Height,
+                    RadiusX = w.BarWidth / 2,
+                    RadiusY = w.BarWidth / 2,
+                };
+                SetLeft(bar, start + i * step);
+                // Zu schmal für alle: die ältesten (links) fallen weg.
+                bar.Visibility = start + i * step < 0 ? Visibility.Collapsed : Visibility.Visible;
+                SetTop(bar, 0);
+                var visual = ElementCompositionPreview.GetElementVisual(bar);
+                visual.CenterPoint = new Vector3((float)w.BarWidth / 2, (float)w.Height / 2, 0);
+                visual.Scale = new Vector3(1, MinScale, 1);
+                Children.Add(bar);
+                _bars.Add(bar);
+            }
         }
     }
 

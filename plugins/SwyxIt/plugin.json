@@ -1,0 +1,13 @@
+{
+  "id": "de.brim.swyxit",
+  "name": "SwyxIt!",
+  "version": "1.1.0",
+  "entry": "BrimSwyxIt.exe",
+  "api": "1",
+  "slots": ["compact.leading", "compact.trailing", "hud", "expanded.tab"],
+  "permissions": ["alerts", "notifications"],
+  "notificationApps": ["Swyx Messenger"],
+  "settings": [
+    { "key": "chat", "type": "bool", "label": "Chat-Nachrichten zeigen", "default": true }
+  ]
+}

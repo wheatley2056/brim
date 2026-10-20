@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Plugin-Host (Plan 4.2): findet Plugins, startet sie als eigene Prozesse und spricht JSON-RPC über Named Pipes. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Brim.Plugins</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Brim.Core\Brim.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Brim.Plugins.Tests" />
+  </ItemGroup>
+</Project>

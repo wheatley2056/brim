@@ -135,6 +135,18 @@ public sealed class ShareSettings
     public string? ProxyUrl { get; set; }
 }
 
+/// <summary>Ein Plugin aus Sicht des Nutzers (Plan 4.2, Sicherheit).</summary>
+public sealed class PluginConfig
+{
+    public bool Enabled { get; set; }
+
+    /// <summary>Rechte, denen der Nutzer beim Einschalten zugestimmt hat.</summary>
+    public List<string> Granted { get; set; } = [];
+
+    /// <summary>Werte für die Einstellungen aus dem Manifest.</summary>
+    public Dictionary<string, JsonElement> Values { get; set; } = [];
+}
+
 public sealed class BatterySettings
 {
     /// <summary>Beim Laden Akkustand in der kompakten Notch zeigen (Plan 4.6).</summary>
@@ -145,6 +157,34 @@ public sealed class BatterySettings
 
     /// <summary>Darunter klappt sich die Notch mit einem kritischen Hinweis kurz auf (Prozent).</summary>
     public int CriticalPercent { get; set; } = 10;
+}
+
+public enum GameOverlay
+{
+    /// <summary>Notch verschwindet im Spiel komplett (Standard).</summary>
+    Off,
+    /// <summary>Schmale Pille mit FPS · ms bleibt, halbtransparent.</summary>
+    Mini,
+    /// <summary>Unsichtbar; Win+Alt+F blendet FPS für 5 s ein.</summary>
+    OnDemand,
+}
+
+/// <summary>FPS und Latenz in Spielen (Plan 4.8).</summary>
+public sealed class GameSettings
+{
+    /// <summary>FPS messen (startet den Messdienst; braucht einmalig die Gruppe „Leistungsprotokollbenutzer“).</summary>
+    public bool Enabled { get; set; }
+
+    public GameOverlay Overlay { get; set; } = GameOverlay.Off;
+
+    /// <summary>Server für die Netzwerklatenz (Ping), z. B. ein Spielserver; leer = aus.</summary>
+    public string PingHost { get; set; } = "";
+}
+
+public sealed class NotificationSettings
+{
+    /// <summary>Apps (Anzeigename wie in den Windows-Benachrichtigungen), deren Benachrichtigungen die Notch nicht zeigt.</summary>
+    public List<string> MutedApps { get; set; } = [];
 }
 
 public sealed class UpdateSettings
@@ -163,6 +203,8 @@ public sealed class BrimSettings
 {
     public UpdateSettings Updates { get; set; } = new();
     public BatterySettings Battery { get; set; } = new();
+    public GameSettings Games { get; set; } = new();
+    public NotificationSettings Notifications { get; set; } = new();
     public ShareSettings Share { get; set; } = new();
     public AutoHideSettings AutoHide { get; set; } = new();
     public ShelfSettings Shelf { get; set; } = new();
@@ -170,6 +212,12 @@ public sealed class BrimSettings
     public AnimationSettings Animation { get; set; } = new();
     public InteractionSettings Interaction { get; set; } = new();
     public ClockSettings Clock { get; set; } = new();
+
+    /// <summary>Plugins nach Kennung.</summary>
+    public Dictionary<string, PluginConfig> Plugins { get; set; } = [];
+
+    /// <summary>Weitere Ordner mit Plugins, z. B. beim Entwickeln (zusätzlich zu %LocalAppData%\Brim\Plugins).</summary>
+    public List<string> PluginDirectories { get; set; } = [];
 
     /// <summary>Module, die der Nutzer abgeschaltet hat (Modul-IDs).</summary>
     public List<string> DisabledModules { get; set; } = [];

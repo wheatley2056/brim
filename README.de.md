@@ -63,7 +63,7 @@ Dateien oder Ordner auf die Notch ziehen – sie bleiben, bis du sie entfernst, 
 Der Tab „System“ zeigt CPU, RAM, GPU und Netzwerk mit Verlauf der letzten Minute und die drei Prozesse mit der meisten Last – aus denselben Leistungsindikatoren wie der Task-Manager, die Werte stimmen also überein. Gemessen wird nur, solange der Tab offen ist. Auf Laptops zeigt Brim Akkustand und Restzeit, ein HUD beim Einstecken und warnt einmal, wenn der Akku zur Neige geht. Helligkeit bekommt ein eigenes HUD, und ein grüner oder oranger Punkt zeigt, wenn eine App Kamera oder Mikrofon benutzt.
 
 ### 🫥 Macht Platz
-Liegt ein Fenster unter der Notch – maximiert, im Vollbild oder einfach hochgeschoben –, schmilzt Brim in die Kante. Auch beim Ziehen eines Fensters zur Snap-Leiste zieht sie sich zurück. Teilst du deinen Bildschirm in Teams, Zoom, Meet oder Webex, bleibt sie aus dem Bild. Regeln pro App (OBS immer zeigen, Premiere immer ausblenden), „nur Desktop“, Ausblenden bei Leerlauf und eine Verzögerung stehen in `settings.json`. Maus an die Oberkante oder Win+Alt+N, und sie kommt wieder herunter.
+Liegt ein Fenster unter der Notch – maximiert, im Vollbild oder einfach hochgeschoben –, schmilzt Brim in die Kante. Auch beim Ziehen eines Fensters zur Snap-Leiste zieht sie sich zurück. Teilst du deinen Bildschirm in Teams, Zoom, Meet oder Webex, bleibt sie aus dem Bild. Regeln pro App (OBS immer zeigen, Premiere immer ausblenden), „nur Desktop“, Ausblenden bei Leerlauf und eine Verzögerung stellst du in den Einstellungen ein. Maus an die Oberkante oder Win+Alt+N, und sie kommt wieder herunter.
 
 ### 🔄 Updates, die du nicht merkst
 Brim aktualisiert sich im Hintergrund aus den GitHub-Releases, lädt nur, was sich geändert hat, und startet erst neu, wenn du ein paar Minuten nicht am Rechner bist. Danach erzählt die Notch, was neu ist.
@@ -71,6 +71,15 @@ Brim aktualisiert sich im Hintergrund aus den GitHub-Releases, lädt nur, was si
 <p align="center">
   <img src="docs/assets/update.png" alt="Changelog in der Notch nach einem Update, mit dem Knopf Verstanden" width="760">
 </p>
+
+### 🎮 Spiele
+Brim misst die Bildrate wie PresentMon über die DXGI- und Direct3D-9-Ereignisse von Windows, und zwar für das Spiel im Vordergrund: FPS, 1 % Low, Frametime-Verlauf und auf Wunsch den Ping zu deinem Spielserver. Im Spiel macht die Notch Platz. Nach Wahl bleibt eine kleine, halbtransparente Pille mit „FPS · ms“ stehen, oder Win+Alt+F zeigt sie für fünf Sekunden. Einschalten unter Einstellungen → Spiele. Beim ersten Mal fragt Brim einmal nach Adminrechten, um dich in die Gruppe „Leistungsprotokollbenutzer“ aufzunehmen. Danach misst Brim ohne Adminrechte.
+
+### 🗓️ Timer, Kalender, Benachrichtigungen
+Timer und Stoppuhr sind im Tab „Jetzt“ einen Klick entfernt, auch neben dem Player. Sie laufen kompakt mit Ring, und ist die Zeit um, klappt die Notch auf. Nach einmaliger Einrichtung steht der nächste Termin aus dem Windows-Kalender unter der Uhr und erscheint 15 Minuten vorher mit Countdown und „Beitreten“. Neue Windows-Benachrichtigungen zeigt die Notch kurz als Vorschau.
+
+### 🧩 Plugins
+Eigene Inhalte für die Notch: kompakter Status, HUD oder Karten im Tab „Plugins“. Plugins laufen als eigene Programme in beliebiger Sprache und beschreiben ihre Oberfläche als Daten. So können sie die Notch weder verunstalten noch einfrieren. Ein abgestürztes Plugin startet neu und schaltet sich nach dem dritten Absturz ab. Neue Plugins sind zunächst aus, und der Tab „Plugins“ zeigt, was jedes darf. Siehe [`docs/plugins.md`](docs/plugins.md) und die [Beispiele](samples). Ein erstes echtes Plugin ist [`plugins/SwyxIt`](plugins/SwyxIt). Es zeigt eingehende SwyxIt!-Anrufe mit Annehmen und Ablehnen, laufende Gespräche und Chat-Nachrichten.
 
 ### ♿ Für alle gebaut
 Namen für die Windows-Bedienungshilfen überall, Ansagen der Sprachausgabe für HUDs, Tastatur mit <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> und sanftes Überblenden statt Bewegung, wenn die Animationseffekte von Windows aus sind.
@@ -93,12 +102,15 @@ Namen für die Windows-Bedienungshilfen überall, Ansagen der Sprachausgabe für
 | <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> | Per Tastatur auf- und zuklappen |
 | Datei auf die Notch ziehen | In der Ablage behalten |
 | Maus an die Oberkante | Versteckte Notch zurückholen |
-| Symbol im Infobereich | Einstellungsdatei, Protokolle, Beenden |
+| Symbol im Infobereich | Einstellungen, Protokolle, Beenden |
+| <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> | FPS im Spiel zeigen (Modus „Bei Bedarf“) |
 
-Einstellungen stehen in `%LocalAppData%\Brim\settings.json` (Animation, Ausblende-Regeln, Proxy, Updates).
+Die Einstellungen öffnest du über das Brim-Symbol im Infobereich (Rechtsklick → Einstellungen); gespeichert werden sie in `%LocalAppData%\Brim\settings.json`.
 
 ## Datenschutz und Sicherheit
 
+- **Plugins** laufen als eigene Prozesse, sind zunächst aus und bekommen nur, was du freigibst: die Rechte neben ihrem Schalter. Alles, was sie anzeigen, wird geprüft, und sie enden mit Brim.
+- **Kalender und Benachrichtigungen** brauchen eine Paketidentität. Brim signiert dieses kleine Paket mit einem Zertifikat, das für jedes Release neu entsteht; dein PC vertraut ihm erst, wenn du „Einrichten“ klickst und die Admin-Rückfrage bestätigst.
 - **Keine Telemetrie, keine Konten, keine Brim-Server.** Brim geht nur ins Internet, um bei GitHub nach Updates zu sehen und – wenn du per Code sendest oder empfängst – zu den öffentlichen Magic-Wormhole-Servern, die ausschließlich verschlüsselte Daten sehen.
 - **Teilen in der Nähe** nutzt gegenseitiges TLS mit Zertifikaten pro Installation; der im Netz angekündigte Fingerabdruck muss zur Verbindung passen.
 - **Eingehende Dateien** brauchen immer deine Zustimmung; Pfade werden bereinigt, Archive gegen Pfad-Ausbrüche und ZIP-Bomben geprüft.
@@ -132,6 +144,9 @@ Netz- und Kompatibilitätstests gegen das Original-Magic-Wormhole laufen, wenn `
 |---|---|
 | `src/Brim.Core` | Aktivitäten und Hub, Zustandsmaschine der Notch, deklarative Widgets, Geometrie, Federphysik, Ablage, Einstellungen. Ohne Windows-Abhängigkeit, vollständig getestet. |
 | `src/Brim.Modules` | Eingebaute Module – Uhr, Musik, Audio, Akku, Ressourcen, Helligkeit, Kamera/Mikrofon, Teilen (LAN und Magic Wormhole), Updates. Sie beschreiben ihre Oberfläche als Widgets, kein WinUI. |
+| `src/Brim.Plugins` | Plugin-Host: findet Plugins, startet sie als Prozesse, spricht JSON-RPC über Named Pipes, prüft ihre Widgets, startet nach Abstürzen neu. |
+| `src/Brim.Telemetry` | FPS-Messung über ETW in eigenem Prozess (`Brim.exe --telemetry`) und die einmalige Einrichtung der Rechte. |
+| `src/Brim.Sdk` | SDK für .NET-Plugins. Das Protokoll selbst steht in [`docs/plugins.md`](docs/plugins.md). |
 | `src/Brim` | Die WinUI-3-Shell: ein Fenster pro Monitor, Morph-Engine im Compositor, Widget-Renderer, Ablage, Ausblenden, Tray und Updater. |
 | `tests/` | Zustandsmaschine, Federn, Geometrie, Ablage, Teilen-Protokoll, SPAKE2-Testvektoren aus der Referenz, Live-Gegenproben mit dem Original-Magic-Wormhole. |
 
@@ -144,11 +159,13 @@ Eingebaute Funktionen sind Module mit derselben Schnittstelle, die Plugins bekom
 - [x] **Ablage** – hineinziehen, behalten, herausziehen
 - [x] **Teilen** – in der Nähe (LAN) und per Code (Magic Wormhole), mit Proxy
 - [x] **Unbemerkte Updates** mit Changelog in der Notch
-- [x] **Ausblenden** – Vollbild, maximiert, Überlappung, nur Desktop, Leerlauf, Regeln pro App, Bildschirmfreigabe, Oberkante *(Einstellungsfenster kommt mit 1.0)*
-- [x] **System** – Akku, CPU, RAM, GPU, Netzwerk, Helligkeit, Kamera/Mikrofon *(Datenträger und externe Monitore per DDC/CI folgen)*
-- [ ] **Plugins** – offenes Protokoll und SDK für eigene Inhalte
-- [ ] **Spiele** – FPS und Latenz als Mini-Pille
-- [ ] **Mehr** – Timer, Kalender, Benachrichtigungen, Bluetooth-Akku, Einstellungsfenster, Signatur, winget
+- [x] **Ausblenden** – Vollbild, maximiert, Überlappung, nur Desktop, Leerlauf, Regeln pro App, Bildschirmfreigabe, Oberkante
+- [x] **System** – Akku, CPU, RAM, GPU, Datenträger, Netzwerk, Helligkeit, Kamera/Mikrofon, Bluetooth mit Akku
+- [x] **Plugins** – offenes Protokoll, SDK, Einstellungen und Ablage-Aktionen; SwyxIt!-Plugin
+- [x] **Spiele** – FPS, 1 % Low, Frametime und Ping, als Mini-Pille oder auf Abruf
+- [x] **Timer, Stoppuhr, Kalender, Vorschau von Benachrichtigungen**
+- [x] **Einstellungsfenster**, winget-Manifeste
+- [ ] **Als Nächstes** – Personalisierung (Formen, Farben, Glas), englische Oberfläche, Anzeige-Latenz wie PresentMon, Vulkan/OpenGL, Helligkeit externer Monitore (DDC/CI), Signatur
 
 ## Danke
 

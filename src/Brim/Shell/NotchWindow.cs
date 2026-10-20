@@ -238,6 +238,12 @@ internal sealed partial class NotchWindow : WindowEx
     /// </summary>
     private void OnPointer(bool entered)
     {
+        // Die Mini-Pille über einem Spiel reagiert nicht auf die Maus.
+        if (View.Mode == NotchMode.Mini)
+        {
+            SetInside(false);
+            return;
+        }
         if (entered || CursorInside())
         {
             SetInside(true);

@@ -63,7 +63,7 @@ Drag files or folders onto the notch and they stay there until you remove them �
 The System tab shows CPU, RAM, GPU and network with one-minute history, plus the three busiest processes — read from the same performance counters as Task Manager, so the numbers match. It only measures while the tab is open. On laptops, Brim shows battery level and time left, a charging HUD when you plug in, and warns once when the battery runs low. Brightness changes get their own HUD, and a green or orange dot tells you when an app is using your camera or microphone.
 
 ### 🫥 Gets out of the way
-When a window sits under the notch — maximized, fullscreen, or just pushed up — Brim melts into the edge. Dragging a window toward the top for Snap Layouts hides it too. While you share your screen in Teams, Zoom, Meet or Webex it stays out of the picture. Per-app rules (always show for OBS, always hide for Premiere), a desktop-only mode, hiding when idle and a hide delay live in `settings.json`. Rest your mouse at the top edge or press Win+Alt+N and it drops back down.
+When a window sits under the notch — maximized, fullscreen, or just pushed up — Brim melts into the edge. Dragging a window toward the top for Snap Layouts hides it too. While you share your screen in Teams, Zoom, Meet or Webex it stays out of the picture. Per-app rules (always show for OBS, always hide for Premiere), a desktop-only mode, hiding when idle and a hide delay are in the settings. Rest your mouse at the top edge or press Win+Alt+N and it drops back down.
 
 ### 🔄 Updates you won't notice
 Brim updates itself from GitHub releases in the background, downloads only what changed, and restarts only when you're away for a few minutes. Afterwards the notch tells you what's new.
@@ -71,6 +71,15 @@ Brim updates itself from GitHub releases in the background, downloads only what 
 <p align="center">
   <img src="docs/assets/update.png" alt="Changelog in the notch after an update, with a Got it button" width="760">
 </p>
+
+### 🎮 Games
+Brim measures FPS the way PresentMon does, from Windows' own DXGI and Direct3D 9 events, for the game in front of you: frame rate, 1 % low, a frametime graph and optionally the ping to your game server. While you play, the notch steps aside. If you like, a small translucent pill with "FPS · ms" stays at the top, or Win+Alt+F shows it for five seconds. Turn it on under Settings → Games. The first time, Brim asks once for admin rights to add you to the "Performance Log Users" group. After that, measuring runs without admin rights.
+
+### 🗓️ Timer, calendar, notifications
+A timer or stopwatch is one click away in the Now tab, even next to the player. It runs in the compact notch with a ring, and when time is up the notch opens. After a one-time setup, the next meeting from the Windows calendar shows under the clock and appears 15 minutes ahead with a countdown and Join. New Windows notifications show up briefly as a preview.
+
+### 🧩 Plugins
+Add your own content to the notch: a compact status, a HUD, or cards in the Plugins tab. Plugins run as separate processes in any language and describe their UI as data, so they can't break the notch or freeze it. A plugin that crashes is restarted and switched off after the third crash. New plugins start switched off, and the Plugins tab shows what each one may do. See [`docs/plugins.md`](docs/plugins.md) and the [samples](samples). A first real plugin is [`plugins/SwyxIt`](plugins/SwyxIt). It shows incoming SwyxIt! calls with Answer and Decline, running calls, and chat messages.
 
 ### ♿ Built for everyone
 UI Automation names for everything, screen reader announcements for HUDs, keyboard access with <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd>, and a gentle fade instead of motion when Windows animations are turned off.
@@ -93,12 +102,15 @@ UI Automation names for everything, screen reader announcements for HUDs, keyboa
 | <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> | Open/close from the keyboard |
 | Drag a file onto it | Keep it on the shelf |
 | Mouse to the top edge | Bring a hidden notch back |
-| Tray icon | Settings file, logs, quit |
+| Tray icon | Settings, logs, quit |
+| <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> | Show FPS in a game (on demand mode) |
 
-Settings live in `%LocalAppData%\Brim\settings.json` (animation, auto-hide rules, proxy, updates). The interface is German for now; English is planned.
+Settings open from the tray icon (right-click → Settings) and are stored in `%LocalAppData%\Brim\settings.json`. The interface is German for now; English is planned.
 
 ## Privacy & security
 
+- **Plugins** run as separate processes, start switched off, and only get what you approve: the permissions shown next to their switch. Everything they display is validated, and they end with Brim.
+- **Calendar and notifications** need a package identity. Brim signs this tiny identity package with a certificate made fresh for each release; your PC trusts it only after you click "Set up" and approve the admin prompt.
 - **No telemetry, no accounts, no Brim servers.** Brim talks to the internet only to check GitHub for updates and — when you send or receive by code — to the public Magic Wormhole servers, which only ever see encrypted data.
 - **Nearby sharing** uses mutual TLS with per-install certificates; the fingerprint announced on the network must match the connection.
 - **Incoming files** always need your confirmation; paths are sanitized and archives are checked against path traversal and zip bombs.
@@ -132,6 +144,9 @@ Network and interoperability tests against the original Magic Wormhole run when 
 |---|---|
 | `src/Brim.Core` | Activities and the activity hub, the notch state machine, declarative widgets, shape geometry, spring physics, shelf store, settings. No Windows dependencies, fully unit-tested. |
 | `src/Brim.Modules` | Built-in modules — clock, media, audio, battery, resources, brightness, camera/mic, sharing (LAN and Magic Wormhole), updates. They describe their UI as widgets; no WinUI. |
+| `src/Brim.Plugins` | Plugin host: finds plugins, starts them as processes, speaks JSON-RPC over named pipes, validates their widgets, restarts after crashes. |
+| `src/Brim.Telemetry` | FPS measurement via ETW in its own process (`Brim.exe --telemetry`), plus the one-time permission setup. |
+| `src/Brim.Sdk` | SDK for .NET plugins. The protocol itself is documented in [`docs/plugins.md`](docs/plugins.md). |
 | `src/Brim` | The WinUI 3 shell: one window per monitor, the compositor-driven morph engine, widget renderer, shelf, auto-hide, tray and updater. |
 | `tests/` | State machine, springs, geometry, shelf, sharing protocol, SPAKE2 test vectors from the reference implementation, live interop with the original Magic Wormhole. |
 
@@ -144,11 +159,13 @@ Built-in features are modules that use the same interface plugins will: they pos
 - [x] **Shelf** — drag in, keep, drag out
 - [x] **Sharing** — nearby (LAN) and by code (Magic Wormhole), proxy support
 - [x] **Silent updates** with in-notch changelog
-- [x] **Auto-hide** — fullscreen, maximized, overlap, desktop-only, idle, per-app rules, screen-sharing detection, top-edge peek *(settings window comes with 1.0)*
-- [x] **System** — battery, CPU, RAM, GPU, network, brightness, camera/mic indicators *(disk and external monitors via DDC/CI still to come)*
-- [ ] **Plugins** — open protocol and SDK for your own notch content
-- [ ] **Games** — FPS and latency in a mini pill
-- [ ] **More** — timer, calendar, notifications, Bluetooth battery, settings window, code signing, winget
+- [x] **Auto-hide** — fullscreen, maximized, overlap, desktop-only, idle, per-app rules, screen-sharing detection, top-edge peek
+- [x] **System** — battery, CPU, RAM, GPU, disk, network, brightness, camera/mic, Bluetooth with battery
+- [x] **Plugins** — open protocol, SDK, settings and shelf actions; SwyxIt! plugin
+- [x] **Games** — FPS, 1 % low, frametime and ping, as a mini pill or on demand
+- [x] **Timer, stopwatch, calendar, notification preview**
+- [x] **Settings window**, winget manifests
+- [ ] **Next** — personalization (shapes, colors, glass), English interface, display latency like PresentMon, Vulkan/OpenGL, external monitor brightness (DDC/CI), code signing
 
 ## Credits
 

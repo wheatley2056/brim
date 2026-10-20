@@ -6,30 +6,31 @@ using TabView = Brim.Core.TabView;
 namespace Brim.Shell;
 
 /// <summary>
-/// Tab „System“ (design/boards/4-shelf-system.html): Module liefern Karten über
-/// <see cref="ActivityHub.SetView"/>. Links die Messwerte (328 px), rechts Akku und Prozesse.
-/// Jede Karte hat einen eigenen Platz, damit ihre Knöpfe beim richtigen Modul landen.
+/// Tabs aus Karten: „System“ (design/boards/4-shelf-system.html) und „Plugins“. Module und Plugins liefern
+/// Karten über <see cref="ActivityHub.SetView"/>; links die Hauptspalte (328 px), rechts schmale Karten
+/// (Akku, Prozesse, Plugin-Verwaltung). Jede Karte hat einen eigenen Platz, damit ihre Knöpfe beim
+/// richtigen Modul landen.
 /// </summary>
 public sealed partial class NotchView
 {
-    private const double SystemMainWidth = 328;
+    private const double MainColumnWidth = 328;
     private readonly Dictionary<string, ContentPresenter> _viewPresenters = new();
 
     /// <returns><c>false</c>, wenn kein Modul etwas beisteuert (dann zeigt der Tab einen Hinweis).</returns>
-    private bool UpdateSystem()
+    private bool UpdateTabViews(NotchTab tab)
     {
-        var views = _hub.Views(NotchTab.System);
+        var views = _hub.Views(tab);
         var main = views.Where(v => v.Column == TabColumn.Main).ToList();
         var side = views.Where(v => v.Column == TabColumn.Side).ToList();
-        Fill(SystemMain, main);
-        Fill(SystemSide, side);
+        Fill(TabViewMain, main);
+        Fill(TabViewSide, side);
 
         // Fehlt eine Spalte, nimmt die andere die ganze Breite.
-        SystemMainColumn.Width = main.Count == 0 ? new GridLength(0)
+        TabViewMainColumn.Width = main.Count == 0 ? new GridLength(0)
             : side.Count == 0 ? new GridLength(1, GridUnitType.Star)
-            : new GridLength(SystemMainWidth);
-        SystemSideColumn.Width = side.Count == 0 ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        SystemPanel.ColumnSpacing = main.Count > 0 && side.Count > 0 ? 16 : 0;
+            : new GridLength(MainColumnWidth);
+        TabViewSideColumn.Width = side.Count == 0 ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        TabViewPanel.ColumnSpacing = main.Count > 0 && side.Count > 0 ? 16 : 0;
 
         // Karten, die es nicht mehr gibt (z. B. Akku entfernt), freigeben.
         foreach (var gone in _viewPresenters.Keys.Except(views.Select(v => v.Key)).ToList())

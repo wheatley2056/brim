@@ -15,7 +15,9 @@ public sealed record ResourceSample(
     double? Gpu,
     double NetworkDown,
     double NetworkUp,
-    IReadOnlyList<ProcessUsage> TopProcesses);
+    IReadOnlyList<ProcessUsage> TopProcesses,
+    /// <summary>Aktive Zeit aller Datenträger in Prozent, wie im Task-Manager.</summary>
+    double? Disk = null);
 
 public interface IResourceSampler : IDisposable
 {
@@ -85,6 +87,7 @@ internal sealed partial class PdhResourceSampler : IResourceSampler
     private readonly Pdh.Counter? _received;
     private readonly Pdh.Counter? _sent;
     private readonly Pdh.Counter? _processes;
+    private readonly Pdh.Counter? _diskIdle;
     private readonly Dictionary<string, string> _displayNames = new(StringComparer.OrdinalIgnoreCase);
 
     public PdhResourceSampler()
@@ -96,6 +99,7 @@ internal sealed partial class PdhResourceSampler : IResourceSampler
         _received = _query.TryAdd(@"\Network Interface(*)\Bytes Received/sec");
         _sent = _query.TryAdd(@"\Network Interface(*)\Bytes Sent/sec");
         _processes = _query.TryAdd(@"\Process(*)\% Processor Time");
+        _diskIdle = _query.TryAdd(@"\PhysicalDisk(_Total)\% Idle Time");
         _query.Collect();
     }
 
@@ -117,7 +121,8 @@ internal sealed partial class PdhResourceSampler : IResourceSampler
                 _gpu is null ? null : ResourceMath.GpuUtilization(_gpu.Values()),
                 _received?.Values().Sum(v => v.Value) ?? 0,
                 _sent?.Values().Sum(v => v.Value) ?? 0,
-                top);
+                top,
+                _diskIdle?.Value() is { } idle ? Math.Clamp(100 - idle, 0, 100) : null);
         }
     }
 

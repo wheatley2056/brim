@@ -65,6 +65,17 @@ public static class AccentColor
         $"#{(int)Math.Round(r * 255):X2}{(int)Math.Round(g * 255):X2}{(int)Math.Round(b * 255):X2}";
 
     /// <summary>Liest #RRGGBB oder #AARRGGBB.</summary>
+    /// <summary>Ob <paramref name="hex"/> eine Farbe in der Form <c>#RRGGBB</c> oder <c>#AARRGGBB</c> ist.</summary>
+    public static bool IsValid(string? hex)
+    {
+        if (hex is null)
+        {
+            return false;
+        }
+        var s = hex.TrimStart('#');
+        return s.Length is 6 or 8 && s.All(Uri.IsHexDigit);
+    }
+
     public static (byte A, byte R, byte G, byte B) Parse(string hex)
     {
         var s = hex.TrimStart('#');

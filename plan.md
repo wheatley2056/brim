@@ -307,10 +307,10 @@ Kerbe.sln
 | 1b · Teilen | Brim-zu-Brim im LAN, danach per Code übers Internet | A10 fertig |
 | 2 · System | Akku, Ressourcen, Helligkeit, Kamera/Mikro | A5–A7 fertig (siehe 7a) |
 | 3 · Ausblenden | Regelwerk, App-Ausnahmen, Animationseinstellungen, Rand-Reveal | A9 fertig (siehe 7b) |
-| 4 · Plugins | Protokoll, Host, SDK, zwei Beispiel-Plugins | A2 fertig |
-| 5 · Spiele | Telemetrie-Dienst, FPS/Latenz, Spielmodus | A8 fertig |
-| 6 · Mac-Paket | Timer, Kalender, Benachrichtigungen, Bluetooth, Teilen | A3 vollständig |
-| 7 · Auslieferung | MSIX, Signatur, winget, Auto-Update, Einstellungsfenster | Version 1.0 |
+| 4 · Plugins | Protokoll, Host, SDK, zwei Beispiel-Plugins | A2 fertig (siehe 7c) |
+| 5 · Spiele | Telemetrie-Dienst, FPS/Latenz, Spielmodus | A8 fertig (siehe 7d) |
+| 6 · Mac-Paket | Timer, Kalender, Benachrichtigungen, Bluetooth, Teilen | A3 vollständig (siehe 7e) |
+| 7 · Auslieferung | MSIX, Signatur, winget, Auto-Update, Einstellungsfenster | Version 1.0 (siehe 7f, 7g) |
 
 ### 7a. Stand Phase 2 (20.10.2026)
 
@@ -344,6 +344,96 @@ Noch offen:
 - Merkmale für die Freigabe sind aus der Erinnerung zusammengestellt und unter Windows zu prüfen, vor allem für das neue Teams und Discord (Discord zeigt keine eigene Leiste).
 - Animationsstil und -dauer sind schon einstellbar (`Animation`), ein Vorschau-Knopf fehlt bis zum Einstellungsfenster.
 
+### 7c. Stand Phase 4 (20.10.2026)
+
+Umgesetzt (Protokoll für Entwickler: `docs/plugins.md`):
+- **Protokoll** in `Brim.Core/Plugins`: JSON-RPC 2.0, eine Nachricht pro Zeile, höchstens 1 MB. Widgets als JSON mit `"type"`. Methoden wie in 4.2, dazu `view.clear`, `log`, `tab.visibility` und `shutdown`.
+- **Pipe** mit zufälligem Namen pro Start (`BRIM_PIPE`), nur für den eigenen Benutzer (`CurrentUserOnly`), genau eine Verbindung. Der Name `\\.\pipe\kerbe-<id>` aus 4.2 wäre erratbar.
+- **Host** (`Brim.Plugins`): findet Plugins in `%LocalAppData%\Brim\Plugins` und `PluginDirectories`, prüft Manifeste (Kennung, API, `entry` nur im eigenen Ordner oder als Befehl im Suchpfad, bekannte Rechte). Startet eingeschaltete Plugins ohne Fenster, Ausgaben in `logs\plugins\<id>.log`.
+- **Prüfung aller Inhalte** (`WidgetValidator`): Farben, Maße, Textlängen, höchstens 400 Bausteine, 16 Ebenen, 1 MB Bilder. Aktionen werden pro Plugin zugeordnet. Rang 0–9, `idle` ist der Uhr vorbehalten, `critical` nur mit dem Recht „alerts“, höchstens 120 Nachrichten pro Sekunde.
+- **Abstürze:** 10 s Zeit für `hello`, Neustart nach 1 s und 5 s, abgeschaltet nach 3 Abstürzen in 10 Minuten. Beim Beenden erst `shutdown`, nach 2 s wird der Prozessbaum beendet. Alles, was das Plugin zeigte, verschwindet.
+- **Zustimmung und Verwaltung** im Tab „Plugins“ (rechte Spalte): jedes Plugin mit Zustand, Rechten und Schalter. Einschalten heißt Zustimmung zu genau diesen Rechten; kommen mit einem Update neue hinzu, bleibt es aus, bis neu zugestimmt wird.
+- **SDK** `Brim.Sdk` (`BrimPlugin`) und Beispiele `samples/ServerStatus` (.NET) und `samples/python-counter` (Python ohne Bibliotheken).
+- Die Tabs „System“ und „Plugins“ teilen sich jetzt dieselbe Kartenansicht in der Shell.
+
+Noch offen:
+- **Slot `shelf.action`:** Host und Protokoll sind fertig (`shelf.items`, `SendShelfItems`), der Knopf in der Ablage fehlt noch.
+- **Einstellungen der Plugins** gibt es bisher nur in `settings.json` (`Plugins.<id>.Values`), eine Oberfläche kommt mit dem Einstellungsfenster.
+- **Abhängigkeit:** Das SDK hängt an Brim.Core; für ein eigenes NuGet-Paket ggf. Protokoll und Widgets in ein schlankes Paket auslagern.
+- **Job-Objekt**, damit Plugins sicher mit Brim enden, auch wenn Brim abstürzt.
+- `lifecycle.suspend/resume` (Bildschirm aus, Energiesparen) noch nicht verschickt; `tab.visibility` deckt den häufigsten Fall ab.
+- Offene Entscheidung 4 (nur deklarativ oder später XAML) bleibt offen; bisher nur deklarativ.
+
+### 7c+. SwyxIt!-Plugin (20.10.2026)
+
+`plugins/SwyxIt`: erstes echtes Plugin, über die COM-Schnittstelle von SwyxIt! (`Swyx.Client.ClmgrAPI` 14.21, MIT).
+- Bei jeder Meldung `DispOnLineMgrNotification` liest es alle Leitungen neu (`DispGetLine`, `DispState`) und hängt damit nicht an den Nummern der Meldungen. Daraus entstehen: Klingeln (3) und Anklopfen (6) als kritischer Hinweis mit Ablehnen (`DispHookOn`) und Annehmen (`DispSelectLine` + `DispHookOff`), alle 5 s erneuert. Aktive oder gehaltene Gespräche erscheinen kompakt mit Dauer, Halten/Fortsetzen und Auflegen.
+- Chat über `DispRegisterChatMessageReader`/`DispReadChatMessage` als HUD, die letzten fünf als Karte; „Chat öffnen“ über `IClientLineMgrInstantMessaging`.
+- COM läuft auf einem STA-Thread mit WinForms-Nachrichtenschleife ohne Fenster. Es verbindet sich nur mit einem laufenden SwyxIt! und prüft das alle 10 s neu.
+- Version 1.1: Schnellmenü im Gespräch (Stumm über `DispMicroEnabled`, Tastentöne über `DispSendDtmf`, Weiterleiten: klingelnd über `DispForwardCall`, im Gespräch Ziel auf freier Leitung wählen und bei Klingeln/Annahme `DispTransferCall`, sonst nach 20 s zurück). Echte Wellenform aus den Core-Audio-Sitzungen von SwyxIt! (Lautsprecher und Mikrofon), etwa 15 Updates pro Sekunde, nur bei aufgeklappter Notch. Swyx Messenger hat keine Schnittstelle; seine Windows-Benachrichtigungen leitet Brim an das Plugin weiter (neues Recht `notifications`, Manifestfeld `notificationApps`).
+- Dafür neu in Brim: Baustein `wave` (Balken gleiten im Compositor), Benachrichtigungen `notch.expanded` und `notification.posted` im Protokoll.
+- Offen: unter Windows mit echtem SwyxIt! prüfen, vor allem Weiterleiten (ob SwyxIt! beim Wählen auf der zweiten Leitung von selbst hält) und den Anzeigenamen von Swyx Messenger; x86-Fassung für 32-Bit-SwyxIt!.
+
+### 7d. Stand Phase 5 (20.10.2026)
+
+Umgesetzt:
+- **Messdienst** (`Brim.Telemetry`) als zweiter Prozess über `Brim.exe --telemetry` statt eigener EXE: Das Release-Paket bleibt unverändert, und ETW-Rechte oder ein Absturz berühren die Notch nicht. Er verbindet sich über eine Pipe mit zufälligem Namen und spricht dasselbe JSON-RPC wie Plugins (`watch`, `frames`, `status`).
+- **ETW wie PresentMon:** Echtzeitsitzung auf Microsoft-Windows-DXGI (Present_Start 42, PresentMultiplaneOverlay_Start 55) und Microsoft-Windows-D3D9 (Present_Start 1), gezählt nur für den Prozess im Vordergrund. FPS (1 s), 1 % Low (10 s), Frametime und ihr Verlauf rechnet `FrameCounter` in Brim.Core (getestet).
+- **Rechte:** Statt eines Dienstes mit Adminrechten genügt die Gruppe „Leistungsprotokollbenutzer“ (SID S-1-5-32-559). Fehlt sie, bietet der Tab „Jetzt“ „Einrichten“ an. Brim startet sich dann einmal erhöht mit `--telemetry-setup <Nutzer>` und ruft `net localgroup` auf; wirksam nach dem nächsten Anmelden.
+- **Spiel erkannt**, wenn das Vordergrundfenster seinen Monitor füllt und Bilder ausgibt. Die Werte stehen im Tab „Jetzt“ (Hintergrund-Aktivität), auf Wunsch mit Ping (`Games.PingHost`) als Netzwerklatenz.
+- **Spielmodus** (`Games.Overlay`): `Off` (Standard, entscheidet offene Frage 3), `Mini` (neuer Zustand `NotchMode.Mini`, Pille 124 × 22, 75 % Deckkraft, ignoriert die Maus) und `OnDemand` (Win+Alt+F zeigt die Pille 5 s). Kritische Hinweise gehen auch im Spiel vor.
+
+Noch offen:
+- **Anzeige-Latenz** (`MsUntilDisplayed`) braucht die DxgKrnl-Ereignisse und die Flip-/VSync-Verfolgung von PresentMon; bisher zeigt Brim Frametime und Ping.
+- **Vulkan und OpenGL** laufen nicht immer über DXGI. Dafür müsste die DxgKrnl-Auswertung von PresentMon nachgebaut werden.
+- Alternative Quelle Intel-PresentMon-Dienst, falls installiert.
+- Die Mini-Pille nimmt Klicks in ihrem kleinen Bereich an (Fensterregion), ohne darauf zu reagieren.
+- Einschalten bisher nur über `settings.json` (`Games.Enabled`), mit Neustart; das Einstellungsfenster folgt in Phase 7.
+
+### 7e. Stand Phase 6 (20.10.2026)
+
+Umgesetzt:
+- **Timer und Stoppuhr** (`TimerModule`): Auswahl über das Stoppuhr-Symbol im Tab „Jetzt“ (1, 5, 10, 25 min oder Stoppuhr). Der Timer läuft kompakt mit Ring und Restzeit (Rang 30, vor Musik), lässt sich anhalten, um +1 min verlängern und beenden. Abgelaufen kommt ein kritischer Hinweis mit „Noch mal“. Die Stoppuhr läuft kompakt; angehalten ist sie nur noch im Tab „Jetzt“.
+- **Bluetooth** (`BluetoothModule`): `DeviceWatcher` auf verbundene klassische und LE-Geräte; HUD beim Verbinden mit Akkustand aus der Geräteeigenschaft `{104EA319-…} 2`, ohne eigene GATT-Verbindung. Schon beim Start verbundene Geräte zeigt Brim nicht.
+- **Teilen** ist seit 4.4a fertig (LAN, Magic Wormhole, Windows-Teilen).
+
+Noch offen:
+- **Kalender** (`AppointmentStore`) und **Benachrichtigungen** (`UserNotificationListener`) brauchen Paketidentität. Sie kommen mit dem MSIX bzw. Sparse Package aus Phase 7. Bis dahin wäre nur ein Outlook-Plugin möglich.
+- Ob die Akku-Eigenschaft bei allen Geräten ankommt, ist unter Windows zu prüfen; manche melden sie nur am Unterknoten (HFP).
+- Bildschirmaufnahme aktiv (niedrige Priorität, 4.3).
+- Der Timer ist bei laufender Musik nur über die kompakte Notch erreichbar, solange er läuft; ein Knopf im Player fehlt noch.
+
+### 7f. Stand Phase 7 (20.10.2026)
+
+Umgesetzt:
+- **Einstellungsfenster** (`SettingsWindow`, in Code statt XAML): `NavigationView` mit Mica, Bereiche Allgemein, Ausblenden (mit Regeln pro App), Animation (mit Vorschau), Module (inkl. Akku-Schwellen), Ablage und Teilen, Spiele, Plugins, Info (Updates, Protokolle). Geöffnet wird es aus dem Tray-Menü. Jede Änderung wird nach 400 ms gespeichert; was nur beim Start gelesen wird, ist gekennzeichnet.
+- **Auto-Update** ist seit 0.1.0 da (Velopack).
+
+Entschieden (20.10.2026): **keine gekaufte Signatur**, **Sparse Package** für die Identität, Verteilung **GitHub und winget** (Store vorerst nicht).
+- **Identitätspaket** (`build/identity`): Sparse Package `Brim.Notch`, `CN=Brim`, Version fest 1.0.0.0, externer Ort ist die Velopack-Installation (`…\BrimNotch\current`). Die Pipeline signiert es pro Release mit einem frisch erzeugten, selbst ausgestellten Zertifikat; der private Schlüssel verlässt den Build nie. Schlägt der Bau fehl, erscheint das Release trotzdem.
+- **Einrichtung** (Einstellungen → Kalender und Benachrichtigungen): Brim startet sich einmal erhöht (`--trust-identity`) und legt das Zertifikat unter „Vertrauenswürdige Personen“ des Computers ab. Dann registriert es das Paket für den Nutzer (`AddPackageByUriAsync` mit `ExternalLocationUri`) und startet neu (`--wait-for`). Beim Deinstallieren wird das Paket wieder entfernt.
+- `app.manifest` trägt das passende `<msix>`-Element; ohne registriertes Paket hat es keine Wirkung. Für WinUI mit Identität liegt `Brim.pri` zusätzlich als `resources.pri` bei.
+- **Kalender** (`CalendarModule`, `AppointmentStore`, nur Konten aus der Windows-Kalender-App, nicht das klassische Outlook): nächster Termin unter der Uhr, 15 min vorher kompakt mit Countdown, zu Beginn ein HUD, „Beitreten“ bei Online-Besprechungen.
+- **Benachrichtigungen** (`NotificationModule`, `UserNotificationListener`): Vorschau neuer Benachrichtigungen als HUD (App, Titel, Text), stumm schaltbare Apps.
+- **winget** (`build/winget`): Manifeste 1.6 aus dem Velopack-Setup, pro Release als Zip am GitHub-Release. Das erste Einreichen bei microsoft/winget-pkgs geht von Hand; danach automatisch, wenn das Secret `WINGET_TOKEN` gesetzt ist.
+
+Noch offen:
+- Alles in 7f ist nicht unter Windows erprobt, vor allem der Bau des Identitätspakets in der Pipeline und WinUI mit Paketidentität.
+- „Nicht stören“ von Windows wird bei Benachrichtigungen noch nicht beachtet (die Schnittstelle dafür braucht ein neueres SDK).
+- Klick auf eine Benachrichtigung öffnet die App noch nicht.
+
+### 7g. Version 1.0.0 (20.10.2026)
+
+Zusätzlich für 1.0:
+- **Timer-Knopf im Player**, damit der Timer auch bei laufender Musik erreichbar ist.
+- **Ablage-Aktionen** (Slot `shelf.action`): Plugins mit dem Recht „shelf“ nennen im Manifest `shelfActions`; sie erscheinen im Kontextmenü der Ablage und schicken die Dateien als `shelf.items`.
+- **Plugin-Einstellungen** im Einstellungsfenster (Bereich Plugins), aus den `settings` der Manifeste; Änderungen gehen sofort als `settings.changed` an das Plugin.
+- **Job-Objekt** (`ChildProcessJob`): Plugins und Messdienst enden mit Brim, auch nach einem Absturz.
+- **Datenträger** (aktive Zeit, `\PhysicalDisk(_Total)\% Idle Time`) im Tab System.
+- Version 1.0.0 in `Directory.Build.props` und `CHANGELOG.md`.
+
+Nach 1.0 (bewusst verschoben): Personalisierung (Plan siehe Unterhaltung vom 20.10.), englische Oberfläche, Anzeige-Latenz und Vulkan/OpenGL wie PresentMon, Helligkeit externer Monitore per DDC/CI, Klick auf Benachrichtigungen, „Nicht stören“, `lifecycle.suspend/resume`, VRAM.
+
 Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das fertige Ausblende-System.
 
 ## 8. Risiken
@@ -360,6 +450,8 @@ Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das f
 | Plugins als Sicherheitslücke | Datenabfluss | eigene Prozesse, Rechte im Manifest, Nutzerbestätigung |
 
 ## 9. Offene Entscheidungen
+
+*Stand 1.0:* 1. Hauptmonitor (umschaltbar) · 2. Verweis · 3. Aus · 4. vorerst nur deklarativ · 5. GitHub und winget.
 
 1. **Notch auf allen Monitoren** oder nur Hauptmonitor als Standard?
 2. **Ablage-Standard:** Verweis oder Kopie?

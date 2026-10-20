@@ -7,13 +7,24 @@
   <Folder Name="/src/">
     <Project Path="src/Brim.Core/Brim.Core.csproj" />
     <Project Path="src/Brim.Modules/Brim.Modules.csproj" />
+    <Project Path="src/Brim.Plugins/Brim.Plugins.csproj" />
+    <Project Path="src/Brim.Sdk/Brim.Sdk.csproj" />
+    <Project Path="src/Brim.Telemetry/Brim.Telemetry.csproj" />
     <Project Path="src/Brim/Brim.csproj">
       <!-- WinUI-App gibt es nur pro Architektur; "Any CPU" baut x64. -->
+      <Platform Solution="*|Any CPU" Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/plugins/">
+    <Project Path="plugins/SwyxIt/SwyxIt.csproj">
+      <!-- Swyx-Interop gibt es nur für x86/x64; "Any CPU" baut x64. -->
       <Platform Solution="*|Any CPU" Project="x64" />
     </Project>
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Brim.Core.Tests/Brim.Core.Tests.csproj" />
     <Project Path="tests/Brim.Modules.Tests/Brim.Modules.Tests.csproj" />
+    <Project Path="tests/Brim.Plugins.Tests/Brim.Plugins.Tests.csproj" />
+    <Project Path="tests/Brim.SwyxIt.Tests/Brim.SwyxIt.Tests.csproj" />
   </Folder>
 </Solution>

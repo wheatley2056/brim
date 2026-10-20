@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using Brim.Core;
 using NAudio.CoreAudioApi;
@@ -16,12 +17,25 @@ public sealed record AudioApp(string Key, string Name, float Volume, bool Muted,
 /// (offizielle Core-Audio-Schnittstellen), nur das Umschalten des Standardgeräts über
 /// <see cref="PolicyConfig"/>.
 /// </summary>
+/// <remarks>
+/// Alle Core-Audio-Objekte leben auf einem eigenen MTA-Thread und werden nur dort benutzt.
+/// Vorher entstanden sie auf dem UI-Thread; beim Umschalten des Ausgabegeräts baute die
+/// Benachrichtigung von Windows sie unter einer Sperre neu auf, .NET leitete das an den UI-Thread
+/// zurück, und der wartete auf dieselbe Sperre – Brim hing. Benachrichtigungen reihen deshalb nur
+/// Arbeit ein und kehren sofort zurück (so verlangt es auch die Dokumentation von
+/// <c>IMMNotificationClient</c>), Ereignisse gehen über den Threadpool hinaus, und wer auf ein
+/// Ergebnis wartet, wartet höchstens <see cref="CallTimeout"/>.
+/// </remarks>
 public sealed class AudioService : IDisposable
 {
     private const string SystemKey = "system";
 
-    private readonly Lock _gate = new();
+    /// <summary>Länger wartet niemand auf den Audio-Thread; danach gilt der Ersatzwert.</summary>
+    public static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(2);
+
+    private readonly BlockingCollection<Action> _queue = new();
     private readonly Dictionary<uint, string> _names = new();
+    private Thread? _thread;
     private MMDeviceEnumerator? _enumerator;
     private MMDeviceNotificationClient? _notifications;
     private MMDevice? _device;
@@ -35,16 +49,113 @@ public sealed class AudioService : IDisposable
 
     public void Start()
     {
-        lock (_gate)
+        _thread = new Thread(Run) { IsBackground = true, Name = "Brim Audio" };
+        _thread.SetApartmentState(ApartmentState.MTA);
+        _thread.Start();
+        // Fehler hier (z. B. kein Audiodienst) landen im Protokoll; die Notch läuft ohne Audio weiter.
+        Call(() =>
         {
             _enumerator = new MMDeviceEnumerator();
             _notifications = _enumerator.CreateNotificationClient(useSynchronizationContext: false);
             _notifications.DefaultDeviceChanged += OnDefaultDeviceChanged;
-            _notifications.DeviceStateChanged += (_, _) => DevicesChanged?.Invoke();
-            _notifications.DeviceAdded += (_, _) => DevicesChanged?.Invoke();
-            _notifications.DeviceRemoved += (_, _) => DevicesChanged?.Invoke();
+            _notifications.DeviceStateChanged += (_, _) => Raise(DevicesChanged);
+            _notifications.DeviceAdded += (_, _) => Raise(DevicesChanged);
+            _notifications.DeviceRemoved += (_, _) => Raise(DevicesChanged);
             AttachDefault();
+            return true;
+        }, false);
+    }
+
+    private void Run()
+    {
+        foreach (var work in _queue.GetConsumingEnumerable())
+        {
+            try
+            {
+                work();
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("Audio-Aufruf fehlgeschlagen", ex);
+            }
         }
+    }
+
+    /// <summary>Arbeit für den Audio-Thread einreihen, ohne zu warten.</summary>
+    private void Post(Action work)
+    {
+        try
+        {
+            _queue.Add(work);
+        }
+        catch (InvalidOperationException)
+        {
+            // Schon beendet.
+        }
+    }
+
+    /// <summary>Auf dem Audio-Thread ausführen und höchstens <see cref="CallTimeout"/> auf das Ergebnis warten.</summary>
+    private T Call<T>(Func<T> work, T fallback)
+    {
+        if (Thread.CurrentThread == _thread)
+        {
+            return work();
+        }
+        if (_thread is null || _queue.IsAddingCompleted)
+        {
+            return fallback;
+        }
+        var result = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Post(() =>
+        {
+            try
+            {
+                result.SetResult(work());
+            }
+            catch (Exception ex)
+            {
+                result.SetException(ex);
+            }
+        });
+        try
+        {
+            if (result.Task.Wait(CallTimeout))
+            {
+                return result.Task.Result;
+            }
+            Log.Warn("Audio antwortet nicht rechtzeitig");
+        }
+        catch (AggregateException ex)
+        {
+            Log.Warn("Audio-Aufruf fehlgeschlagen", ex.InnerException);
+        }
+        return fallback;
+    }
+
+    private void Do(Action work) => Call(() =>
+    {
+        work();
+        return true;
+    }, false);
+
+    /// <summary>Ereignisse nie auf dem Thread einer Windows-Benachrichtigung auslösen: Empfänger dürfen warten.</summary>
+    private static void Raise(Action? handler)
+    {
+        if (handler is null)
+        {
+            return;
+        }
+        ThreadPool.QueueUserWorkItem(_ =>
+        {
+            try
+            {
+                handler();
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("Audio-Ereignis fehlgeschlagen", ex);
+            }
+        });
     }
 
     private void OnDefaultDeviceChanged(object? sender, DefaultDeviceChangedEventArgs e)
@@ -53,11 +164,11 @@ public sealed class AudioService : IDisposable
         {
             return;
         }
-        lock (_gate)
+        Post(() =>
         {
             AttachDefault();
-        }
-        DevicesChanged?.Invoke();
+            Raise(DevicesChanged);
+        });
     }
 
     private void AttachDefault()
@@ -79,13 +190,15 @@ public sealed class AudioService : IDisposable
         _volume.OnVolumeNotification += OnVolumeNotification;
     }
 
-    private void OnVolumeNotification(AudioVolumeNotificationData data) => MasterChanged?.Invoke(data.MasterVolume, data.Muted);
+    private void OnVolumeNotification(AudioVolumeNotificationData data)
+    {
+        var (volume, muted) = (data.MasterVolume, data.Muted);
+        Raise(() => MasterChanged?.Invoke(volume, muted));
+    }
 
     // ───────── Geräte ─────────
 
-    public IReadOnlyList<AudioDevice> Devices()
-    {
-        lock (_gate)
+    public IReadOnlyList<AudioDevice> Devices() => Call(() =>
         {
             if (_enumerator is null)
             {
@@ -99,41 +212,38 @@ public sealed class AudioService : IDisposable
                 using var device = collection[i];
                 result.Add(new AudioDevice(device.ID, device.FriendlyName, device.ID == defaultId));
             }
-            return result.OrderByDescending(d => d.IsDefault).ThenBy(d => d.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
-        }
-    }
+            return (IReadOnlyList<AudioDevice>)result.OrderByDescending(d => d.IsDefault).ThenBy(d => d.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+        }, []);
 
-    /// <summary>Schaltet das Standard-Ausgabegerät um. <c>false</c>, wenn Windows es ablehnt.</summary>
-    public bool SetDefaultDevice(string deviceId)
+    /// <summary>
+    /// Schaltet das Standard-Ausgabegerät um, auf dem Audio-Thread; der Aufrufer wartet nicht.
+    /// <c>false</c>, wenn Windows es ablehnt.
+    /// </summary>
+    public Task<bool> SetDefaultDeviceAsync(string deviceId)
     {
-        try
+        var result = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Post(() =>
         {
-            PolicyConfig.SetDefault(deviceId);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Log.Warn($"Ausgabegerät {deviceId} ließ sich nicht setzen", ex);
-            return false;
-        }
+            try
+            {
+                PolicyConfig.SetDefault(deviceId);
+                result.SetResult(true);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn($"Ausgabegerät {deviceId} ließ sich nicht setzen", ex);
+                result.SetResult(false);
+            }
+        });
+        return result.Task;
     }
 
     // ───────── Gesamtlautstärke ─────────
 
-    public (float Volume, bool Muted) Master
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return _volume is null ? (0, true) : (_volume.MasterVolumeLevelScalar, _volume.Mute);
-            }
-        }
-    }
+    public (float Volume, bool Muted) Master =>
+        Call(() => _volume is null ? (0f, true) : (_volume.MasterVolumeLevelScalar, _volume.Mute), (0f, true));
 
-    public void SetMasterVolume(float value)
-    {
-        lock (_gate)
+    public void SetMasterVolume(float value) => Do(() =>
         {
             if (_volume is null)
             {
@@ -144,25 +254,19 @@ public sealed class AudioService : IDisposable
             {
                 _volume.Mute = false;
             }
-        }
-    }
+        });
 
-    public void ToggleMasterMute()
-    {
-        lock (_gate)
+    public void ToggleMasterMute() => Do(() =>
         {
             if (_volume is not null)
             {
                 _volume.Mute = !_volume.Mute;
             }
-        }
-    }
+        });
 
     // ───────── Apps ─────────
 
-    public IReadOnlyList<AudioApp> Apps()
-    {
-        lock (_gate)
+    public IReadOnlyList<AudioApp> Apps() => Call(() =>
         {
             var groups = new Dictionary<string, (string Name, float Volume, bool Muted, bool Active)>();
             foreach (var session in Sessions())
@@ -179,18 +283,15 @@ public sealed class AudioService : IDisposable
                     groups[key] = (NameOf(session), simple.Volume, simple.Mute, active);
                 }
             }
-            return groups
+            return (IReadOnlyList<AudioApp>)groups
                 .Select(g => new AudioApp(g.Key, g.Value.Name, g.Value.Volume, g.Value.Muted, g.Value.Active))
                 .OrderByDescending(a => a.IsActive)
                 .ThenBy(a => a.Key == SystemKey)
                 .ThenBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToList();
-        }
-    }
+        }, []);
 
-    public void SetAppVolume(string key, float value)
-    {
-        lock (_gate)
+    public void SetAppVolume(string key, float value) => Do(() =>
         {
             foreach (var session in Sessions().Where(s => Key(s) == key))
             {
@@ -200,18 +301,14 @@ public sealed class AudioService : IDisposable
                     session.SimpleAudioVolume.Mute = false;
                 }
             }
-        }
-    }
+        });
 
-    public void ToggleAppMute(string key)
-    {
-        lock (_gate)
+    public void ToggleAppMute(string key) => Do(() =>
         {
             var sessions = Sessions().Where(s => Key(s) == key).ToList();
             var mute = !sessions.All(s => s.SimpleAudioVolume.Mute);
             sessions.ForEach(s => s.SimpleAudioVolume.Mute = mute);
-        }
-    }
+        });
 
     private List<AudioSessionControl> Sessions()
     {
@@ -282,7 +379,7 @@ public sealed class AudioService : IDisposable
 
     public void Dispose()
     {
-        lock (_gate)
+        Post(() =>
         {
             if (_volume is not null)
             {
@@ -292,6 +389,11 @@ public sealed class AudioService : IDisposable
             _notifications?.Dispose();
             _enumerator?.Dispose();
             _enumerator = null;
+        });
+        _queue.CompleteAdding();
+        if (_thread is not null && Thread.CurrentThread != _thread)
+        {
+            _thread.Join(CallTimeout);
         }
     }
 }

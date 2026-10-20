@@ -2,6 +2,7 @@ using Brim.Core;
 using Brim.Modules;
 using Brim.Modules.Audio;
 using Brim.Modules.Nearby;
+using Brim.Plugins;
 using Brim.Shell;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -27,6 +28,17 @@ public partial class App : Application
     private TrayIcon? _tray;
     private NearbyService? _nearby;
     private AutoUpdater? _updater;
+    private PluginHostModule? _plugins;
+    private List<IBrimModule> _allModules = [];
+
+    /// <summary>Einstellungsfenster (Tray-Menü). Module ohne eigene Oberfläche (Uhr, Updates) stehen nicht zur Wahl.</summary>
+    private void OpenSettings() => SettingsWindow.Show(
+        _settings!,
+        _allModules.Where(m => m.Id is not (ClockModule.ModuleId or UpdateModule.ModuleId)).Select(m => (m.Id, m.DisplayName)).ToList(),
+        _updater?.CurrentVersion,
+        () => _windows?.ToggleExpanded(),
+        () => PackageIdentity.Restart(ExitApp),
+        () => _plugins?.Installed ?? []);
 
     public App()
     {
@@ -91,7 +103,7 @@ public partial class App : Application
         _windows = new NotchWindowManager(_hub, _settings, shelf, nearbyModule, dispatcher);
         _windows.Build();
 
-        _tray = new TrayIcon(_settings, ExitApp, () => _windows.ToggleExpanded());
+        _tray = new TrayIcon(_settings, ExitApp, () => _windows.ToggleExpanded(), OpenSettings);
 
         // Eine zweite gestartete Instanz klappt die Notch auf, statt eine weitere zu öffnen.
         AppInstance.GetCurrent().Activated += (_, _) => dispatcher.TryEnqueue(() => _windows?.ToggleExpanded());
@@ -105,14 +117,21 @@ public partial class App : Application
             Log.Error("Audio nicht verfügbar", ex);
         }
         _modules = new ModuleHost(_hub);
+        // Plugins (Plan 4.2): eigene Prozesse, Ordner %LocalAppData%\Brim\Plugins plus eigene Ordner aus den Einstellungen.
+        _plugins = new PluginHostModule(
+            [Path.Combine(DataDirectory, "Plugins"), .. settings.PluginDirectories],
+            new ProcessPluginLauncher(Path.Combine(DataDirectory, "logs", "plugins")),
+            s => _settings.Save(s));
+        _settings.Changed += s => _plugins.ApplySettings(s);
+        ShelfPluginActions.List = () => _plugins.ShelfActions().Select(a => (a.PluginId, a.PluginName, a.Action.Id, a.Action.Label)).ToList();
+        ShelfPluginActions.Invoke = (plugin, action, paths) => _plugins.SendShelfItems(plugin, action, paths);
         // Unbemerkte Updates (nur installierte Fassung); kein Neustart, solange jemand arbeitet oder überträgt.
         _updater = new AutoUpdater(_settings, DataDirectory, () =>
             _windows.IsBusy || _hub.Snapshot().Any(a => a.Activity.ModuleId == NearbyModule.ModuleId && a.Priority >= ActivityPriority.Ongoing));
         Log.Info($"Brim {_updater.CurrentVersion ?? "Entwicklungsfassung"}");
 
-        await _modules.StartAsync(
-            [.. CreateModules(nearbyModule)],
-            settings);
+        _allModules = [.. CreateModules(nearbyModule)];
+        await _modules.StartAsync(_allModules, settings);
         if (IsDemo)
         {
             return;
@@ -132,7 +151,8 @@ public partial class App : Application
 
     private IEnumerable<IBrimModule> CreateModules(NearbyModule nearbyModule)
     {
-        yield return new ClockModule();
+        var calendar = new CalendarModule();
+        yield return new ClockModule(() => calendar.NextSummary);
         if (!IsDemo)
         {
             yield return new MediaModule();
@@ -144,15 +164,29 @@ public partial class App : Application
                 TimeSpan.FromSeconds(83), TimeSpan.FromSeconds(214), Path.Combine(DataDirectory, "cover.png")));
         }
         yield return new AudioModule(_audio);
+        yield return new TimerModule();
         if (!IsDemo)
         {
             // System (Phase 2): Akku und Helligkeit nur, wo es sie gibt; Ressourcen messen nur bei offenem Tab.
             yield return new BatteryModule();
             yield return new BrightnessModule();
             yield return new PrivacyModule();
+            yield return new BluetoothModule();
+            // Brauchen Paketidentität (Einstellungen → Kalender und Benachrichtigungen); ohne sie tun sie nichts.
+            yield return calendar;
+            yield return new NotificationModule
+            {
+                // Apps, die ein Plugin übernimmt (z. B. Swyx Messenger), zeigt das Plugin statt Brim.
+                Route = n => _plugins?.RouteNotification(n.App, n.Title, n.Body) == true,
+            };
+            yield return new GamesModule(new TelemetryLauncher(Path.Combine(DataDirectory, "logs")));
         }
         yield return new ResourcesModule();
         yield return nearbyModule;
+        if (!IsDemo)
+        {
+            yield return _plugins!;
+        }
         yield return new UpdateModule(DataDirectory, IsDemo ? null : _updater!.CurrentVersion);
     }
 

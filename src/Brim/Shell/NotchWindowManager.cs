@@ -10,7 +10,9 @@ namespace Brim.Shell;
 internal sealed class NotchWindowManager : IDisposable
 {
     private const int HotkeyId = 0xB1;
+    private const int FpsHotkeyId = 0xB2;
     private const uint VkN = 0x4E;
+    private const uint VkF = 0x46;
 
     private readonly ActivityHub _hub;
     private readonly SettingsStore _settings;
@@ -173,13 +175,28 @@ internal sealed class NotchWindowManager : IDisposable
             return;
         }
         _hotkeyWindow = primary.Handle;
+        // Win+Alt+F: im Spielmodus „Bei Bedarf“ FPS für 5 s einblenden (Plan 4.8).
+        if (!Win32.RegisterHotkey(primary.Handle, FpsHotkeyId, VkF))
+        {
+            Log.Warn("Tastenkürzel Win+Alt+F ist bereits vergeben");
+        }
         _messages = new WindowMessageMonitor(primary);
         _messages.WindowMessageReceived += (_, e) =>
         {
-            if (e.Message.MessageId == Win32.WmHotkey && (int)e.Message.WParam == HotkeyId)
+            if (e.Message.MessageId != Win32.WmHotkey)
             {
-                ToggleExpanded();
-                e.Handled = true;
+                return;
+            }
+            switch ((int)e.Message.WParam)
+            {
+                case HotkeyId:
+                    ToggleExpanded();
+                    e.Handled = true;
+                    break;
+                case FpsHotkeyId:
+                    _hub.Invoke(new ActionInvocation(GamesModule.ModuleId, GamesModule.PeekAction));
+                    e.Handled = true;
+                    break;
             }
         };
     }
@@ -189,6 +206,7 @@ internal sealed class NotchWindowManager : IDisposable
         if (_hotkeyWindow != 0)
         {
             Win32.UnregisterHotkey(_hotkeyWindow, HotkeyId);
+            Win32.UnregisterHotkey(_hotkeyWindow, FpsHotkeyId);
             _hotkeyWindow = 0;
         }
         _messages?.Dispose();

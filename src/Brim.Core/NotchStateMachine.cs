@@ -16,6 +16,8 @@ public enum NotchMode
     Expanded,
     /// <summary>Etwas wird über die Notch gezogen: Ablagefläche zum Loslassen.</summary>
     Drop,
+    /// <summary>Zurückgezogen, aber eine schmale Pille bleibt (Spielmodus „Mini“: FPS · ms).</summary>
+    Mini,
 }
 
 public enum NotchTab { Now, Shelf, System, Plugins }
@@ -56,11 +58,16 @@ public static class NotchStateMachine
         var topOngoing = ongoing.FirstOrDefault();
         var foreground = ongoing.Where(a => !a.Activity.IsBackground).ToList();
 
-        // Kritische Hinweise kommen auch durch, wenn die Notch versteckt ist.
+        // Kritische Hinweise kommen auch durch, wenn die Notch versteckt ist; sonst bleibt höchstens die Mini-Pille.
         if (input.IsHidden)
         {
-            return critical is not null
-                ? new NotchPresentation(NotchMode.Alert, critical, [], idle, input.Tab)
+            if (critical is not null)
+            {
+                return new NotchPresentation(NotchMode.Alert, critical, [], idle, input.Tab);
+            }
+            var overlay = ongoing.FirstOrDefault(a => a.Activity.IsOverlay);
+            return overlay is not null
+                ? new NotchPresentation(NotchMode.Mini, overlay, [], idle, input.Tab)
                 : new NotchPresentation(NotchMode.Hidden, null, [], idle, input.Tab);
         }
 

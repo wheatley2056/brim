@@ -1,0 +1,10 @@
+{
+  "id": "de.brim.counter",
+  "name": "Zähler (Python)",
+  "version": "1.0.0",
+  "entry": "py",
+  "args": ["-3", "plugin.py"],
+  "api": "1",
+  "slots": ["hud", "expanded.tab"],
+  "permissions": []
+}
