@@ -17,6 +17,49 @@ public class GeometryAndColorTests
         Assert.True(withBeads.X + withBeads.Width <= NotchGeometry.Canvas.Width);
     }
 
+    [Theory]
+    [InlineData(NotchForm.Notch)]
+    [InlineData(NotchForm.Island)]
+    [InlineData(NotchForm.Edge)]
+    [InlineData(NotchForm.Tab)]
+    public void Every_form_keeps_sizes_and_fits_the_canvas(NotchForm form)
+    {
+        foreach (var mode in Enum.GetValues<NotchMode>())
+        {
+            var plain = NotchGeometry.For(mode);
+            var styled = NotchGeometry.For(mode, form);
+            Assert.Equal(plain.Width, styled.Width);
+            Assert.Equal(plain.Height, styled.Height);
+            Assert.True(styled.Radius <= plain.Radius);
+
+            var hit = NotchGeometry.HitArea(styled, 0, NotchGeometry.Gap(form));
+            Assert.True(hit.Height <= NotchGeometry.Canvas.Height);
+        }
+    }
+
+    [Fact]
+    public void Only_the_notch_has_ears_and_only_the_island_floats()
+    {
+        Assert.Equal(NotchGeometry.Expanded, NotchGeometry.For(NotchMode.Expanded, NotchForm.Notch));
+        Assert.Equal(0, NotchGeometry.For(NotchMode.Compact, NotchForm.Island).Ear);
+        Assert.Equal(1, NotchGeometry.For(NotchMode.Compact, NotchForm.Island).Round);
+        Assert.Equal(0, NotchGeometry.For(NotchMode.Compact, NotchForm.Edge).Round);
+        Assert.True(NotchGeometry.For(NotchMode.Expanded, NotchForm.Tab).Radius < NotchGeometry.For(NotchMode.Expanded, NotchForm.Edge).Radius);
+
+        Assert.Equal(NotchGeometry.IslandGap, NotchGeometry.Gap(NotchForm.Island));
+        Assert.Equal(0, NotchGeometry.Gap(NotchForm.Tab));
+        // Der Abstand zählt zur Eingabefläche, damit der Hover auf dem Weg nach oben nicht abreißt.
+        Assert.Equal(34 + NotchGeometry.IslandGap, NotchGeometry.HitArea(NotchGeometry.Compact, 0, NotchGeometry.IslandGap).Height);
+    }
+
+    [Fact]
+    public void Appearance_is_clamped()
+    {
+        Assert.Equal(1.3, new AppearanceSettings { Size = 3 }.Clamped().Size);
+        Assert.Equal(1.0, new AppearanceSettings { Size = double.NaN }.Clamped().Size);
+        Assert.Equal(NotchForm.Notch, new AppearanceSettings { Form = (NotchForm)42 }.Clamped().Form);
+    }
+
     [Fact]
     public void Hit_area_is_centered_without_beads()
     {

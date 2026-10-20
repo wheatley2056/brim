@@ -34,7 +34,9 @@ internal sealed partial class NotchWindow : WindowEx
     private NotchTab _tab = NotchTab.Now;
     private (double X, double Y, double Width, double Height) _region;
     private (double X, double Y, double Width, double Height) _regionTarget;
+    /// <summary>DIP der Zeichenfläche → physische Pixel: DPI des Monitors mal gewählte Größe.</summary>
     private double _scale = 1;
+    private double _dpiScale = 1;
 
     public NotchWindow(DisplayArea display, ActivityHub hub, SettingsStore settings, ShelfStore shelf, NearbyModule nearby)
     {
@@ -118,7 +120,7 @@ internal sealed partial class NotchWindow : WindowEx
         {
             View.XamlRoot.Changed += (_, _) =>
             {
-                if (Math.Abs(View.XamlRoot.RasterizationScale - _scale) > 0.001)
+                if (Math.Abs(View.XamlRoot.RasterizationScale - _dpiScale) > 0.001)
                 {
                     Place();
                 }
@@ -161,10 +163,16 @@ internal sealed partial class NotchWindow : WindowEx
             top = taskbar.Rect.bottom;
         }
 
+        var appearance = _settings.Current.Appearance.Clamped();
+        View.ApplyAppearance(appearance);
+        // Neue Form sofort zeigen, nicht erst bei der nächsten Aktivität.
+        _regionTarget = default;
+
         // Zweimal: Nach dem Verschieben auf einen anderen Monitor kann sich die DPI ändern.
         for (var pass = 0; pass < 2; pass++)
         {
-            _scale = Win32.GetDpi(Handle) / 96.0;
+            _dpiScale = Win32.GetDpi(Handle) / 96.0;
+            _scale = _dpiScale * appearance.Size;
             var width = (int)Math.Ceiling(NotchGeometry.Canvas.Width * _scale);
             var height = (int)Math.Ceiling(NotchGeometry.Canvas.Height * _scale);
             var x = bounds.X + (bounds.Width - width) / 2;
@@ -398,8 +406,8 @@ internal sealed partial class NotchWindow : WindowEx
         {
             return (0, 0, 0, 0);
         }
-        var shape = NotchGeometry.SwellsOnHover(mode) ? NotchGeometry.Swell(NotchGeometry.For(mode)) : View.TargetShape;
-        return NotchGeometry.HitArea(shape, View.BeadCount);
+        var shape = NotchGeometry.SwellsOnHover(mode) ? NotchGeometry.Swell(NotchGeometry.For(mode, View.Form)) : View.TargetShape;
+        return NotchGeometry.HitArea(shape, View.BeadCount, NotchGeometry.Gap(View.Form));
     }
 
     /// <summary>Liegt der Mauszeiger wirklich in der aktuellen Eingabefläche?</summary>

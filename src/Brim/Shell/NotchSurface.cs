@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Numerics;
 using Brim.Core;
 using Microsoft.UI;
@@ -16,7 +17,7 @@ namespace Brim.Shell;
 /// </summary>
 internal sealed class NotchSurface : IDisposable
 {
-    private const string W = "W", H = "H", R = "R", E = "E";
+    private const string W = "W", H = "H", R = "R", E = "E", K = "K";
 
     private readonly Compositor _compositor;
     private readonly CompositionPropertySet _props;
@@ -44,6 +45,7 @@ internal sealed class NotchSurface : IDisposable
             [H] = new SpringChannel(initial.Height),
             [R] = new SpringChannel(initial.Radius),
             [E] = new SpringChannel(initial.Ear),
+            [K] = new SpringChannel(initial.Round),
         };
 
         _props = compositor.CreatePropertySet();
@@ -52,6 +54,7 @@ internal sealed class NotchSurface : IDisposable
         _props.InsertScalar(H, (float)initial.Height);
         _props.InsertScalar(R, (float)initial.Radius);
         _props.InsertScalar(E, (float)initial.Ear);
+        _props.InsertScalar(K, (float)initial.Round);
 
         _root = compositor.CreateContainerVisual();
         _root.Size = new Vector2(canvasWidth, canvasHeight);
@@ -100,9 +103,10 @@ internal sealed class NotchSurface : IDisposable
             var bead = compositor.CreateShapeVisual();
             var size = (float)NotchGeometry.BeadSize;
             bead.Size = new Vector2(size, size);
+            // Wie der Körper: an der Kante oben angeschnitten, bei der Insel ein runder Punkt.
             var geometry = compositor.CreateRoundedRectangleGeometry();
-            geometry.Size = new Vector2(size, size * 1.5f);
-            geometry.Offset = new Vector2(0, -size / 2);
+            Bind(geometry, "Size", string.Create(CultureInfo.InvariantCulture, $"Vector2({size}, {size} * (1.5 - 0.5 * p.K))"));
+            Bind(geometry, "Offset", string.Create(CultureInfo.InvariantCulture, $"Vector2(0, -{size} / 2 * (1 - p.K))"));
             geometry.CornerRadius = new Vector2(size / 2, size / 2);
             var shape = compositor.CreateSpriteShape(geometry);
             shape.FillBrush = black;
@@ -149,12 +153,12 @@ internal sealed class NotchSurface : IDisposable
                 var edge = new Spring(body.Response, 1.0);
                 var longest = Math.Max(
                     Math.Max(Animate(W, shape.Width, body, now), Animate(H, shape.Height, body, now)),
-                    Math.Max(Animate(R, shape.Radius, edge, now), Animate(E, shape.Ear, edge, now)));
+                    Math.Max(Math.Max(Animate(R, shape.Radius, edge, now), Animate(E, shape.Ear, edge, now)), Animate(K, shape.Round, edge, now)));
                 return TimeSpan.FromSeconds(longest);
             case AnimationStyle.EaseOut:
                 var easing = _compositor.CreateCubicBezierEasingFunction(new Vector2(0.16f, 1f), new Vector2(0.3f, 1f));
                 var duration = TimeSpan.FromSeconds(response);
-                foreach (var (p, to) in new[] { (W, shape.Width), (H, shape.Height), (R, shape.Radius), (E, shape.Ear) })
+                foreach (var (p, to) in new[] { (W, shape.Width), (H, shape.Height), (R, shape.Radius), (E, shape.Ear), (K, shape.Round) })
                 {
                     var animation = _compositor.CreateScalarKeyFrameAnimation();
                     animation.InsertExpressionKeyFrame(0, "this.StartingValue");
@@ -369,7 +373,7 @@ internal sealed class NotchSurface : IDisposable
 
     private void SetImmediate(NotchShape shape, double now)
     {
-        foreach (var (p, value) in new[] { (W, shape.Width), (H, shape.Height), (R, shape.Radius), (E, shape.Ear) })
+        foreach (var (p, value) in new[] { (W, shape.Width), (H, shape.Height), (R, shape.Radius), (E, shape.Ear), (K, shape.Round) })
         {
             _props.StopAnimation(p);
             _props.InsertScalar(p, (float)value);
@@ -378,10 +382,12 @@ internal sealed class NotchSurface : IDisposable
     }
     private CompositionRoundedRectangleGeometry CreateBodyGeometry()
     {
+        // An der Kante (K = 0) ragt das Rechteck um den Radius über die Oberkante, damit nur die unteren Ecken rund
+        // erscheinen. Die Insel (K = 1) liegt ganz sichtbar da, mit höchstens halber Höhe als Radius: eine Pille.
         var geometry = _compositor.CreateRoundedRectangleGeometry();
-        Bind(geometry, "Offset", "Vector2(p.CX - p.W / 2, -p.R)");
-        Bind(geometry, "Size", "Vector2(p.W, p.H + p.R)");
-        Bind(geometry, "CornerRadius", "Vector2(Min(p.R, p.H), Min(p.R, p.H))");
+        Bind(geometry, "Offset", "Vector2(p.CX - p.W / 2, -p.R * (1 - p.K))");
+        Bind(geometry, "Size", "Vector2(p.W, p.H + p.R * (1 - p.K))");
+        Bind(geometry, "CornerRadius", "Vector2(Min(p.R, p.H * (1 - 0.5 * p.K)), Min(p.R, p.H * (1 - 0.5 * p.K)))");
         return geometry;
     }
 

@@ -99,6 +99,7 @@ internal sealed class SettingsWindow : Window
     [
         ("general", "Allgemein", ""),
         ("autohide", "Ausblenden", ""),
+        ("appearance", "Aussehen", ""),
         ("animation", "Animation", ""),
         ("modules", "Module", ""),
         ("identity", "Kalender und Benachrichtigungen", ""),
@@ -142,6 +143,9 @@ internal sealed class SettingsWindow : Window
                 break;
             case "autohide":
                 AutoHide(panel);
+                break;
+            case "appearance":
+                Appearance(panel);
                 break;
             case "animation":
                 Animation(panel);
@@ -247,6 +251,25 @@ internal sealed class SettingsWindow : Window
             Refresh();
         };
         p.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { name, mode, add } });
+    }
+
+    private void Appearance(StackPanel p)
+    {
+        var a = S.Appearance;
+        p.Children.Add(Hint("Änderungen siehst du sofort an der Notch."));
+        p.Children.Add(Choice("Form", "Die Insel schwebt mit etwas Abstand unter der Kante.",
+            [("Notch – wächst aus der Kante", NotchForm.Notch), ("Insel – schwebende Pille", NotchForm.Island),
+             ("Kante – flach, ohne Ohren", NotchForm.Edge), ("Tab – eckig wie ein Reiter", NotchForm.Tab)],
+            a.Form, v => a.Form = v));
+        p.Children.Add(Slider("Größe (%)", NotchGeometry.MinSize * 100, NotchGeometry.MaxSize * 100, 5, a.Size * 100,
+            v => a.Size = Math.Round(v) / 100));
+        var preview = new Button { Content = "Aufklappen" };
+        preview.Click += (_, _) =>
+        {
+            Save();
+            _preview();
+        };
+        p.Children.Add(Card("Vorschau", "Klappt die Notch einmal auf.", preview));
     }
 
     private void Animation(StackPanel p)

@@ -1,10 +1,24 @@
 namespace Brim.Core;
 
+/// <summary>Grundform der Notch (Einstellungen → Aussehen).</summary>
+public enum NotchForm
+{
+    /// <summary>Wächst aus der Kante, unten rund, mit Ohren (Standard).</summary>
+    Notch,
+    /// <summary>Frei schwebende Pille mit Abstand zur Kante, alle Ecken rund.</summary>
+    Island,
+    /// <summary>Flach an der Kante, ohne Ohren, unten leicht gerundet.</summary>
+    Edge,
+    /// <summary>Eckig mit kleinem Radius, wie ein Reiter.</summary>
+    Tab,
+}
+
 /// <summary>
 /// Form der Notch in DIP: Körper mit unten abgerundeten Ecken und zwei „Ohren“,
 /// die den Körper weich in die Bildschirmkante übergehen lassen.
+/// <paramref name="Round"/> rundet auch die oberen Ecken (1 = Insel, 0 = an der Kante); dazwischen morpht sie.
 /// </summary>
-public readonly record struct NotchShape(double Width, double Height, double Radius, double Ear)
+public readonly record struct NotchShape(double Width, double Height, double Radius, double Ear, double Round = 0)
 {
     /// <summary>Gesamtbreite inklusive Ohren.</summary>
     public double OuterWidth => Width + 2 * Ear;
@@ -36,9 +50,31 @@ public static class NotchGeometry
     /// <summary>Spielraum für das Überschwingen der Feder, damit nichts abgeschnitten wird.</summary>
     public const double Overshoot = 16;
 
-    /// <summary>Feste Größe der Zeichenfläche (Fenster), in die alle Formen passen.</summary>
+    /// <summary>Abstand der Insel zur Bildschirmkante.</summary>
+    public const double IslandGap = 6;
+
+    /// <summary>Kleinste und größte Größe (Faktor auf alle Zustände).</summary>
+    public const double MinSize = 0.8, MaxSize = 1.3;
+
+    /// <summary>Feste Größe der Zeichenfläche (Fenster), in die alle Formen passen – auch die Insel mit Abstand.</summary>
     public static readonly (double Width, double Height) Canvas =
-        (Expanded.OuterWidth + 2 * (BeadGap + BeadSize) + 2 * Overshoot, Expanded.Height + Overshoot);
+        (Expanded.OuterWidth + 2 * (BeadGap + BeadSize) + 2 * Overshoot, Expanded.Height + Overshoot + IslandGap);
+
+    /// <summary>Abstand zur Oberkante: Nur die Insel schwebt.</summary>
+    public static double Gap(NotchForm form) => form == NotchForm.Island ? IslandGap : 0;
+
+    /// <summary>
+    /// Passt eine Grundform (Maße aus den Design-Boards) an den gewählten Stil an. Breiten und Höhen bleiben,
+    /// damit Inhalte und Animationen überall gleich passen; es ändern sich Ecken und Ohren.
+    /// </summary>
+    public static NotchShape Styled(NotchShape shape, NotchForm form) => form switch
+    {
+        // Ecken werden beim Zeichnen auf die halbe Höhe begrenzt: klein eine Pille, aufgeklappt ein Kärtchen.
+        NotchForm.Island => shape with { Ear = 0, Round = 1 },
+        NotchForm.Edge => shape with { Ear = 0, Radius = Math.Min(shape.Radius * 0.4, 14) },
+        NotchForm.Tab => shape with { Ear = 0, Radius = Math.Min(shape.Radius, Math.Min(4 + shape.Radius * 0.1, 8)) },
+        _ => shape,
+    };
 
     /// <summary>
     /// Leicht angeschwollene Form, solange die Maus auf der kompakten Notch ruht –
@@ -49,6 +85,8 @@ public static class NotchGeometry
 
     /// <summary>Ob die Notch in diesem Zustand auf Hover anschwillt.</summary>
     public static bool SwellsOnHover(NotchMode mode) => mode is NotchMode.Idle or NotchMode.Compact or NotchMode.Hud;
+
+    public static NotchShape For(NotchMode mode, NotchForm form) => Styled(For(mode), form);
 
     public static NotchShape For(NotchMode mode) => mode switch
     {
@@ -78,8 +116,9 @@ public static class NotchGeometry
     /// <summary>
     /// Bereich, der Eingaben annimmt (Fensterregion), relativ zur Zeichenfläche.
     /// Während einer Animation wird die Vereinigung aus alter und neuer Form genutzt.
+    /// Der Abstand der Insel zur Kante gehört dazu, sonst flackert der Hover beim Weg nach oben.
     /// </summary>
-    public static (double X, double Y, double Width, double Height) HitArea(NotchShape body, int beadCount)
+    public static (double X, double Y, double Width, double Height) HitArea(NotchShape body, int beadCount, double gap = 0)
     {
         var center = Canvas.Width / 2;
         var left = center - body.Width / 2 - body.Ear;
@@ -90,7 +129,7 @@ public static class NotchGeometry
             right = center + beads[^1].Left + beads[^1].Size;
         }
         var height = Math.Max(body.Height, beadCount > 0 ? BeadSize : 0);
-        return (left, 0, right - left, height);
+        return (left, 0, right - left, height + gap);
     }
 
     public static (double X, double Y, double Width, double Height) Union(

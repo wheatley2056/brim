@@ -35,6 +35,21 @@ public sealed class AnimationSettings
     };
 }
 
+/// <summary>Aussehen der Notch (Personalisierung, Plan 8).</summary>
+public sealed class AppearanceSettings
+{
+    public NotchForm Form { get; set; } = NotchForm.Notch;
+
+    /// <summary>Faktor auf alle Zustände (0,8–1,3).</summary>
+    public double Size { get; set; } = 1.0;
+
+    public AppearanceSettings Clamped() => new()
+    {
+        Form = Enum.IsDefined(Form) ? Form : NotchForm.Notch,
+        Size = double.IsFinite(Size) ? Math.Clamp(Size, NotchGeometry.MinSize, NotchGeometry.MaxSize) : 1.0,
+    };
+}
+
 public sealed class InteractionSettings
 {
     /// <summary>Wie lange die Maus über der Notch ruhen muss, bevor sie sich erweitert.</summary>
@@ -210,6 +225,7 @@ public sealed class BrimSettings
     public ShelfSettings Shelf { get; set; } = new();
     public MonitorMode Monitors { get; set; } = MonitorMode.Primary;
     public AnimationSettings Animation { get; set; } = new();
+    public AppearanceSettings Appearance { get; set; } = new();
     public InteractionSettings Interaction { get; set; } = new();
     public ClockSettings Clock { get; set; } = new();
 

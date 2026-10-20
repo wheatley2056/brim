@@ -194,9 +194,23 @@ public sealed partial class NotchView : UserControl
     private bool _reducedMotion;
     private readonly SpringChannel _hoverScale = new(1);
 
+    private NotchForm _form;
+
+    /// <summary>Form und Größe aus Einstellungen → Aussehen. Die Größe skaliert die ganze Zeichenfläche.</summary>
+    public void ApplyAppearance(AppearanceSettings appearance)
+    {
+        _form = appearance.Form;
+        // Die Insel schwebt: Alles rückt um den Abstand nach unten; die Zeichenfläche hat dafür Platz.
+        CanvasRoot.Padding = new Thickness(0, NotchGeometry.Gap(_form), 0, 0);
+        CanvasRoot.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0);
+        CanvasRoot.RenderTransform = appearance.Size == 1 ? null : new Microsoft.UI.Xaml.Media.ScaleTransform { ScaleX = appearance.Size, ScaleY = appearance.Size };
+    }
+
+    public NotchForm Form => _form;
+
     private NotchShape ShapeFor(NotchMode mode)
     {
-        var shape = NotchGeometry.For(mode);
+        var shape = NotchGeometry.For(mode, _form);
         return _hovering && NotchGeometry.SwellsOnHover(mode) ? NotchGeometry.Swell(shape) : shape;
     }
 

@@ -194,7 +194,7 @@ internal sealed partial class NotchWindow
     /// <summary>Bereich der kompakten Notch (mit Platz fürs Anschwellen) in physischen Bildschirmpixeln.</summary>
     private RECT NotchZone()
     {
-        var shape = NotchGeometry.Swell(NotchGeometry.Compact);
+        var shape = NotchGeometry.Swell(NotchGeometry.For(NotchMode.Compact, View.Form));
         var center = AppWindow.Position.X + AppWindow.Size.Width / 2;
         var half = (int)Math.Ceiling((shape.OuterWidth / 2 + 8) * _scale);
         return new RECT
@@ -202,7 +202,7 @@ internal sealed partial class NotchWindow
             left = center - half,
             right = center + half,
             top = _top,
-            bottom = _top + (int)Math.Ceiling((shape.Height + 8) * _scale),
+            bottom = _top + (int)Math.Ceiling((shape.Height + NotchGeometry.Gap(View.Form) + 8) * _scale),
         };
     }
 
