@@ -180,6 +180,19 @@ public class BatteryModuleTests
     private static BatteryState OnBattery(int percent, TimeSpan? left = null) => new(true, percent, false, false, left, null, false);
     private static BatteryState Charging(int percent) => new(true, percent, true, true, null, TimeSpan.FromMinutes(65), false);
 
+    [Fact]
+    public void Colors_charging_blue_low_red_saver_orange_otherwise_green()
+    {
+        var settings = new BatterySettings();
+        Assert.Equal(BrimColors.Charging, BatteryModule.ColorFor(Charging(10), settings));
+        Assert.Equal(BrimColors.Danger, BatteryModule.ColorFor(OnBattery(settings.LowPercent), settings));
+        Assert.Equal(BrimColors.Danger, BatteryModule.ColorFor(OnBattery(settings.CriticalPercent), settings));
+        Assert.Equal(BrimColors.Warning, BatteryModule.ColorFor(OnBattery(60) with { EnergySaver = true }, settings));
+        Assert.Equal(BrimColors.Charge, BatteryModule.ColorFor(OnBattery(60), settings));
+        // Voll und angesteckt, lädt nicht mehr: grün.
+        Assert.Equal(BrimColors.Charge, BatteryModule.ColorFor(new BatteryState(true, 100, false, true, null, null, false), settings));
+    }
+
     private readonly FakeTimeProvider _time = new();
     private readonly ActivityHub _hub;
     private readonly FakeBattery _battery = new();

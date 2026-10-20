@@ -137,11 +137,12 @@ public sealed class BatteryModule : IBrimModule
 
     public static string Glyph(BatteryState state) => Glyphs.Battery(state.Percent, state.Charging, state.EnergySaver && !state.Charging);
 
+    /// <summary>Lädt: blau (mit Blitz). Fast leer: rot. Energiesparmodus: orange. Sonst grün.</summary>
     public static string ColorFor(BatteryState state, BatterySettings settings) =>
-        state.PluggedIn ? BrimColors.Charge
-        : state.Percent <= settings.CriticalPercent ? BrimColors.Danger
-        : state.Percent <= settings.LowPercent ? BrimColors.Warning
-        : BrimColors.Fog;
+        state.Charging ? BrimColors.Charging
+        : !state.PluggedIn && state.Percent <= settings.LowPercent ? BrimColors.Danger
+        : state.EnergySaver ? BrimColors.Warning
+        : BrimColors.Charge;
 
     /// <summary>„voll in 1 h 5 min“, „noch 3 h 10 min“, „Angeschlossen“ – plus Energiesparmodus.</summary>
     public static string StatusText(BatteryState state)
