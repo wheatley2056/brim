@@ -28,6 +28,21 @@ public static class Glyphs
     public static readonly string Computer = G(0xE7F4);
     public static readonly string Link = G(0xE71B);
     public static readonly string Updated = G(0xE777);
+    public static readonly string Camera = G(0xE714);
+    public static readonly string Microphone = G(0xE720);
+    public static readonly string Brightness = G(0xE706);
+    public static readonly string LightningBolt = G(0xE945);
+    public static readonly string OpenInNew = G(0xE8A7);
+    public static readonly string Dot = G(0xE91F);
+    public static readonly string Shield = G(0xE72E);
+
+    /// <summary>Akkusymbol in elf Stufen (MobBattery0–10), beim Laden mit Blitz, im Energiesparmodus mit Blatt.</summary>
+    public static string Battery(int percent, bool charging, bool saver)
+    {
+        var level = Math.Clamp((int)Math.Round(percent / 10.0), 0, 10);
+        var first = charging ? 0xEBAB : saver ? 0xEBB6 : 0xEBA0;
+        return G(first + level);
+    }
 
     private static string G(int codePoint) => char.ConvertFromUtf32(codePoint);
 }

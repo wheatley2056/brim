@@ -111,6 +111,18 @@ public sealed class ShareSettings
     public string? ProxyUrl { get; set; }
 }
 
+public sealed class BatterySettings
+{
+    /// <summary>Beim Laden Akkustand in der kompakten Notch zeigen (Plan 4.6).</summary>
+    public bool CompactWhileCharging { get; set; } = true;
+
+    /// <summary>Darunter zeigt die kompakte Notch den Akkustand und warnt einmal (Prozent).</summary>
+    public int LowPercent { get; set; } = 20;
+
+    /// <summary>Darunter klappt sich die Notch mit einem kritischen Hinweis kurz auf (Prozent).</summary>
+    public int CriticalPercent { get; set; } = 10;
+}
+
 public sealed class UpdateSettings
 {
     /// <summary>Automatisch aktualisieren (nur in der installierten Fassung).</summary>
@@ -126,6 +138,7 @@ public sealed class UpdateSettings
 public sealed class BrimSettings
 {
     public UpdateSettings Updates { get; set; } = new();
+    public BatterySettings Battery { get; set; } = new();
     public ShareSettings Share { get; set; } = new();
     public AutoHideSettings AutoHide { get; set; } = new();
     public ShelfSettings Shelf { get; set; } = new();

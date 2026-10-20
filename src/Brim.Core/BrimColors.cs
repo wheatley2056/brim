@@ -19,6 +19,18 @@ public static class BrimColors
     public const string Charge = "#5BD98A";
     /// <summary>Warnung, Timer.</summary>
     public const string Warning = "#FFB547";
+    /// <summary>Kamera in Benutzung (wie der grüne Punkt am Mac).</summary>
+    public const string Camera = Charge;
+    /// <summary>Mikrofon in Benutzung (orange).</summary>
+    public const string Microphone = Warning;
+    /// <summary>Kritisch, z. B. Akku fast leer.</summary>
+    public const string Danger = "#FF5C5C";
+    /// <summary>Verlauf CPU.</summary>
+    public const string Cpu = "#4FC3E8";
+    /// <summary>Arbeitsspeicher.</summary>
+    public const string Memory = "#8C7BFF";
+    /// <summary>Verlauf GPU.</summary>
+    public const string Gpu = Charge;
     /// <summary>Standardakzent, wenn kein Cover eine Farbe liefert.</summary>
     public const string DefaultAccent = "#FF8A66";
 }

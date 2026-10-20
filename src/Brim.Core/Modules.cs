@@ -1,3 +1,5 @@
+using Brim.Core.Widgets;
+
 namespace Brim.Core;
 
 /// <summary>
@@ -19,6 +21,12 @@ public interface IBrimModule : IAsyncDisposable
     /// lassen und Untermenüs beim Zuklappen zurücksetzen.
     /// </summary>
     void OnExpandedChanged(bool expanded) { }
+
+    /// <summary>
+    /// Ein Tab ist in einer Notch sichtbar geworden oder in keiner mehr zu sehen. Module mit teuren
+    /// Abfragen (Ressourcen) messen nur, solange ihr Tab offen ist (Plan 4.7).
+    /// </summary>
+    void OnTabVisibilityChanged(NotchTab tab, bool visible) { }
 }
 
 /// <summary>Was ein Modul von der Shell bekommt.</summary>
@@ -48,6 +56,14 @@ public sealed class ModuleContext
     }
 
     public void End(string id) => _hub.End(ModuleId, id);
+
+    /// <summary>Setzt den Inhalt dieses Moduls in einem Tab (die Modul-ID wird ergänzt).</summary>
+    public void SetView(string id, Widget content, NotchTab tab = NotchTab.System, TabColumn column = TabColumn.Main, int order = 0) =>
+        _hub.SetView(new TabView { ModuleId = ModuleId, Id = id, Content = content, Tab = tab, Column = column, Order = order });
+
+    public void RemoveView(string id) => _hub.RemoveView(ModuleId, id);
+
+    public bool IsTabVisible(NotchTab tab) => _hub.IsTabVisible(tab);
 
     /// <summary>Löst eine Aktion in einem anderen Modul aus, z. B. „Audio-Menü öffnen“ aus dem Player.</summary>
     public void Send(string moduleId, string actionId, double? value = null) =>
@@ -82,6 +98,7 @@ public sealed class ModuleHost : IAsyncDisposable
                 await module.StartAsync(new ModuleContext(module.Id, _hub, settings), _cts.Token);
                 _hub.RegisterActionHandler(module.Id, module.OnAction);
                 _hub.ExpandedChanged += module.OnExpandedChanged;
+                _hub.TabVisibilityChanged += module.OnTabVisibilityChanged;
                 _running.Add(module);
                 Log.Info($"Modul {module.Id} gestartet");
             }
@@ -103,6 +120,7 @@ public sealed class ModuleHost : IAsyncDisposable
             {
                 _hub.UnregisterActionHandler(module.Id);
                 _hub.ExpandedChanged -= module.OnExpandedChanged;
+                _hub.TabVisibilityChanged -= module.OnTabVisibilityChanged;
                 await module.DisposeAsync();
             }
             catch (Exception ex)

@@ -42,6 +42,7 @@ internal sealed class WidgetRenderer
             ProgressWidget w => RenderProgress(w, existing as ProgressView),
             RingWidget w => RenderRing(w, existing as RingView),
             LevelWidget w => RenderLevel(w, existing as LevelView),
+            ChartWidget w => RenderChart(w, existing as ChartView),
             ButtonWidget w => RenderButton(w, existing as WidgetButton),
             SwitchWidget w => RenderSwitch(w, existing as ToggleSwitch),
             StackWidget w => RenderStack(w, existing as StackView),
@@ -330,6 +331,58 @@ internal sealed class WidgetRenderer
         }
     }
 
+    // ───────── Verlauf ─────────
+
+    private static ChartView RenderChart(ChartWidget w, ChartView? view)
+    {
+        view ??= new ChartView();
+        view.Update(w);
+        return view;
+    }
+
+    /// <summary>Linie über die volle Breite; neue Werte kommen rechts dazu, wie im Task-Manager.</summary>
+    private sealed class ChartView : Grid
+    {
+        private readonly Polyline _line = new() { StrokeLineJoin = PenLineJoin.Round, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
+        private ChartWidget? _widget;
+
+        public ChartView()
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch;
+            Children.Add(_line);
+            SizeChanged += (_, _) => Layout();
+        }
+
+        public void Update(ChartWidget w)
+        {
+            _widget = w;
+            Height = w.Height;
+            _line.Stroke = Brushes.Get(w.Color ?? BrimColors.Fog);
+            _line.StrokeThickness = w.Thickness;
+            Layout();
+        }
+
+        private void Layout()
+        {
+            var points = new PointCollection();
+            if (_widget is { } w && ActualWidth > 0 && w.Values.Count > 0)
+            {
+                var capacity = Math.Max(2, Math.Max(w.Capacity, w.Values.Count));
+                var max = w.Max ?? Math.Max(w.Values.Max(), 1e-9);
+                var step = ActualWidth / (capacity - 1);
+                var inset = w.Thickness / 2;
+                var usable = Math.Max(0, w.Height - w.Thickness);
+                var first = capacity - w.Values.Count;
+                for (var i = 0; i < w.Values.Count; i++)
+                {
+                    var value = Math.Clamp(w.Values[i] / max, 0, 1);
+                    points.Add(new Windows.Foundation.Point((first + i) * step, inset + usable * (1 - value)));
+                }
+            }
+            _line.Points = points;
+        }
+    }
+
     // ───────── Pegel ─────────
 
     private static LevelView RenderLevel(LevelWidget w, LevelView? view)
@@ -532,6 +585,8 @@ internal sealed class WidgetRenderer
         grid ??= new StackView();
         var horizontal = w.Orientation == StackOrientation.Horizontal;
         grid.Padding = new Thickness(w.Padding.Left, w.Padding.Top, w.Padding.Right, w.Padding.Bottom);
+        grid.Background = w.Background is { } background ? Brushes.Get(background) : null;
+        grid.CornerRadius = new CornerRadius(w.CornerRadius);
         grid.ColumnDefinitions.Clear();
         grid.RowDefinitions.Clear();
         grid.ColumnSpacing = horizontal ? w.Spacing : 0;

@@ -305,12 +305,29 @@ Kerbe.sln
 | 0 · Fundament | Prototyp lauffähig machen, Composition-Morph, Zustandsmaschine mit Prioritäten, Multi-Monitor | stabile Notch mit Uhr, Medien, Lautstärke |
 | 1 · Ablage | Shelf komplett inkl. Persistenz und Herausziehen | A4 fertig |
 | 1b · Teilen | Brim-zu-Brim im LAN, danach per Code übers Internet | A10 fertig |
-| 2 · System | Akku, Ressourcen, Helligkeit, Kamera/Mikro | A5–A7 fertig |
+| 2 · System | Akku, Ressourcen, Helligkeit, Kamera/Mikro | A5–A7 fertig (siehe 7a) |
 | 3 · Ausblenden | Regelwerk, App-Ausnahmen, Animationseinstellungen, Rand-Reveal | A9 fertig |
 | 4 · Plugins | Protokoll, Host, SDK, zwei Beispiel-Plugins | A2 fertig |
 | 5 · Spiele | Telemetrie-Dienst, FPS/Latenz, Spielmodus | A8 fertig |
 | 6 · Mac-Paket | Timer, Kalender, Benachrichtigungen, Bluetooth, Teilen | A3 vollständig |
 | 7 · Auslieferung | MSIX, Signatur, winget, Auto-Update, Einstellungsfenster | Version 1.0 |
+
+### 7a. Stand Phase 2 (20.10.2026)
+
+Umgesetzt:
+- **Tab-Inhalte** als neue Modul-Schnittstelle (`ModuleContext.SetView`, Vorbild für `view.set` in 4.2): Module legen Karten in einen Tab, Spalte „Main“ oder „Side“. Die Shell meldet, welcher Tab irgendwo offen ist (`OnTabVisibilityChanged`), damit teure Abfragen nur dann laufen.
+- **Neue Bausteine:** `ChartWidget` (Verlauf) sowie Hintergrund und Eckenradius für `StackWidget` (Karten).
+- **Ressourcen** (`ResourcesModule`): PDH wie in 4.7 für CPU, GPU (Summe pro Engine, davon das Maximum), Netzwerk und Top-3-Prozesse; RAM über `GlobalMemoryStatusEx`. Takt 1 s, nur bei offenem Tab. Knopf öffnet den Task-Manager.
+- **Akku** (`BatteryModule`): `PowerManager`-Ereignisse, Ladezeit bis voll aus dem Akkubericht, HUD beim Ein-/Ausstecken, Warnung bei 20 % (HUD) und 10 % (kritisch), kompakt beim Laden und unter 20 %, Karte im Tab System. Schwellen und „kompakt beim Laden“ in `settings.json` (`Battery`).
+- **Helligkeit** (`BrightnessModule`): HUD über WMI `WmiMonitorBrightnessEvent`.
+- **Kamera/Mikrofon** (`PrivacyModule`): `ConsentStore` mit `RegNotifyChangeKeyValue` statt Abfragen; grüner/oranger Punkt als Perle, kompakt mit App-Namen, aufgeklappt mit Link zu den Datenschutzeinstellungen.
+
+Noch offen:
+- Datenträger (`\PhysicalDisk(*)`) und VRAM im Tab System; dafür fehlt im 620 × 248-Layout noch der Platz.
+- Helligkeit externer Monitore per DDC/CI (`dxva2`): Monitore melden Änderungen nicht, braucht Abfragen oder einen Regler im Tab System.
+- Optionaler kompakter CPU/RAM-Pegel als Aktivität (4.7).
+- „Task-Manager direkt auf der Leistungsseite“: dafür gibt es keinen dokumentierten Schalter, Brim öffnet ihn normal.
+- Automatische Helligkeit (Umgebungslicht) löst das HUD ebenfalls aus; ggf. abschaltbar machen.
 
 Spiele kommen bewusst spät: Sie brauchen den Hilfsprozess mit Rechten und das fertige Ausblende-System.
 
