@@ -131,17 +131,8 @@ internal sealed class NotchSurface : IDisposable
         }
     }
 
-    /// <summary>
-    /// Leeres Visual ganz unten in der Form, für das Material (<see cref="MaterialLayer"/>): Es liegt unter Körper,
-    /// Ohren und Tönung und bewegt sich mit der Zeichenfläche.
-    /// </summary>
-    public ContainerVisual CreateMaterialHost()
-    {
-        var host = _compositor.CreateContainerVisual();
-        host.Size = _root.Size;
-        _root.Children.InsertAtBottom(host);
-        return host;
-    }
+    /// <summary>Die Form blendet ein oder aus (nach der Verzögerung); das Material im Fensterziel blendet mit.</summary>
+    public event Action<bool, TimeSpan>? VisibleChanging;
 
     /// <summary>Die Wurzel, die in den XAML-Baum gehängt wird.</summary>
     public Visual Root => _root;
@@ -363,6 +354,7 @@ internal sealed class NotchSurface : IDisposable
     /// <summary>Blendet die ganze Notch aus (nach dem Zurückziehen) oder wieder ein.</summary>
     public void SetVisible(bool visible, TimeSpan delay)
     {
+        VisibleChanging?.Invoke(visible, delay);
         var animation = _compositor.CreateScalarKeyFrameAnimation();
         animation.InsertKeyFrame(1, visible ? 1 : 0);
         animation.Duration = TimeSpan.FromMilliseconds(visible ? 120 : 160);

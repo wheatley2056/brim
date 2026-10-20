@@ -1,10 +1,11 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Brim.Core;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Geometry;
 using Microsoft.UI.Composition.SystemBackdrops;
-using Microsoft.UI.Content;
 using Microsoft.UI.Dispatching;
+using WinRT;
 using WinComp = Windows.UI.Composition;
 
 namespace Brim.Shell;
@@ -14,8 +15,10 @@ namespace Brim.Shell;
 /// über die (nie geglättete) Fensterregion zuzuschneiden, nimmt diese Klasse den Pinsel des Materials selbst
 /// entgegen (<see cref="Microsoft.UI.Composition.ICompositionSupportsSystemBackdrop"/>) und füllt damit Visuals
 /// des System-Compositors, die mit Vektor-Clips beschnitten sind: Körper und Perlen als abgerundete Rechtecke,
-/// Ohren als Pfad. Eingebunden werden sie über eine <see cref="ChildSiteLink"/> unter der Form der Notch.
-/// Bleibt der Pinsel aus, meldet <see cref="Failed"/>; das Fenster nimmt dann den alten Weg über die Region.
+/// Ohren als Pfad. Sie hängen an einem eigenen Ziel des Fensters (<c>DesktopWindowTarget</c>, nicht zuoberst),
+/// also hinter dem XAML-Inhalt. (Eine <c>ChildSiteLink</c> in die XAML-Insel ließ Brim im System abstürzen.)
+/// Bleibt der Pinsel aus oder scheitert das Ziel, meldet <see cref="Failed"/>; das Fenster nimmt dann den alten
+/// Weg über die Region.
 /// </summary>
 internal sealed partial class MaterialLayer : Microsoft.UI.Composition.ICompositionSupportsSystemBackdrop, IDisposable
 {
@@ -27,19 +30,19 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
 
     private readonly ISystemBackdropControllerWithTargets _controller;
     private readonly SystemBackdropConfiguration _configuration;
-    private readonly ContentIsland _parent;
-    private readonly Microsoft.UI.Composition.ContainerVisual _placement;
+    private readonly nint _hwnd;
     private readonly DispatcherQueue _queue;
     private readonly DispatcherQueueTimer _timeout;
-    private readonly Vector2 _size;
     private readonly List<IDisposable> _owned = [];
     private WinComp.CompositionBrush? _brush;
     private WinComp.SpriteVisual? _body;
     private readonly WinComp.SpriteVisual?[] _ears = new WinComp.SpriteVisual?[2];
     private readonly WinComp.SpriteVisual?[] _beads = new WinComp.SpriteVisual?[NotchStateMachine.MaxBeads];
-    private ContentIsland? _island;
-    private ChildSiteLink? _link;
+    private WinComp.ContainerVisual? _root;
+    private WinComp.Desktop.DesktopWindowTarget? _target;
     private NotchOutline? _outline;
+    private float _scale = 1;
+    private bool _visible = true;
     private bool _disposed;
 
     /// <summary>Der Pinsel kam nicht oder das Einbinden schlug fehl.</summary>
@@ -48,16 +51,22 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
     /// <summary>Das Material liegt als Vektorform im Umriss.</summary>
     public event Action? Attached;
 
-    public bool IsAttached => _island is not null;
+    public bool IsAttached => _target is not null;
 
-    /// <param name="parent">Insel des XAML-Inhalts (<c>XamlRoot.ContentIsland</c>).</param>
-    /// <param name="placement">Leeres Visual ganz unten in der Form der Notch; hier erscheint das Material.</param>
-    /// <exception cref="NotSupportedException">Das System kann dieses Material nicht.</exception>
-    public MaterialLayer(NotchMaterial material, ContentIsland parent, Microsoft.UI.Composition.ContainerVisual placement, Vector2 size, DispatcherQueue queue)
+    [ComImport]
+    [Guid("29E691FA-4567-4DCA-B319-D0F207EB6807")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface ICompositorDesktopInterop
     {
-        _parent = parent;
-        _placement = placement;
-        _size = size;
+        nint CreateDesktopWindowTarget(nint hwnd, [MarshalAs(UnmanagedType.Bool)] bool isTopmost);
+        void EnsureOnThread(uint threadId);
+    }
+
+    /// <param name="hwnd">Fenster der Notch; das Material liegt hinter seinem Inhalt.</param>
+    /// <exception cref="NotSupportedException">Das System kann dieses Material nicht.</exception>
+    public MaterialLayer(NotchMaterial material, nint hwnd, DispatcherQueue queue)
+    {
+        _hwnd = hwnd;
         _queue = queue;
         _controller = MaterialBackdrop.CreateController(material) ?? throw new NotSupportedException($"Material {material} wird nicht unterstützt");
         _timeout = queue.CreateTimer();
@@ -65,7 +74,7 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
         _timeout.IsRepeating = false;
         _timeout.Tick += (_, _) =>
         {
-            if (_island is null && !_disposed)
+            if (_target is null && !_disposed)
             {
                 Log.Info("Material: kein Pinsel vom System, Rückfall auf die Fensterregion");
                 Failed?.Invoke();
@@ -100,14 +109,19 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
         }
     }
 
-    /// <summary>Umriss in DIP der Zeichenfläche, wie er gerade gezeichnet wird (auch mitten in einer Animation).</summary>
-    public void Update(NotchOutline outline)
+    /// <summary>
+    /// Umriss in DIP der Zeichenfläche, wie er gerade gezeichnet wird (auch mitten in einer Animation), und der
+    /// Faktor von DIP auf Pixel des Fensters (DPI mal Größe der Notch).
+    /// </summary>
+    public void Update(NotchOutline outline, double scale)
     {
         _outline = outline;
+        _scale = (float)scale;
         if (_body is null)
         {
             return;
         }
+        _root!.Scale = new Vector3(_scale, _scale, 1);
         var b = outline.Body;
         _body.Offset = new Vector3((float)b.X, (float)b.Y, 0);
         _body.Size = new Vector2((float)b.Width, (float)b.Height);
@@ -155,6 +169,21 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
         }
     }
 
+    /// <summary>Mit der Form ein- und ausblenden, wie <see cref="NotchSurface.SetVisible"/>.</summary>
+    public void SetVisible(bool visible, TimeSpan delay)
+    {
+        _visible = visible;
+        if (_root is not { } root)
+        {
+            return;
+        }
+        var animation = root.Compositor.CreateScalarKeyFrameAnimation();
+        animation.InsertKeyFrame(1, visible ? 1 : 0);
+        animation.Duration = TimeSpan.FromMilliseconds(visible ? 120 : 160);
+        animation.DelayTime = delay;
+        root.StartAnimation("Opacity", animation);
+    }
+
     private void Attach()
     {
         if (_disposed || _brush is not { } brush)
@@ -174,8 +203,9 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
         {
             var compositor = brush.Compositor;
             var root = compositor.CreateContainerVisual();
-            root.Size = _size;
+            root.Opacity = _visible ? 1 : 0;
             _owned.Add(root);
+            _root = root;
 
             _body = Sprite(compositor, brush);
             _body.Clip = compositor.CreateGeometricClip(compositor.CreateRoundedRectangleGeometry());
@@ -196,17 +226,23 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
                 root.Children.InsertAtTop(bead);
             }
 
-            Log.Info("Material: Pinsel erhalten, binde ein");
-            _island = ContentIsland.CreateForSystemVisual(_queue, root);
-            _link = ChildSiteLink.Create(_parent, _placement);
-            _link.ActualSize = _size;
-            _link.ProcessesPointerInput = false;
-            _link.ProcessesKeyboardInput = false;
-            _link.Connect(_island);
+            Log.Info("Material: Pinsel erhalten, lege Fensterziel an");
+            var interop = compositor.As<ICompositorDesktopInterop>();
+            var abi = interop.CreateDesktopWindowTarget(_hwnd, isTopmost: false);
+            try
+            {
+                _target = MarshalInterface<WinComp.Desktop.DesktopWindowTarget>.FromAbi(abi);
+            }
+            finally
+            {
+                Marshal.Release(abi);
+            }
+            Log.Info("Material: Fensterziel angelegt, hänge Form ein");
+            _target.Root = root;
             _timeout.Stop();
             if (_outline is { } outline)
             {
-                Update(outline);
+                Update(outline, _scale);
             }
             Log.Info("Material: als Vektorform im Umriss der Notch");
             Attached?.Invoke();
@@ -301,17 +337,15 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
         {
             _controller.RemoveAllSystemBackdropTargets();
             (_controller as IDisposable)?.Dispose();
-            _link?.Dispose();
-            _island?.Dispose();
+            if (_target is not null)
+            {
+                _target.Root = null;
+                _target.Dispose();
+            }
             foreach (var o in _owned)
             {
                 o.Dispose();
             }
-            if (_placement.Parent is { } parent)
-            {
-                parent.Children.Remove(_placement);
-            }
-            _placement.Dispose();
         }
         catch (Exception ex)
         {
