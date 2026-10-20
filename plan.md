@@ -364,6 +364,14 @@ Noch offen:
 - `lifecycle.suspend/resume` (Bildschirm aus, Energiesparen) noch nicht verschickt; `tab.visibility` deckt den häufigsten Fall ab.
 - Offene Entscheidung 4 (nur deklarativ oder später XAML) bleibt offen; bisher nur deklarativ.
 
+### 7c+. SwyxIt!-Plugin (20.10.2026)
+
+`plugins/SwyxIt`: erstes echtes Plugin, über die COM-Schnittstelle von SwyxIt! (`Swyx.Client.ClmgrAPI` 14.21, MIT).
+- Bei jeder Meldung `DispOnLineMgrNotification` liest es alle Leitungen neu (`DispGetLine`, `DispState`) und hängt damit nicht an den Nummern der Meldungen. Daraus entstehen: Klingeln (3) und Anklopfen (6) als kritischer Hinweis mit Ablehnen (`DispHookOn`) und Annehmen (`DispSelectLine` + `DispHookOff`), alle 5 s erneuert. Aktive oder gehaltene Gespräche erscheinen kompakt mit Dauer, Halten/Fortsetzen und Auflegen.
+- Chat über `DispRegisterChatMessageReader`/`DispReadChatMessage` als HUD, die letzten fünf als Karte; „Chat öffnen“ über `IClientLineMgrInstantMessaging`.
+- COM läuft auf einem STA-Thread mit WinForms-Nachrichtenschleife ohne Fenster. Es verbindet sich nur mit einem laufenden SwyxIt! und prüft das alle 10 s neu.
+- Offen: unter Windows mit echtem SwyxIt! prüfen; ob der neue Swyx-Messenger über die Chat-Schnittstelle meldet; x86-Fassung für 32-Bit-SwyxIt!.
+
 ### 7d. Stand Phase 5 (20.10.2026)
 
 Umgesetzt:
