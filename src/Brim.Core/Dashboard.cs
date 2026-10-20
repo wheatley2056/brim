@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using Brim.Core.Widgets;
 
 namespace Brim.Core;
@@ -6,7 +5,6 @@ namespace Brim.Core;
 /// <summary>
 /// Größe einer Kachel auf der Seite „Jetzt“, in Feldern eines Rasters aus 4 × 2 Feldern pro Seite.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<TileSize>))]
 public enum TileSize
 {
     /// <summary>1 × 1: eine Uhr, ein Wert.</summary>

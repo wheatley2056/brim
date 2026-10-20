@@ -16,6 +16,16 @@ public sealed record PluginSettingDefinition
 /// <summary>Eine Aktion für Dateien der Ablage; das Plugin bekommt sie als <c>shelf.items</c> mit dieser <c>id</c>.</summary>
 public sealed record ShelfActionDefinition(string Id, string Label);
 
+/// <summary>Ein Widget für die Seite „Jetzt“ (Galerie); den Inhalt schickt das Plugin mit <c>widget.set</c>.</summary>
+public sealed record PluginWidgetDefinition
+{
+    public required string Id { get; init; }
+    public required string Name { get; init; }
+    public string? Description { get; init; }
+    public string? Glyph { get; init; }
+    public List<Brim.Core.TileSize> Sizes { get; init; } = [Brim.Core.TileSize.Medium];
+}
+
 /// <summary><c>plugin.json</c> im Ordner des Plugins.</summary>
 public sealed partial record PluginManifest
 {
@@ -52,6 +62,9 @@ public sealed partial record PluginManifest
 
     /// <summary>Einträge im Kontextmenü der Ablage (Slot <c>shelf.action</c>, Recht „shelf“), z. B. „Hochladen“.</summary>
     public List<ShelfActionDefinition> ShelfActions { get; init; } = [];
+
+    /// <summary>Widgets für „Jetzt“, z. B. Anrufe oder der nächste Termin.</summary>
+    public List<PluginWidgetDefinition> Widgets { get; init; } = [];
 
     /// <summary>Ordner, aus dem das Manifest stammt (nicht Teil der Datei).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
@@ -111,6 +124,25 @@ public sealed partial record PluginManifest
         if (ShelfActions.Any(a => string.IsNullOrWhiteSpace(a.Id) || string.IsNullOrWhiteSpace(a.Label) || a.Label.Length > 60))
         {
             throw new InvalidDataException("shelfActions braucht je eine id und ein label (höchstens 60 Zeichen)");
+        }
+        foreach (var widget in Widgets)
+        {
+            if (string.IsNullOrEmpty(widget.Id) || widget.Id.Length > 64 || widget.Id.Contains('/') || widget.Id.Contains('|'))
+            {
+                throw new InvalidDataException($"widgets: Kennung „{widget.Id}“ muss 1–64 Zeichen ohne „/“ und „|“ haben");
+            }
+            if (string.IsNullOrWhiteSpace(widget.Name) || widget.Name.Length > 40 || widget.Description is { Length: > 80 })
+            {
+                throw new InvalidDataException($"widgets: „{widget.Id}“ braucht einen Namen (höchstens 40 Zeichen, Beschreibung höchstens 80)");
+            }
+            if (widget.Sizes.Count == 0 || widget.Sizes.Any(s => !Enum.IsDefined(s)))
+            {
+                throw new InvalidDataException($"widgets: „{widget.Id}“ braucht mindestens eine Größe (small, medium, wide, large, full)");
+            }
+        }
+        if (Widgets.Select(w => w.Id).Distinct().Count() != Widgets.Count)
+        {
+            throw new InvalidDataException("widgets: Kennungen doppelt");
         }
         if (NotificationApps.Count > 0 && !Permissions.Contains("notifications"))
         {

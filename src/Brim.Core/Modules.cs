@@ -69,6 +69,9 @@ public sealed class ModuleContext
     public void DefineTile(string id, string name, IReadOnlyList<TileSize> sizes, string category = "Brim", string? glyph = null, string? description = null) =>
         _hub.DefineTile(new TileDefinition { ModuleId = ModuleId, Id = id, Name = name, Sizes = sizes, Category = category, Glyph = glyph, Description = description });
 
+    /// <summary>Nimmt Kacheln aus der Galerie, deren Kennung so beginnt (z. B. alle eines Plugins).</summary>
+    public void RemoveTiles(string idPrefix) => _hub.RemoveTiles(ModuleId, idPrefix);
+
     /// <summary>Inhalt einer Kachel in einer Größe.</summary>
     public void SetTile(string id, TileSize size, Widget content) => _hub.SetTile(ModuleId, id, size, content);
 

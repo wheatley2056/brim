@@ -71,6 +71,7 @@ If the plugin doesn't say `hello` within 10 seconds, that counts as a crash. Aft
 | `view.set` | `{ "id", "content", "order"? }` | Card in the Plugins tab, `order` 0–99 |
 | `view.clear` | `{ "id" }` | Remove the card |
 | `log` | `{ "message", "level": "info" \| "warn" \| "error" }` | Write to Brim's log |
+| `widget.set` | `{ "id", "size", "content" }` | Content of one of your `widgets` (see [Widgets on the Now page](#widgets-on-the-now-page)) in one size |
 
 Activity:
 
@@ -109,7 +110,43 @@ Every `id` is 1–64 characters, without `/` or `|`. Invalid parameters come bac
 | `notch.expanded` | `{ "expanded" }`: the notch opened or closed. Send live values (e.g. a `wave`) only while it's open. |
 | `notification.posted` | `{ "app", "title", "body" }`: a Windows notification from one of your `notificationApps` (needs `notifications`) |
 | `shelf.items` | `{ "actionId", "paths" }`: files from the shelf (needs `shelf`) |
+| `widget.placed` | `{ "widgets": [{ "id", "sizes" }] }`: which of your widgets the user put on the Now page (or that show in the gallery), and in which sizes. Send `widget.set` for exactly these. An empty list means none. |
 | `shutdown` | Exit now |
+
+## Widgets on the Now page
+
+Users build their **Now** page from tiles: press and hold (or right-click) the page, then drag, resize, remove, or add widgets from the gallery. Plugins offer widgets in `plugin.json`:
+
+```json
+"widgets": [
+  { "id": "calls", "name": "Calls", "description": "Current call and quick actions", "glyph": "\uE717", "sizes": ["medium", "large"] }
+]
+```
+
+| Size | Cells | Content area (DIP) |
+|---|---|---|
+| `small` | 1 × 1 | 113 × 57 |
+| `medium` | 2 × 1 | 258 × 57 |
+| `wide` | 4 × 1 | 548 × 57 |
+| `large` | 2 × 2 | 258 × 146 |
+| `full` | 4 × 2 | 548 × 146 |
+
+The first size is the default in the gallery. Brim draws the card (background, corners, 12 DIP padding); your content fills the area. After `hello`, Brim sends `widget.placed`; answer with `widget.set` for each size, and again whenever the content changes. Buttons in widgets come back as `action.invoked` like everywhere else. A widget disappears from the gallery while your plugin isn't running; users' layouts keep it and show it again when you're back.
+
+With the SDK:
+
+```csharp
+brim.WidgetsPlaced += placed => Refresh(placed);
+Refresh(brim.PlacedWidgets); // may already be known when ConnectAsync returns
+
+async void Refresh(IReadOnlyDictionary<string, IReadOnlyList<TileSize>> placed)
+{
+    foreach (var size in placed.GetValueOrDefault("calls") ?? [])
+        await brim.SetWidgetAsync("calls", size, CallsWidget(size));
+}
+```
+
+For analog clocks there's the `clockface` widget (below).
 
 ## Widgets
 
@@ -130,6 +167,7 @@ Content is a tree of widgets, each with a `"type"`. Names are camelCase. Colors 
 | `stack` | `children`, `orientation` (`horizontal`/`vertical`), `spacing`, `justify`, `align`, `padding` (number, `[x, y]` or `[l, t, r, b]`), `background`, `cornerRadius` |
 | `list` | `items`, `spacing`, `scrollable` |
 | `spacer` | `size`, `grow` |
+| `clockface` | `hour`, `minute`, `second`, `size`, `style` (`classic`, `minimal`, `numbers`), `showSeconds`, `color`, `accentColor`, `background`: an analog clock; send it once per second |
 
 All widgets also take `accessibleName` (for screen readers), `grow` (share of free space in a stack) and `fixedWidth`.
 

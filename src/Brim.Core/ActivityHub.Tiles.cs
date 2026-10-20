@@ -23,10 +23,10 @@ public sealed partial class ActivityHub
         Changed?.Invoke();
     }
 
-    /// <summary>Entfernt alle Kacheln eines Moduls aus der Galerie (Plugin beendet).</summary>
-    public void RemoveTiles(string moduleId)
+    /// <summary>Entfernt Kacheln eines Moduls aus der Galerie, optional nur die mit diesem Anfang der Kennung (ein Plugin).</summary>
+    public void RemoveTiles(string moduleId, string idPrefix = "")
     {
-        var prefix = moduleId + "/";
+        var prefix = moduleId + "/" + idPrefix;
         lock (_gate)
         {
             foreach (var key in _tileDefinitions.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList())

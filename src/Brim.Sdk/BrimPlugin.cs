@@ -57,6 +57,14 @@ public sealed class BrimPlugin : IAsyncDisposable
     /// <summary>Windows-Benachrichtigung einer App aus <c>notificationApps</c> im Manifest (Recht „notifications“).</summary>
     public event Action<NotificationParams>? NotificationPosted;
 
+    /// <summary>
+    /// Welche Widgets auf „Jetzt“ liegen (oder in der Galerie zu sehen sind), je Kennung die Größen. Nur für diese
+    /// <see cref="SetWidgetAsync"/> schicken; leer = gerade keins.
+    /// </summary>
+    public event Action<IReadOnlyDictionary<string, IReadOnlyList<TileSize>>>? WidgetsPlaced;
+
+    public IReadOnlyDictionary<string, IReadOnlyList<TileSize>> PlacedWidgets { get; private set; } = new Dictionary<string, IReadOnlyList<TileSize>>();
+
     /// <summary>Ist die Notch gerade aufgeklappt?</summary>
     public bool NotchExpanded { get; private set; }
 
@@ -118,6 +126,10 @@ public sealed class BrimPlugin : IAsyncDisposable
     public Task SetViewAsync(string id, Widget content, int order = 0, CancellationToken cancellationToken = default) =>
         CallAsync(PluginProtocol.ViewSet, new ViewParams { Id = id, Content = content, Order = order }, cancellationToken);
 
+    /// <summary>Inhalt eines Widgets (aus <c>widgets</c> im Manifest) in einer Größe, siehe <see cref="PlacedWidgets"/>.</summary>
+    public Task SetWidgetAsync(string id, TileSize size, Widget content, CancellationToken cancellationToken = default) =>
+        CallAsync(PluginProtocol.WidgetSet, new WidgetSetParams { Id = id, Size = size, Content = content }, cancellationToken);
+
     public Task ClearViewAsync(string id, CancellationToken cancellationToken = default) =>
         CallAsync(PluginProtocol.ViewClear, new IdParams(id), cancellationToken);
 
@@ -151,6 +163,10 @@ public sealed class BrimPlugin : IAsyncDisposable
                 break;
             case PluginProtocol.NotificationPosted when parameters?.Deserialize<NotificationParams>(PluginJson.Options) is { } notification:
                 NotificationPosted?.Invoke(notification);
+                break;
+            case PluginProtocol.WidgetsPlaced when parameters?.Deserialize<WidgetsPlacedParams>(PluginJson.Options) is { } placed:
+                PlacedWidgets = placed.Widgets.ToDictionary(w => w.Id, w => w.Sizes);
+                WidgetsPlaced?.Invoke(PlacedWidgets);
                 break;
             case PluginProtocol.Shutdown:
                 _shutdown.TrySetResult();

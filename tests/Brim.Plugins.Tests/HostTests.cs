@@ -74,12 +74,12 @@ public sealed class HostTests : IAsyncDisposable
         PluginRunner.ConnectTimeout = TimeSpan.FromSeconds(5);
     }
 
-    private void Install(string permissions = "[]")
+    private void Install(string permissions = "[]", string widgets = "[]")
     {
         var dir = Path.Combine(_root, "demo");
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, PluginManifest.FileName),
-            $$"""{ "id": "{{PluginId}}", "name": "Demo", "entry": "demo", "permissions": {{permissions}}, "settings": [{ "key": "greeting", "default": "Hallo" }] }""");
+            $$"""{ "id": "{{PluginId}}", "name": "Demo", "entry": "demo", "permissions": {{permissions}}, "widgets": {{widgets}}, "settings": [{ "key": "greeting", "default": "Hallo" }] }""");
     }
 
     private async Task<PluginHostModule> StartHost(IPluginLauncher launcher, bool enabled = true, params string[] granted)
@@ -342,5 +342,61 @@ public sealed class HostTests : IAsyncDisposable
         {
             Directory.Delete(_root, recursive: true);
         }
+    }
+
+    [Fact]
+    public async Task Widgets_appear_in_the_gallery_and_get_content_once_placed()
+    {
+        Install(widgets: """[{ "id": "calls", "name": "Anrufe", "sizes": ["medium", "large"] }]""");
+        var placed = new ConcurrentQueue<IReadOnlyDictionary<string, IReadOnlyList<TileSize>>>();
+        Exception? refused = null;
+        var launcher = new InProcessLauncher(async (pipe, token) =>
+        {
+            await using var brim = await BrimPlugin.ConnectAsync(pipe, token);
+            brim.WidgetsPlaced += async widgets =>
+            {
+                placed.Enqueue(widgets);
+                foreach (var size in widgets.GetValueOrDefault("calls") ?? [])
+                {
+                    await brim.SetWidgetAsync("calls", size, new ButtonWidget("dial") { Label = $"Anrufe {size}" }, token);
+                }
+                try
+                {
+                    await brim.SetWidgetAsync("calls", TileSize.Small, new TextWidget("zu klein"), token);
+                }
+                catch (JsonRpcException ex)
+                {
+                    refused = ex;
+                }
+            };
+            await brim.RunAsync(token);
+        });
+
+        await StartHost(launcher);
+        var key = $"plugins/{PluginId}/calls";
+        await Until(() => _hub.Tile(key) is not null);
+        Assert.Equal("Demo", _hub.Tile(key)!.Category);
+        Assert.Equal([TileSize.Medium, TileSize.Large], _hub.Tile(key)!.Sizes);
+
+        _hub.SetTilePlacements([(key, TileSize.Large)]);
+        await Until(() => _hub.TileContent(key, TileSize.Large) is not null && refused is not null);
+        var button = Assert.IsType<ButtonWidget>(_hub.TileContent(key, TileSize.Large));
+        Assert.Equal($"{PluginId}|dial", button.ActionId);
+        Assert.Contains("Größe", refused!.Message);
+        Assert.Null(_hub.TileContent(key, TileSize.Medium));
+
+        // Plugin weg: Widget verschwindet aus der Galerie.
+        await _host!.DisposeAsync();
+        _host = null;
+        Assert.Null(_hub.Tile(key));
+    }
+
+    [Fact]
+    public void Broken_widget_definitions_are_refused()
+    {
+        Install(widgets: """[{ "id": "a/b", "name": "X" }]""");
+        Assert.Contains("Kennung", Assert.Throws<InvalidDataException>(() => PluginManifest.Load(Path.Combine(_root, "demo"))).Message);
+        Install(widgets: """[{ "id": "a", "name": "X", "sizes": [] }]""");
+        Assert.Contains("Größe", Assert.Throws<InvalidDataException>(() => PluginManifest.Load(Path.Combine(_root, "demo"))).Message);
     }
 }
