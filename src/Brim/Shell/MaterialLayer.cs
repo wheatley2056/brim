@@ -171,7 +171,7 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
             _owned.Add(root);
 
             _body = Sprite(compositor, brush);
-            _body.Clip = compositor.CreateRectangleClip();
+            _body.Clip = compositor.CreateGeometricClip(compositor.CreateRoundedRectangleGeometry());
             root.Children.InsertAtTop(_body);
             for (var i = 0; i < _ears.Length; i++)
             {
@@ -183,7 +183,7 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
             for (var i = 0; i < _beads.Length; i++)
             {
                 var bead = Sprite(compositor, brush);
-                bead.Clip = compositor.CreateRectangleClip();
+                bead.Clip = compositor.CreateGeometricClip(compositor.CreateRoundedRectangleGeometry());
                 bead.IsVisible = false;
                 _beads[i] = bead;
                 root.Children.InsertAtTop(bead);
@@ -232,23 +232,20 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
         return sprite;
     }
 
-    /// <summary>Abgerundetes Rechteck als Clip: wird vom Compositor geglättet, anders als eine Fensterregion.</summary>
+    /// <summary>
+    /// Abgerundetes Rechteck als Vektor-Clip: wird vom Compositor geglättet, anders als eine Fensterregion.
+    /// (RectangleClip mit Radien gibt es im System-Compositor erst ab Windows 11; Brim läuft ab 19041.)
+    /// </summary>
     private static void SetRoundClip(WinComp.SpriteVisual visual, RoundRect r)
     {
-        if (visual.Clip is not WinComp.RectangleClip clip)
+        if (visual.Clip is not WinComp.CompositionGeometricClip { Geometry: WinComp.CompositionRoundedRectangleGeometry geometry })
         {
             return;
         }
         var radius = (float)Math.Min(r.Radius, Math.Min(r.Width, r.Height) / 2);
-        var corner = new Vector2(radius, radius);
-        clip.Left = 0;
-        clip.Top = 0;
-        clip.Right = (float)r.Width;
-        clip.Bottom = (float)r.Height;
-        clip.TopLeftRadius = corner;
-        clip.TopRightRadius = corner;
-        clip.BottomLeftRadius = corner;
-        clip.BottomRightRadius = corner;
+        geometry.Offset = Vector2.Zero;
+        geometry.Size = new Vector2((float)r.Width, (float)r.Height);
+        geometry.CornerRadius = new Vector2(radius, radius);
     }
 
     /// <summary>
@@ -292,8 +289,8 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
         _timeout.Stop();
         _controller.RemoveAllSystemBackdropTargets();
         (_controller as IDisposable)?.Dispose();
-        _link?.Close();
-        _island?.Close();
+        _link?.Dispose();
+        _island?.Dispose();
         foreach (var o in _owned)
         {
             o.Dispose();

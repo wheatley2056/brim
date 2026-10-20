@@ -21,3 +21,7 @@ jobs:
 
       - name: Tests (ohne Netz)
         run: dotnet test Brim.slnx -c Release
+
+      # Die Tests bauen die App selbst nicht mit; ohne diesen Schritt fiele ein Fehler in Brim.csproj erst beim Release auf.
+      - name: App bauen
+        run: dotnet build src/Brim/Brim.csproj -c Release
