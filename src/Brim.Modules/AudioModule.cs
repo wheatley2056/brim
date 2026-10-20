@@ -223,11 +223,9 @@ public sealed class AudioModule : IBrimModule
             default:
                 if (id.StartsWith("device:", StringComparison.Ordinal))
                 {
-                    if (!_audio.SetDefaultDevice(id["device:".Length..]))
-                    {
-                        // Notlösung, falls Windows das Umschalten ablehnt.
-                        _ = Launcher.LaunchUriAsync(new Uri("ms-settings:sound"));
-                    }
+                    // Nicht auf dem UI-Thread warten: Die Liste aktualisiert sich über DevicesChanged.
+                    _ = SwitchDeviceAsync(id["device:".Length..]);
+                    return;
                 }
                 else if (id.StartsWith("app:", StringComparison.Ordinal) && id.EndsWith(":mute", StringComparison.Ordinal))
                 {
@@ -241,6 +239,15 @@ public sealed class AudioModule : IBrimModule
         }
         // Änderungen sofort zeigen (Gesamtlautstärke kommt zusätzlich über das Ereignis).
         PublishPanel();
+    }
+
+    private async Task SwitchDeviceAsync(string deviceId)
+    {
+        if (!await _audio.SetDefaultDeviceAsync(deviceId))
+        {
+            // Notlösung, falls Windows das Umschalten ablehnt.
+            _ = Launcher.LaunchUriAsync(new Uri("ms-settings:sound"));
+        }
     }
 
     public void OnExpandedChanged(bool expanded)
