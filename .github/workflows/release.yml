@@ -27,6 +27,15 @@ jobs:
         shell: pwsh
         run: echo "value=$('${{ github.ref_name }}'.TrimStart('v'))" >> $env:GITHUB_OUTPUT
 
+      # Sofort abbrechen, wenn der Tag auf einem Stand ohne diese Version liegt (z. B. vor dem Merge gesetzt).
+      - name: Changelog-Abschnitt vorhanden
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.value }}'
+          if (-not (Select-String -Path CHANGELOG.md -Pattern "^## $([regex]::Escape($version))\s*$" -Quiet)) {
+            throw "CHANGELOG.md hat keinen Abschnitt '## $version'. Zeigt der Tag v$version auf main, bevor der Pull Request gemergt war? Tag löschen und nach dem Merge neu setzen."
+          }
+
       - name: Tests (ohne Netz)
         run: dotnet test Brim.slnx -c Release
 
