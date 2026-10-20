@@ -126,6 +126,7 @@ public sealed class HostTests : IAsyncDisposable
                 Leading = new IconWidget(Glyphs.Clock),
                 Trailing = new ButtonWidget("ping") { Glyph = Glyphs.Next },
                 Rank = 50,
+                Glow = 1.7,
             }, token);
             await brim.SetViewAsync("card", new TextWidget("Karte"), cancellationToken: token);
             await brim.RunAsync(token);
@@ -138,6 +139,7 @@ public sealed class HostTests : IAsyncDisposable
         Assert.Equal("Hallo", greeting);
         var status = Activity("status")!.Activity;
         Assert.Equal(9, status.Rank);
+        Assert.Equal(1, status.Glow);
         var button = Assert.IsType<ButtonWidget>(status.Trailing);
         Assert.Equal($"{PluginId}|ping", button.ActionId);
 

@@ -101,4 +101,21 @@ public class NotificationModuleTests
         module.Show(preview!);
         Assert.Equal(ActivityPriority.Transient, Assert.Single(hub.Snapshot()).Priority);
     }
+
+    [Fact]
+    public void Tracker_reports_each_notification_once_across_event_and_poll()
+    {
+        var tracker = new NotificationTracker();
+        tracker.Seed([1, 2]);
+
+        Assert.Equal([3u], tracker.Update([1, 2, 3]));
+        Assert.False(tracker.Add(3));
+        Assert.True(tracker.Add(4));
+        Assert.Empty(tracker.Update([1, 2, 3, 4]));
+
+        // Per Ereignis gemeldet, in der Abfrage noch nicht da: später nicht noch einmal zeigen.
+        Assert.True(tracker.Add(5));
+        Assert.Empty(tracker.Update([1, 2]));
+        Assert.Empty(tracker.Update([1, 2, 5]));
+    }
 }

@@ -42,6 +42,11 @@ public sealed record Activity
     /// <summary>Akzentfarbe (Hex), z. B. aus dem Cover. Färbt den Schimmer am unteren Rand.</summary>
     public string? Accent { get; init; }
 
+    /// <summary>
+    /// Pegel 0–1, mit dem der Schimmer pulsiert, z. B. die Stimme im Gespräch. <c>null</c> lässt ihn ruhig leuchten.
+    /// </summary>
+    public double? Glow { get; init; }
+
     /// <summary>Anzeigedauer für vorübergehende und kritische Aktivitäten.</summary>
     public TimeSpan? Duration { get; init; }
 

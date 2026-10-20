@@ -3,6 +3,11 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 1.0.1
+
+- Benachrichtigungen: Neue Windows-Benachrichtigungen erscheinen jetzt zuverlässig in der Notch. Brim fragt das Info-Center zusätzlich alle 2 Sekunden ab, weil Windows das Ereignis an Desktop-Apps oft nicht zustellt. Auch Apps mit älteren Benachrichtigungsvorlagen werden angezeigt.
+- Plugins können den Lichtschein am unteren Rand mit einem Pegel pulsieren lassen (`glow`), etwa mit der Stimme im Telefonat.
+
 ## 1.0.0
 
 Brim 1.0 – alles aus dem Plan ist da.

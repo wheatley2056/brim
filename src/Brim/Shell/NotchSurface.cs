@@ -32,6 +32,7 @@ internal sealed class NotchSurface : IDisposable
     private NotchShape _target;
     private string? _accent;
     private float _shimmerTarget = -1;
+    private double? _glow;
 
     public NotchSurface(Compositor compositor, float canvasWidth, float canvasHeight, NotchShape initial)
     {
@@ -88,6 +89,8 @@ internal sealed class NotchSurface : IDisposable
         _shimmer.Opacity = 0;
         Bind(_shimmer, "Offset", "Vector3(p.CX - p.W * 0.42, p.H - Min(28, p.H * 0.55), 0)");
         Bind(_shimmer, "Size", "Vector2(p.W * 0.84, Min(28, p.H * 0.55))");
+        // Pulsieren (SetGlow) wächst von der Unterkante aus nach oben.
+        Bind(_shimmer, "CenterPoint", "Vector3(p.W * 0.42, Min(28, p.H * 0.55), 0)");
         _root.Children.InsertAtTop(_shimmer);
 
         // Perlen für weitere laufende Aktivitäten.
@@ -204,12 +207,49 @@ internal sealed class NotchSurface : IDisposable
             return;
         }
         _accent = hex;
-        var (_, r, g, b) = AccentColor.Parse(hex);
-        foreach (var (stop, alpha) in new[] { (_shimmerStop, ShimmerAlpha), (_shimmerMid, (byte)(ShimmerAlpha / 3)), (_shimmerEdge, (byte)0) })
+        Tint(TimeSpan.FromMilliseconds(400));
+    }
+
+    /// <summary>
+    /// Lässt den Schimmer mit einem Pegel (0–1) schwingen: höher und heller, je lauter.
+    /// Die Werte kommen etwa 15-mal pro Sekunde; kurze Übergänge glätten dazwischen.
+    /// </summary>
+    public void SetGlow(double? level, bool reducedMotion)
+    {
+        if (reducedMotion)
+        {
+            level = null;
+        }
+        if (level == _glow || (level is { } l && _glow is { } g && Math.Abs(l - g) < 0.01))
+        {
+            return;
+        }
+        var rising = (level ?? 0) >= (_glow ?? 0);
+        _glow = level;
+        // Schnell hoch, langsamer zurück – wie ein Pegelmesser.
+        var duration = TimeSpan.FromMilliseconds(level is null ? 300 : rising ? 70 : 180);
+        var x = (float)(level ?? 0);
+        var scale = _compositor.CreateVector3KeyFrameAnimation();
+        scale.InsertKeyFrame(1, level is null ? Vector3.One : new Vector3(1 + 0.12f * x, 0.75f + 1.6f * x, 1));
+        scale.Duration = duration;
+        _shimmer.StartAnimation("Scale", scale);
+        Tint(duration);
+    }
+
+    private void Tint(TimeSpan duration)
+    {
+        if (_accent is null)
+        {
+            return;
+        }
+        var (_, r, g, b) = AccentColor.Parse(_accent);
+        var gain = _glow is { } level ? 0.55 + 1.45 * level : 1;
+        var alpha = (byte)Math.Clamp(ShimmerAlpha * gain, 0, 255);
+        foreach (var (stop, a) in new[] { (_shimmerStop, alpha), (_shimmerMid, (byte)(alpha / 3)), (_shimmerEdge, (byte)0) })
         {
             var color = _compositor.CreateColorKeyFrameAnimation();
-            color.InsertKeyFrame(1, Color.FromArgb(alpha, r, g, b));
-            color.Duration = TimeSpan.FromMilliseconds(400);
+            color.InsertKeyFrame(1, Color.FromArgb(a, r, g, b));
+            color.Duration = duration;
             stop.StartAnimation("Color", color);
         }
     }

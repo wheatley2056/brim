@@ -64,6 +64,10 @@ public sealed record ActivityParams
     public Widget? Expanded { get; init; }
     public Widget? Bead { get; init; }
     public string? Accent { get; init; }
+
+    /// <summary>Pegel 0–1 für den Schimmer; mehrmals pro Sekunde senden, damit er mitschwingt.</summary>
+    public double? Glow { get; init; }
+
     public int? DurationMs { get; init; }
 
     /// <summary>0–9; eingebaute Module wie Musik stehen darüber.</summary>
