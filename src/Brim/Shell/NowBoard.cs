@@ -499,6 +499,10 @@ internal sealed class NowBoard : Grid
         }
         _gallery = new Gallery(this);
         Children.Add(_gallery);
+        // Die Seite darunter ausblenden: „−“ der Kacheln ragt 7 DIP über den Rand und läge sonst als Punkt
+        // über der Galerie (oben links und oben in der Mitte).
+        _page.Visibility = Visibility.Collapsed;
+        _dots.Visibility = Visibility.Collapsed;
         PublishPlacements();
         _gallery.Update();
         GalleryChanged?.Invoke(true);
@@ -511,6 +515,8 @@ internal sealed class NowBoard : Grid
             return;
         }
         Children.Remove(_gallery);
+        _page.Visibility = Visibility.Visible;
+        _dots.Visibility = Visibility.Visible;
         _gallery = null;
         PublishPlacements();
         GalleryChanged?.Invoke(false);
