@@ -531,9 +531,10 @@ public sealed class PluginHostModule : IBrimModule
         {
             var manifest = runner.Manifest;
             var enabled = IsEnabled(manifest);
-            var permissions = manifest.Permissions.Count == 0
+            var shown = manifest.Permissions.Concat(manifest.GrantedOptional).ToList();
+            var permissions = shown.Count == 0
                 ? "Braucht keine Rechte"
-                : "Darf: " + string.Join(", ", manifest.Permissions.Select(p => PluginManifest.KnownPermissions[p]));
+                : "Darf: " + string.Join(", ", shown.Select(p => PluginManifest.KnownPermissions[p]));
             var stateColor = runner.State switch
             {
                 PluginState.Running => BrimColors.Charge,

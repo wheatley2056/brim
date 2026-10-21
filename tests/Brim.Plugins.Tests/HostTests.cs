@@ -93,6 +93,14 @@ public sealed class HostTests : IAsyncDisposable
             $$"""{ "id": "{{PluginId}}", "name": "Demo", "entry": "demo", "permissions": {{permissions}}, "widgets": {{widgets}}, "settings": [{ "key": "greeting", "default": "Hallo" }] }""");
     }
 
+    private void InstallOptional(string optionalPermissions)
+    {
+        var dir = Path.Combine(_root, "demo");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, PluginManifest.FileName),
+            $$"""{ "id": "{{PluginId}}", "name": "Demo", "entry": "demo", "optionalPermissions": {{optionalPermissions}} }""");
+    }
+
     private async Task<PluginHostModule> StartHost(IPluginLauncher launcher, bool enabled = true, params string[] granted)
     {
         if (enabled)
@@ -187,11 +195,20 @@ public sealed class HostTests : IAsyncDisposable
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Overlay_needs_the_overlay_permission_and_content(bool permitted)
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task Overlay_needs_the_overlay_permission_and_content(bool permitted, bool optional)
     {
-        Install(permitted ? """["overlay"]""" : "[]");
+        // Optional angefordert gilt „overlay“ ohne Zustimmung (ältere Brim-Versionen ignorieren das Feld).
+        if (optional)
+        {
+            InstallOptional("""["overlay"]""");
+        }
+        else
+        {
+            Install(permitted ? """["overlay"]""" : "[]");
+        }
         Exception? refused = null;
         var launcher = new InProcessLauncher(async (pipe, token) =>
         {
@@ -208,7 +225,7 @@ public sealed class HostTests : IAsyncDisposable
             await brim.RunAsync(token);
         });
 
-        await StartHost(launcher, granted: permitted ? ["overlay"] : []);
+        await StartHost(launcher, granted: permitted && !optional ? ["overlay"] : []);
         await Until(() => Activity("fps") is not null && refused is not null);
 
         Assert.Equal(permitted, Activity("fps")!.Activity.IsOverlay);
