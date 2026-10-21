@@ -31,7 +31,7 @@ public sealed partial record PluginManifest
 {
     public const string FileName = "plugin.json";
 
-    /// <summary>Rechte, die Brim kennt. Netzwerk und Medien sind Erklärungen für den Nutzer; „alerts“ und „shelf“ prüft Brim selbst.</summary>
+    /// <summary>Rechte, die Brim kennt. Netzwerk und Medien sind Erklärungen für den Nutzer; „alerts“, „overlay“ und „shelf“ prüft Brim selbst.</summary>
     public static readonly IReadOnlyDictionary<string, string> KnownPermissions = new Dictionary<string, string>
     {
         ["network"] = "Netzwerk",
@@ -39,6 +39,7 @@ public sealed partial record PluginManifest
         ["media"] = "Mediensteuerung",
         ["alerts"] = "Kritische Hinweise (klappt die Notch auf)",
         ["notifications"] = "Benachrichtigungen bestimmter Apps lesen",
+        ["overlay"] = "Mini-Pille über Vollbild-Apps und Spielen",
     };
 
     public required string Id { get; init; }

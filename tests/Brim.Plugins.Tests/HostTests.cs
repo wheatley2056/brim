@@ -186,6 +186,36 @@ public sealed class HostTests : IAsyncDisposable
         Assert.DoesNotContain(_hub.Views(NotchTab.Plugins), v => v.Id.EndsWith("/bad"));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Overlay_needs_the_overlay_permission_and_content(bool permitted)
+    {
+        Install(permitted ? """["overlay"]""" : "[]");
+        Exception? refused = null;
+        var launcher = new InProcessLauncher(async (pipe, token) =>
+        {
+            await using var brim = await BrimPlugin.ConnectAsync(pipe, token);
+            await brim.SetActivityAsync(new ActivityParams { Id = "fps", Background = true, Overlay = true, Content = new TextWidget("144 FPS") }, token);
+            try
+            {
+                await brim.SetActivityAsync(new ActivityParams { Id = "empty", Overlay = true }, token);
+            }
+            catch (JsonRpcException ex)
+            {
+                refused = ex;
+            }
+            await brim.RunAsync(token);
+        });
+
+        await StartHost(launcher, granted: permitted ? ["overlay"] : []);
+        await Until(() => Activity("fps") is not null && refused is not null);
+
+        Assert.Equal(permitted, Activity("fps")!.Activity.IsOverlay);
+        Assert.Contains("content", refused!.Message);
+        Assert.Null(Activity("empty"));
+    }
+
     [Fact]
     public async Task Disabled_plugins_wait_until_switched_on_which_grants_permissions()
     {

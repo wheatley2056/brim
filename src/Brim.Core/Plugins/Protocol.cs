@@ -78,6 +78,10 @@ public sealed record ActivityParams
     public int Rank { get; init; }
 
     public bool Background { get; init; }
+
+    /// <summary>Bleibt als Mini-Pille mit <see cref="Content"/> sichtbar, wenn sich die Notch zurückzieht (Recht „overlay“).</summary>
+    public bool Overlay { get; init; }
+
     public string? Announcement { get; init; }
 }
 

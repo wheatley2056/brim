@@ -543,6 +543,10 @@ internal sealed class PluginRunner : IAsyncDisposable
         {
             throw new JsonRpcException(JsonRpcException.InvalidParams, "priority „idle“ ist der Uhr vorbehalten");
         }
+        if (p.Overlay && p.Content is null)
+        {
+            throw new JsonRpcException(JsonRpcException.InvalidParams, "overlay braucht content (Inhalt der Mini-Pille)");
+        }
         // Kritische Hinweise klappen die Notch auf; das darf nur, wer das Recht „alerts“ hat.
         var priority = p.Priority == ActivityPriority.Critical && !Granted("alerts") ? ActivityPriority.Transient : p.Priority;
         TimeSpan? duration = p.DurationMs is { } ms ? TimeSpan.FromMilliseconds(Math.Clamp(ms, 100, 24 * 3600 * 1000)) : null;
@@ -565,6 +569,8 @@ internal sealed class PluginRunner : IAsyncDisposable
             Duration = duration,
             Rank = Math.Clamp(p.Rank, 0, 9),
             IsBackground = p.Background,
+            // Die Mini-Pille bleibt über Vollbild-Apps stehen; ohne das Recht „overlay“ verschwindet sie mit der Notch.
+            IsOverlay = p.Overlay && Granted("overlay"),
             Announcement = p.Announcement,
         };
         lock (_gate)
