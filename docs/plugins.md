@@ -48,7 +48,7 @@ Brim only installs a zip from the releases of the listed repository whose SHA-25
 | `entry` | A file inside the plugin folder (`ServerStatus.exe`), or a command on `PATH` (`py`, `node`). Paths that leave the folder are rejected. |
 | `args` | Arguments for `entry`, e.g. `["-3", "plugin.py"]` |
 | `api` | Protocol version, currently `"1"` |
-| `permissions` | `network`, `media`: shown to the user. Brim can't sandbox a process, so these are declarations. `alerts`: allows `critical` activities, which pop the notch open; without it they are shown as a HUD. `shelf`: receive files from the shelf. `notifications`: receive the Windows notifications of the apps in `notificationApps`. |
+| `permissions` | `network`, `media`: shown to the user. Brim can't sandbox a process, so these are declarations. `alerts`: allows `critical` activities, which pop the notch open; without it they are shown as a HUD. `overlay`: allows `overlay` activities, a mini pill that stays over fullscreen apps and games while the notch is hidden. `shelf`: receive files from the shelf. `notifications`: receive the Windows notifications of the apps in `notificationApps`. |
 | `shelfActions` | Entries in the shelf's right-click menu, e.g. `[{ "id": "upload", "label": "Upload" }]`. When chosen, the plugin gets `shelf.items` with that `id` as `actionId`. Needs `shelf`. |
 | `notificationApps` | App display names, e.g. `["Swyx Messenger"]`. Their Windows notifications go to this plugin instead of Brim's own preview. Matching is case-insensitive on a part of the name. Needs `notifications`, and Brim's identity must be set up (Settings → Calendar and notifications). |
 | `settings` | Values the user can set (for now in `settings.json` under `Plugins.<id>.Values`). Defaults are sent in `hello`. |
@@ -108,6 +108,7 @@ Activity:
 - `accent`: tints the glow along the bottom edge of the notch.
 - `glow`: optional level 0–1 that makes the glow pulse, taller and brighter the louder it is (for example a voice in a call). Send updates about 15 times per second; leave it out for a steady glow. Ignored when the user turned off animations.
 - `background`: true keeps the activity out of the compact notch but still reachable in the Now tab.
+- `overlay`: true keeps `content` visible as a small pill when the notch hides, e.g. over a fullscreen game (needs `overlay`, Brim 2.4.0). Without the permission the field is ignored. Combine it with `background: true` so the activity doesn't take over the compact notch.
 
 Every `id` is 1–64 characters, without `/` or `|`. Invalid parameters come back as a JSON-RPC error (`-32602`) with a readable message, for example a color that isn't `#RRGGBB`. More than 120 messages per second are refused (`-32000`).
 
