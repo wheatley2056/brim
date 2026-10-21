@@ -3,6 +3,14 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 2.2.3
+
+- Einstellungen: Eine von Hand bearbeitete `settings.json`, in der Abschnitte fehlen oder auf `null` stehen, wirft Brim beim Start nicht mehr um – es nimmt die Standardwerte. Zwei gleichzeitige Speichervorgänge (Schalter im Tab „Plugins“ und Einstellungsseite) überschreiben sich nicht mehr, und eine Änderung geht dabei nicht verloren.
+- Plugins: Starten zwei Stellen gleichzeitig (Timer und Nutzer), entsteht nur noch ein Prozess. Ein verspätetes „läuft“ überschreibt keinen Absturz mehr, sodass der geplante Neustart nicht mehr ausfällt, und die Kacheln eines Plugins kommen auch dann an, wenn es beim Melden der Belegung noch startete.
+- Freigaben: Beim Beenden kann eine nachlaufende Meldung von Windows Brim nicht mehr abstürzen lassen.
+- Tastenkürzel: Schaltest du es in den Einstellungen ab, ist es sofort frei; bisher blieb es bis zum nächsten Start belegt.
+- Ablage: Pfade werden mit dem Trennzeichen des Systems verglichen statt fest mit einem Backslash.
+
 ## 2.2.2
 
 - Acryl und Mica: Brim stürzt beim Umstellen nicht mehr ab. Das Material mit glatten Kanten hängt jetzt direkt am Fenster statt in der Oberfläche.
