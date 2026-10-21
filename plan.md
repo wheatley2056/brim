@@ -463,6 +463,17 @@ Entwurf: Artifact „Brim – Jetzt neu“ (sechs Ansichten). Entschieden: Die A
 - **Galerie:** hohe Notch (`ExpandedTall`), Fenster nimmt Tastatur an; Gruppen links (Brim, Uhren, Kalender, Medien, System, dann Plugins), Suche in der Kopfzeile, Karten mit verkleinerter Vorschau. Danach Vorschau in echter Größe, Größen als Rasterbildchen, „Hinzufügen“.
 - **Offen:** „Nicht stören“ im Schnellzugriff (wartet auf B9), Ziehen auf eine andere Seite.
 
+### 7k. Plugin-Bibliothek (21.10.2026, Brim 2.3)
+
+Entscheidungen: Katalog als Datei `catalog/plugins.json` in diesem Repository (Brim lädt sie von `main`, umstellbar über `Library.CatalogUrl`), Zips nur aus den GitHub-Releases des eingetragenen Repositorys, SHA-256 im Katalog statt Code-Signatur. „Von Brim“ heißen Plugins aus Repositorys von wheatley2056.
+
+- **Katalog** (`PluginCatalog`): Format 1, je Plugin Kennung, Name, Beschreibung, Autor, Repository, Kategorien, Rechte, Version, Download, `sha256`, Größe, optional `minBrim`. Fehlerhafte Einträge fallen einzeln weg. Zwischengespeichert in `%LocalAppData%\Brim\catalog.json` für ohne Netz.
+- **Installieren** (`PluginInstaller`): Laden mit Obergrenze 200 MB, Prüfsumme, Entpacken nach `PluginStaging` (höchstens 800 MB und 5000 Dateien, keine Pfade aus dem Ordner heraus). Das Manifest im Zip muss Kennung und Version des Eintrags haben und darf keine Rechte verlangen, die der Katalog nicht nennt.
+- **Host** (`PluginHostModule.InstallAsync`/`RemoveAsync`): beendet die alte Fassung, tauscht den Ordner (alter beiseite, bei Fehler zurück), startet neu, ohne Brim neu zu starten. Plugins in eigenen Ordnern (`PluginDirectories`) fasst die Bibliothek nicht an.
+- **Zustimmung:** „Installieren“ bzw. „Aktualisieren“ auf der Karte ist die Zustimmung zu den dort genannten Rechten und schaltet das Plugin ein. Hintergrund-Updates (alle `Updates.CheckHours`, abschaltbar) nur, wenn keine Rechte dazukommen; sonst „Aktualisieren“ mit Hinweis auf die neuen Rechte.
+- **Oberfläche:** Einstellungen → Plugins → Bibliothek mit Suche, Karten (Abzeichen „Von Brim“, Version, Größe, Rechte, Fehler), Fortschritt, Entfernen mit Rückfrage.
+- **Eintragen:** `build/catalog/Add-Plugin.ps1 -Repository <besitzer/name> -Tag v<Version>` rechnet Prüfsumme und Rechte aus dem Release nach; der Pull Request ist die Prüfung.
+
 ### 8a. Einführung (Brim 2.0, 20.10.2026)
 
 - **Wann:** nur beim ersten Start einer frischen Installation (`Onboarding.ShouldRun`: keine Einstellungsdatei); bestehende Installationen gelten als eingeführt. Erneut über Einstellungen → Info.

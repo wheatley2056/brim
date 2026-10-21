@@ -29,6 +29,7 @@ public partial class App : Application
     private NearbyService? _nearby;
     private AutoUpdater? _updater;
     private PluginHostModule? _plugins;
+    private PluginLibrary? _library;
     private List<IBrimModule> _allModules = [];
 
     /// <summary>Einstellungsfenster (Tray-Menü). Module ohne eigene Oberfläche (Uhr, Updates) stehen nicht zur Wahl.</summary>
@@ -42,6 +43,7 @@ public partial class App : Application
         () => _windows?.ToggleExpanded(),
         () => PackageIdentity.Restart(ExitApp),
         () => _plugins?.Installed ?? [],
+        _library,
         window);
 
     public App()
@@ -171,6 +173,13 @@ public partial class App : Application
         _updater = new AutoUpdater(_settings, DataDirectory, () =>
             _windows.IsBusy || _hub.Snapshot().Any(a => a.Activity.ModuleId == NearbyModule.ModuleId && a.Priority >= ActivityPriority.Ongoing));
         Log.Info($"Brim {_updater.CurrentVersion ?? "Entwicklungsfassung"}");
+        if (!IsDemo)
+        {
+            // Plugin-Bibliothek: Katalog aus dem Brim-Repository, Zips aus den Releases der Plugins.
+            var http = new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
+            http.DefaultRequestHeaders.UserAgent.ParseAdd($"Brim/{_updater.CurrentVersion ?? "dev"}");
+            _library = new PluginLibrary(http, _plugins, () => _settings.Current, DataDirectory, () => _updater.CurrentVersion);
+        }
 
         _allModules = [.. CreateModules(nearbyModule)];
         await _modules.StartAsync(_allModules, settings);
@@ -179,6 +188,7 @@ public partial class App : Application
             return;
         }
         _updater.Start();
+        _library?.Start(() => TimeSpan.FromHours(Math.Max(1, _settings.Current.Updates.CheckHours)));
 
         // Teilen im LAN: Identität, Empfang und Suche (Plan 4.4a). Fehler hier dürfen die Notch nicht stören.
         try
@@ -236,6 +246,7 @@ public partial class App : Application
     {
         Log.Info("Brim wird beendet");
         _updater?.Dispose();
+        _library?.Dispose();
         _tray?.Dispose();
         _windows?.Dispose();
         if (_modules is not null)

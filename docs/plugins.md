@@ -9,11 +9,22 @@ Examples: [`samples/ServerStatus`](../samples/ServerStatus) (.NET) and [`samples
 
 ## Install and enable
 
-Each plugin is a folder under `%LocalAppData%\Brim\Plugins\` with a `plugin.json`. For development you can add more folders to `PluginDirectories` in `settings.json`. Brim looks for plugins at startup.
+The easiest way is the **library**: Settings → Plugins → Library lists the plugins from the Brim catalog. *Install* downloads the plugin, checks it and switches it on with the permissions shown on its card. Plugins from the library update themselves in the background unless a new version asks for more permissions; then the card offers *Update* and names the new permissions.
+
+By hand: each plugin is a folder under `%LocalAppData%\Brim\Plugins\` with a `plugin.json`. For development you can add more folders to `PluginDirectories` in `settings.json`. Brim looks for plugins at startup.
 
 New plugins start switched **off**. In the **Plugins** tab, the card on the right lists every plugin with its permissions, its state and a switch. Switching a plugin on grants exactly the permissions shown. If a later version asks for more, the plugin stays off until you switch it on again.
 
 The plugin's stdout and stderr go to `%LocalAppData%\Brim\logs\plugins\<id>.log`.
+
+## Publish in the library
+
+The catalog is [`catalog/plugins.json`](../catalog/plugins.json) in this repository. To list a plugin:
+
+1. Attach the finished plugin folder as a `.zip` to a GitHub release of your repository (`plugin.json` at the top of the zip or in one folder). Tag and `version` in `plugin.json` must match, e.g. `v1.2.0` and `1.2.0`. [brim-swyxit's workflow](https://github.com/wheatley2056/brim-swyxit/blob/main/.github/workflows/build.yml) does this on every tag.
+2. Run `./build/catalog/Add-Plugin.ps1 -Repository <owner>/<name> -Tag v1.2.0 -Summary "…" -Author "…"` and open a pull request with the changed `catalog/plugins.json`. For a new version, run it again with the new tag.
+
+Brim only installs a zip from the releases of the listed repository whose SHA-256 matches the catalog, whose `plugin.json` has the listed `id` and `version`, and which asks for no permissions the catalog doesn't name. `minBrim` (optional) hides the install button on older versions of Brim.
 
 ## `plugin.json`
 

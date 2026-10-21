@@ -3,6 +3,14 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 2.3.0
+
+Plugin-Bibliothek: Plugins finden, installieren und aktuell halten, ohne Ordner zu kopieren.
+
+- Neu unter Einstellungen → Plugins → Bibliothek: alle Plugins aus dem Brim-Katalog mit Suche, Beschreibung, Version und Rechten. Plugins von Brim selbst tragen das Abzeichen „Von Brim“.
+- Installieren mit einem Klick: Brim lädt das Plugin, prüft es gegen die Prüfsumme im Katalog und schaltet es mit den gezeigten Rechten ein. Ein Neustart ist nicht nötig. Entfernen geht ebenso.
+- Plugins aus der Bibliothek aktualisieren sich im Hintergrund (abschaltbar). Verlangt eine neue Version mehr Rechte, wartet sie auf deinen Klick auf „Aktualisieren“.
+
 ## 2.2.2
 
 - Acryl und Mica: Brim stürzt beim Umstellen nicht mehr ab. Das Material mit glatten Kanten hängt jetzt direkt am Fenster statt in der Oberfläche.
