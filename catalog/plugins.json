@@ -2,6 +2,24 @@
   "schema": 1,
   "plugins": [
     {
+      "id": "de.brim.outlook",
+      "name": "Outlook",
+      "summary": "Nächster Termin mit Countdown, neue E-Mails und Aufgaben aus Outlook in der Notch.",
+      "author": "Brim",
+      "repository": "https://github.com/wheatley2056/brim-outlook",
+      "categories": [
+        "Produktivität"
+      ],
+      "permissions": [
+        "notifications"
+      ],
+      "version": "1.2.0",
+      "download": "https://github.com/wheatley2056/brim-outlook/releases/download/v1.2.0/brim-outlook.zip",
+      "sha256": "398b37ea7cde6666b3c8396f1ad1cf85d07b4673effcc110ee16ca82bbe8a7ec",
+      "size": 253763,
+      "minBrim": "2.0.0"
+    },
+    {
       "id": "de.brim.swyxit",
       "name": "SwyxIt!",
       "summary": "Anrufe mit Annehmen, Auflegen und Wellenform, dazu Chats aus SwyxIt! und Swyx Messenger.",
