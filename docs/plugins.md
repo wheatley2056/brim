@@ -108,7 +108,7 @@ Activity:
 - `accent`: tints the glow along the bottom edge of the notch.
 - `glow`: optional level 0–1 that makes the glow pulse, taller and brighter the louder it is (for example a voice in a call). Send updates about 15 times per second; leave it out for a steady glow. Ignored when the user turned off animations.
 - `background`: true keeps the activity out of the compact notch but still reachable in the Now tab.
-- `overlay`: true keeps `content` visible as a small pill when the notch hides, e.g. over a fullscreen game (needs `overlay`, Brim 2.3.1). Without the permission the field is ignored. Combine it with `background: true` so the activity doesn't take over the compact notch.
+- `overlay`: true keeps `content` visible as a small pill when the notch hides, e.g. over a fullscreen game (needs `overlay`, Brim 2.4.0). Without the permission the field is ignored. Combine it with `background: true` so the activity doesn't take over the compact notch.
 
 Every `id` is 1–64 characters, without `/` or `|`. Invalid parameters come back as a JSON-RPC error (`-32602`) with a readable message, for example a color that isn't `#RRGGBB`. More than 120 messages per second are refused (`-32000`).
 

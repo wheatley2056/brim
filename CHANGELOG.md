@@ -3,9 +3,12 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
-## 2.3.1
+## 2.4.0
 
 - Plugins: Mit dem neuen Recht „overlay“ darf ein Plugin eine Mini-Pille zeigen, die über Vollbild-Apps und Spielen stehen bleibt, wenn sich die Notch zurückzieht – wie die FPS-Pille der eingebauten Messung. Gedacht für das neue GameMode-Plugin.
+
+## 2.3.1
+
 - Acryl und Mica: Ist Brim mit einer älteren Version einmal beim Material mit glatten Kanten abgestürzt, probiert es nach dem Update wieder die glatten Kanten, statt dauerhaft bei den treppigen zu bleiben.
 
 ## 2.3.0
