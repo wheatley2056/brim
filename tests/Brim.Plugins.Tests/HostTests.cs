@@ -126,6 +126,7 @@ public sealed class HostTests : IAsyncDisposable
         Install();
         var actions = new ConcurrentQueue<string>();
         string? greeting = null;
+        var viewAccepted = false;
         var launcher = new InProcessLauncher(async (pipe, token) =>
         {
             await using var brim = await BrimPlugin.ConnectAsync(pipe, token);
@@ -139,12 +140,17 @@ public sealed class HostTests : IAsyncDisposable
                 Rank = 50,
                 Glow = 1.7,
             }, token);
+#pragma warning disable CS0618 // Ältere Plugins schicken noch view.set: Brim nimmt es an, zeigt es aber nicht.
             await brim.SetViewAsync("card", new TextWidget("Karte"), cancellationToken: token);
+#pragma warning restore CS0618
+            viewAccepted = true;
             await brim.RunAsync(token);
         });
 
         var host = await StartHost(launcher);
-        await Until(() => Activity("status") is not null && _hub.Views(NotchTab.Plugins).Any(v => v.Id.EndsWith("/card")));
+        await Until(() => Activity("status") is not null && viewAccepted);
+        // Der Tab „Plugins“ gehört allein der Verwaltung.
+        Assert.Equal(["manage"], _hub.Views(NotchTab.Plugins).Select(v => v.Id));
 
         Assert.Equal(PluginState.Running, host.StateOf(PluginId));
         Assert.Equal("Hallo", greeting);
@@ -169,7 +175,7 @@ public sealed class HostTests : IAsyncDisposable
             await brim.SetActivityAsync(new ActivityParams { Id = "alarm", Priority = ActivityPriority.Critical, Content = new TextWidget("!") }, token);
             try
             {
-                await brim.SetViewAsync("bad", new TextWidget("x") { Color = "lila" }, cancellationToken: token);
+                await brim.SetActivityAsync(new ActivityParams { Id = "bad", Content = new TextWidget("x") { Color = "lila" } }, token);
             }
             catch (JsonRpcException ex)
             {
@@ -183,7 +189,7 @@ public sealed class HostTests : IAsyncDisposable
 
         Assert.Equal(ActivityPriority.Transient, Activity("alarm")!.Priority);
         Assert.Contains("keine Farbe", refused!.Message);
-        Assert.DoesNotContain(_hub.Views(NotchTab.Plugins), v => v.Id.EndsWith("/bad"));
+        Assert.Null(Activity("bad"));
     }
 
     [Theory]
@@ -233,7 +239,8 @@ public sealed class HostTests : IAsyncDisposable
         await Task.Delay(100);
         Assert.Empty(launcher.Started);
         var manage = Assert.Single(_hub.Views(NotchTab.Plugins));
-        Assert.Equal(TabColumn.Side, manage.Column);
+        // Volle Breite: Plugins zeigen dort nichts Eigenes.
+        Assert.Equal(TabColumn.Main, manage.Column);
 
         _hub.Invoke(new ActionInvocation(PluginHostModule.ModuleId, "toggle:" + PluginId, 1));
         await Until(() => connected == 1 && host.StateOf(PluginId) == PluginState.Running);
@@ -374,6 +381,24 @@ public sealed class HostTests : IAsyncDisposable
         Assert.Empty(host.Installed);
         var manage = Assert.Single(_hub.Views(NotchTab.Plugins));
         Assert.Contains(WidgetTree.All(manage.Content).OfType<TextWidget>(), t => t.Text.StartsWith("Fehlerhaft"));
+    }
+
+    [Fact]
+    public async Task Management_lists_widgets_and_opens_the_library()
+    {
+        Install(widgets: """[{ "id": "calls", "name": "Anrufe", "sizes": ["medium"] }]""");
+        var launcher = new InProcessLauncher((_, _) => Task.CompletedTask);
+        var host = await StartHost(launcher, enabled: false);
+        var opened = 0;
+        host.OpenLibrary = () => opened++;
+
+        var manage = Assert.Single(_hub.Views(NotchTab.Plugins));
+        var texts = WidgetTree.All(manage.Content).OfType<TextWidget>().Select(t => t.Text).ToList();
+        Assert.Contains("Widgets: Anrufe", texts);
+        var library = WidgetTree.All(manage.Content).OfType<ButtonWidget>().Single(b => b.Label == "Bibliothek");
+
+        _hub.Invoke(new ActionInvocation(PluginHostModule.ModuleId, library.ActionId));
+        Assert.Equal(1, opened);
     }
 
     public async ValueTask DisposeAsync()

@@ -1,5 +1,5 @@
 // Beispiel-Plugin für Brim: prüft alle 30 Sekunden, ob ein Server antwortet (TCP-Verbindung),
-// zeigt Verlauf und Latenz im Tab „Plugins“ und meldet sich in der Notch, wenn er ausfällt.
+// zeigt Verlauf und Latenz als Widget auf „Jetzt“ und meldet sich in der Notch, wenn er ausfällt.
 using System.Diagnostics;
 using System.Net.Sockets;
 using Brim.Core;
@@ -10,7 +10,11 @@ using Brim.Sdk;
 await using var brim = await BrimPlugin.ConnectAsync();
 var history = new List<double>();
 bool? lastUp = null;
+StackWidget? card = null;
 using var check = new SemaphoreSlim(1, 1);
+
+// Inhalt nur für die Größen, in denen das Widget gerade liegt (auf „Jetzt“ oder als Vorschau in der Galerie).
+brim.WidgetsPlaced += placed => _ = PublishWidgetAsync();
 
 brim.ActionInvoked += (action, value) =>
 {
@@ -67,29 +71,22 @@ async Task CheckAsync()
         var color = up ? BrimColors.Charge : BrimColors.Danger;
         var status = up ? $"{latency:0} ms" : "nicht erreichbar";
 
-        await brim.SetViewAsync("status", new StackWidget(
+        card = TileCard.Card(
+            TileCard.Header(Glyphs.Dot, color, server, status),
             new StackWidget(
-                new IconWidget(Glyphs.Dot) { Size = 10, Color = color },
-                new TextWidget(server) { Grow = 1 },
-                new TextWidget(status) { Style = TextStyle.Mono, FontSize = 12, Color = color })
+                new ChartWidget(history) { Capacity = 30, Color = color, Height = 34, AccessibleName = "Latenz der letzten Prüfungen" },
+                new StackWidget(
+                    new TextWidget(error ?? $"geprüft um {DateTime.Now:HH:mm:ss}") { Style = TextStyle.Caption, Grow = 1 },
+                    new ButtonWidget("check") { Kind = ButtonKind.Secondary, Label = "Prüfen" })
+                {
+                    Spacing = 8,
+                })
             {
-                Spacing = 8,
-            },
-            new ChartWidget(history) { Capacity = 30, Color = color, Height = 34, AccessibleName = "Latenz der letzten Prüfungen" },
-            new StackWidget(
-                new TextWidget(error ?? $"geprüft um {DateTime.Now:HH:mm:ss}") { Style = TextStyle.Caption, Grow = 1 },
-                new ButtonWidget("check") { Kind = ButtonKind.Secondary, Label = "Jetzt prüfen" })
-            {
-                Spacing = 8,
-            })
-        {
-            Orientation = StackOrientation.Vertical,
-            Spacing = 10,
-            Align = CrossAlign.Stretch,
-            Background = BrimColors.Graphite,
-            CornerRadius = 14,
-            Padding = (12, 10, 12, 10),
-        });
+                Orientation = StackOrientation.Vertical,
+                Spacing = 6,
+                Align = CrossAlign.Stretch,
+            });
+        await PublishWidgetAsync();
 
         // Läuft alles, bleibt es im Hintergrund; fällt der Server aus, zeigt die Notch es kompakt.
         await brim.SetActivityAsync(new ActivityParams
@@ -115,6 +112,25 @@ async Task CheckAsync()
     finally
     {
         check.Release();
+    }
+}
+
+async Task PublishWidgetAsync()
+{
+    if (card is not { } content)
+    {
+        return;
+    }
+    foreach (var size in brim.PlacedWidgets.GetValueOrDefault("status") ?? [])
+    {
+        try
+        {
+            await brim.SetWidgetAsync("status", size, content);
+        }
+        catch (Exception ex) when (ex is IOException or JsonRpcException or TimeoutException)
+        {
+            Console.Error.WriteLine($"Brim nicht erreichbar: {ex.Message}");
+        }
     }
 }
 

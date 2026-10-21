@@ -19,20 +19,24 @@ internal sealed class SettingsWindow : Window
 
     private static SettingsWindow? _open;
 
-    /// <summary>Öffnet das Fenster oder holt das offene nach vorn.</summary>
-    public static void Show()
+    private SettingsPage? _page;
+
+    /// <summary>Öffnet das Fenster oder holt das offene nach vorn, auf Wunsch gleich mit einem Bereich (z. B. „plugins“).</summary>
+    public static void Show(string? section = null)
     {
-        if (_open is not null)
+        if (_open is null)
         {
-            _open.Activate();
-            return;
+            if (SettingsPage.Create is not { } create)
+            {
+                return;
+            }
+            _open = new SettingsWindow(create);
+            _open.Closed += (_, _) => _open = null;
         }
-        if (SettingsPage.Create is not { } create)
+        if (section is not null)
         {
-            return;
+            _open._page?.Select(section);
         }
-        _open = new SettingsWindow(create);
-        _open.Closed += (_, _) => _open = null;
         _open.Activate();
     }
 
@@ -62,6 +66,7 @@ internal sealed class SettingsWindow : Window
             },
         });
         var page = create(() => WinRT.Interop.WindowNative.GetWindowHandle(this));
+        _page = page;
         var root = new Grid();
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });

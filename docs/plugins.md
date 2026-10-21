@@ -1,9 +1,11 @@
 # Brim plugins
 
-Plugins add content to the notch: a compact status, a short HUD, or cards in the **Plugins** tab. They run as their own processes, in any language, and describe their UI as data. Brim draws it, so a plugin can't break the look of the notch, and a plugin that crashes or hangs can't freeze it.
+Plugins add content to the notch: a compact status, a short HUD, or **widgets** for the Now page. They run as their own processes, in any language, and describe their UI as data. Brim draws it, so a plugin can't break the look of the notch, and a plugin that crashes or hangs can't freeze it.
 
 - **.NET:** reference `Brim.Sdk` (`src/Brim.Sdk`) and use `BrimPlugin`.
 - **Anything else:** speak the protocol below. It's newline-delimited JSON-RPC 2.0 over a named pipe.
+
+**The Plugins tab is only for switching plugins on and off.** Plugins don't show their own content there. Everything a plugin wants to show goes into widgets (`widgets` in `plugin.json`, then `widget.set`), which users place on the Now page with the widget editor. Since Brim 2.5 `view.set` is still accepted so older plugins keep running, but Brim no longer shows it.
 
 Examples: [`samples/ServerStatus`](../samples/ServerStatus) (.NET) and [`samples/python-counter`](../samples/python-counter) (plain Python).
 
@@ -13,7 +15,7 @@ The easiest way is the **library**: Settings → Plugins → Library lists the p
 
 By hand: each plugin is a folder under `%LocalAppData%\Brim\Plugins\` with a `plugin.json`. For development you can add more folders to `PluginDirectories` in `settings.json`. Brim looks for plugins at startup.
 
-New plugins start switched **off**. In the **Plugins** tab, the card on the right lists every plugin with its permissions, its state and a switch. Switching a plugin on grants exactly the permissions shown. If a later version asks for more, the plugin stays off until you switch it on again.
+New plugins start switched **off**. The **Plugins** tab lists every plugin with its version, state, permissions, widgets and a switch, plus buttons for the library and the plugin folder. Switching a plugin on grants exactly the permissions shown. If a later version asks for more, the plugin stays off until you switch it on again.
 
 The plugin's stdout and stderr go to `%LocalAppData%\Brim\logs\plugins\<id>.log`.
 
@@ -36,7 +38,7 @@ Brim only installs a zip from the releases of the listed repository whose SHA-25
   "entry": "ServerStatus.exe",
   "args": [],
   "api": "1",
-  "slots": ["compact.trailing", "expanded.tab"],
+  "slots": ["compact.trailing"],
   "permissions": ["network"],
   "settings": [{ "key": "server", "type": "string", "label": "Server", "default": "github.com:443" }]
 }
@@ -79,8 +81,7 @@ If the plugin doesn't say `hello` within 10 seconds, that counts as a crash. Aft
 | `activity.start` / `activity.update` | activity (below) | Start or replace an activity |
 | `activity.end` | `{ "id" }` | Remove it |
 | `hud.show` | `{ "glyph", "text", "value"?, "durationMs"? }` or `{ "content" }` | Short message, like the volume HUD. With `value` (0–1) it shows a bar. |
-| `view.set` | `{ "id", "content", "order"? }` | Card in the Plugins tab, `order` 0–99 |
-| `view.clear` | `{ "id" }` | Remove the card |
+| `view.set` / `view.clear` | | **Deprecated** (Brim 2.5): accepted, but nothing is shown. Use `widget.set`. |
 | `log` | `{ "message", "level": "info" \| "warn" \| "error" }` | Write to Brim's log |
 | `widget.set` | `{ "id", "size", "content" }` | Content of one of your `widgets` (see [Widgets on the Now page](#widgets-on-the-now-page)) in one size |
 
@@ -118,7 +119,6 @@ Every `id` is 1–64 characters, without `/` or `|`. Invalid parameters come bac
 |---|---|
 | `action.invoked` | `{ "actionId", "value"? }`: a button, switch (`value` 1/0) or slider (`value` 0–1) in your content |
 | `settings.changed` | `{ "settings" }` |
-| `tab.visibility` | `{ "visible" }`: the Plugins tab opened or closed. Do expensive work only while it's visible. |
 | `notch.expanded` | `{ "expanded" }`: the notch opened or closed. Send live values (e.g. a `wave`) only while it's open. |
 | `notification.posted` | `{ "app", "title", "body" }`: a Windows notification from one of your `notificationApps` (needs `notifications`) |
 | `shelf.items` | `{ "actionId", "paths" }`: files from the shelf (needs `shelf`) |
@@ -158,6 +158,12 @@ async void Refresh(IReadOnlyDictionary<string, IReadOnlyList<TileSize>> placed)
 }
 ```
 
+To look like Brim's own tiles, start the content with a header row: an icon in your color and the name in `caption` style. In .NET, `TileCard.Card(TileCard.Header(glyph, color, title, trailing), body)` from `Brim.Core.Widgets` builds exactly that, and `TileCard.Empty(glyph, text)` an empty state.
+
+Do expensive work only for widgets that are placed: if `widget.placed` lists none of yours, nothing needs updating. For live values while the notch is open, also watch `notch.expanded`.
+
+**Moving from `view.set`:** declare a widget for each former card (pick sizes that fit, e.g. `large` or `full` for a player), drop `expanded.tab` from `slots`, and send the content with `widget.set` for the sizes in `widget.placed`. In the SDK, `SetViewAsync`, `ClearViewAsync` and `TabVisibilityChanged` are marked obsolete.
+
 For analog clocks there's the `clockface` widget (below).
 
 ## Widgets
@@ -185,13 +191,14 @@ All widgets also take `accessibleName` (for screen readers), `grow` (share of fr
 
 Limits per message: 400 widgets, 16 levels deep, 2000 characters per text, 1 MB of images.
 
-A card that looks like Brim's own:
+Widget content that looks like Brim's own (Brim draws the card around it):
 
 ```json
-{ "type": "stack", "orientation": "vertical", "spacing": 8, "align": "stretch",
-  "background": "#1C1D21", "cornerRadius": 14, "padding": [12, 10, 12, 10],
+{ "type": "stack", "orientation": "vertical", "spacing": 6, "align": "stretch", "grow": 1,
   "children": [
-    { "type": "text", "text": "Server", "style": "secondary", "fontSize": 12 },
+    { "type": "stack", "spacing": 6, "children": [
+      { "type": "icon", "glyph": "\uE968", "size": 12, "color": "#5BD98A" },
+      { "type": "text", "text": "Server", "style": "caption", "grow": 1 } ] },
     { "type": "chart", "values": [20, 24, 22, 31, 18], "capacity": 30, "color": "#5BD98A" },
     { "type": "button", "actionId": "check", "kind": "secondary", "label": "Check now" } ] }
 ```

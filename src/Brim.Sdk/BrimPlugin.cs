@@ -14,7 +14,8 @@ namespace Brim.Sdk;
 /// <code>
 /// await using var brim = await BrimPlugin.ConnectAsync();
 /// brim.ActionInvoked += (action, _) => Console.WriteLine(action);
-/// await brim.SetViewAsync("main", new TextWidget("Hallo aus dem Plugin"));
+/// // plugin.json: "widgets": [{ "id": "hello", "name": "Hallo", "sizes": ["small"] }]
+/// await brim.SetWidgetAsync("hello", TileSize.Small, new TextWidget("Hallo aus dem Plugin"));
 /// await brim.RunAsync();
 /// </code>
 /// </example>
@@ -48,8 +49,13 @@ public sealed class BrimPlugin : IAsyncDisposable
 
     public event Action<IReadOnlyDictionary<string, JsonElement>>? SettingsChanged;
 
-    /// <summary>Tab „Plugins“ ist sichtbar geworden oder nicht mehr zu sehen; teure Abfragen danach richten.</summary>
-    public event Action<bool>? TabVisibilityChanged;
+    /// <summary>Kommt nicht mehr: Der Tab „Plugins“ zeigt keine Plugin-Inhalte. Für teure Abfragen <see cref="WidgetsPlaced"/> und <see cref="NotchExpandedChanged"/> nutzen.</summary>
+    [Obsolete("Brim sendet tab.visibility nicht mehr. WidgetsPlaced (was liegt auf „Jetzt“) und NotchExpandedChanged nutzen.")]
+    public event Action<bool>? TabVisibilityChanged
+    {
+        add { }
+        remove { }
+    }
 
     /// <summary>Die Notch wurde auf- oder zugeklappt; Live-Werte (z. B. eine Wellenform) nur aufgeklappt senden.</summary>
     public event Action<bool>? NotchExpandedChanged;
@@ -122,7 +128,8 @@ public sealed class BrimPlugin : IAsyncDisposable
     public Task ShowHudAsync(HudParams hud, CancellationToken cancellationToken = default) =>
         CallAsync(PluginProtocol.HudShow, hud, cancellationToken);
 
-    /// <summary>Setzt eine Karte im Tab „Plugins“.</summary>
+    /// <summary>Früher eine Karte im Tab „Plugins“. Brim zeigt sie nicht mehr: Inhalte kommen als Widgets (<see cref="SetWidgetAsync"/>).</summary>
+    [Obsolete("Der Tab „Plugins“ ist nur zum Ein- und Ausschalten da. Inhalte als Widgets liefern: widgets im Manifest und SetWidgetAsync.")]
     public Task SetViewAsync(string id, Widget content, int order = 0, CancellationToken cancellationToken = default) =>
         CallAsync(PluginProtocol.ViewSet, new ViewParams { Id = id, Content = content, Order = order }, cancellationToken);
 
@@ -130,6 +137,7 @@ public sealed class BrimPlugin : IAsyncDisposable
     public Task SetWidgetAsync(string id, TileSize size, Widget content, CancellationToken cancellationToken = default) =>
         CallAsync(PluginProtocol.WidgetSet, new WidgetSetParams { Id = id, Size = size, Content = content }, cancellationToken);
 
+    [Obsolete("Der Tab „Plugins“ ist nur zum Ein- und Ausschalten da. Inhalte als Widgets liefern: widgets im Manifest und SetWidgetAsync.")]
     public Task ClearViewAsync(string id, CancellationToken cancellationToken = default) =>
         CallAsync(PluginProtocol.ViewClear, new IdParams(id), cancellationToken);
 
@@ -153,9 +161,6 @@ public sealed class BrimPlugin : IAsyncDisposable
             case PluginProtocol.SettingsChanged when parameters?.Deserialize<SettingsParams>(PluginJson.Options) is { } settings:
                 Settings = settings.Settings;
                 SettingsChanged?.Invoke(settings.Settings);
-                break;
-            case PluginProtocol.TabVisibility when parameters?.Deserialize<VisibilityParams>(PluginJson.Options) is { } visibility:
-                TabVisibilityChanged?.Invoke(visibility.Visible);
                 break;
             case PluginProtocol.NotchExpanded when parameters?.Deserialize<ExpandedParams>(PluginJson.Options) is { } expanded:
                 NotchExpanded = expanded.Expanded;

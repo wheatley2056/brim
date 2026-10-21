@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "entry": "ServerStatus.exe",
   "api": "1",
-  "slots": ["compact.trailing", "expanded.tab"],
+  "slots": ["compact.trailing"],
+  "widgets": [
+    { "id": "status", "name": "Serverstatus", "description": "Latenz und Verlauf eines Servers", "glyph": "\uE968", "sizes": ["medium", "wide"] }
+  ],
   "permissions": ["network"],
   "settings": [
     { "key": "server", "type": "string", "label": "Server (Host:Port)", "default": "github.com:443" }
