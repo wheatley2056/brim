@@ -11,7 +11,7 @@ Plugin-Bibliothek: Plugins finden, installieren und aktuell halten, ohne Ordner 
 - Installieren mit einem Klick: Brim lädt das Plugin, prüft es gegen die Prüfsumme im Katalog und schaltet es mit den gezeigten Rechten ein. Ein Neustart ist nicht nötig. Entfernen geht ebenso.
 - Plugins aus der Bibliothek aktualisieren sich im Hintergrund (abschaltbar). Verlangt eine neue Version mehr Rechte, wartet sie auf deinen Klick auf „Aktualisieren“.
 
-## 2.2.3
+Behoben:
 
 - Einstellungen: Eine von Hand bearbeitete `settings.json`, in der Abschnitte fehlen oder auf `null` stehen, wirft Brim beim Start nicht mehr um – es nimmt die Standardwerte. Zwei gleichzeitige Speichervorgänge (Schalter im Tab „Plugins“ und Einstellungsseite) überschreiben sich nicht mehr, und eine Änderung geht dabei nicht verloren.
 - Plugins: Starten zwei Stellen gleichzeitig (Timer und Nutzer), entsteht nur noch ein Prozess. Ein verspätetes „läuft“ überschreibt keinen Absturz mehr, sodass der geplante Neustart nicht mehr ausfällt, und die Kacheln eines Plugins kommen auch dann an, wenn es beim Melden der Belegung noch startete.
