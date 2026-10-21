@@ -165,6 +165,8 @@ public partial class App : Application
             [Path.Combine(DataDirectory, "Plugins"), .. settings.PluginDirectories],
             new ProcessPluginLauncher(Path.Combine(DataDirectory, "logs", "plugins")),
             s => _settings.Save(s));
+        // „Bibliothek“ auf der Plugin-Seite der Notch: Einstellungen → Plugins.
+        _plugins.OpenLibrary = () => dispatcher.TryEnqueue(() => SettingsWindow.Show("plugins"));
         _settings.Changed += s => _plugins.ApplySettings(s);
         _settings.Changed += _ => _modules?.NotifySettingsChanged();
         ShelfPluginActions.List = () => _plugins.ShelfActions().Select(a => (a.PluginId, a.PluginName, a.Action.Id, a.Action.Label)).ToList();

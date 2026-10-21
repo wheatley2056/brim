@@ -3,6 +3,14 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 2.5.0
+
+Der Tab „Plugins“ ist jetzt nur noch zum Ein- und Ausschalten da. Was Plugins zeigen, kommt als Widget auf „Jetzt“.
+
+- Plugins: Die Seite listet jedes Plugin über die volle Breite mit Version, Zustand, Rechten, seinen Widgets und dem Schalter. Oben führt „Bibliothek“ direkt zu Einstellungen → Plugins, daneben öffnet sich der Plugin-Ordner.
+- Plugins legen keine eigenen Karten mehr auf diese Seite. Ihre Inhalte fügst du als Widgets hinzu: „Jetzt“ lange drücken, dann „+ Widget“.
+- Für Entwickler: `view.set` wird noch angenommen, aber nicht mehr gezeigt, und `tab.visibility` entfällt. Inhalte kommen über `widgets` im Manifest und `widget.set`. Die Beispiele zeigen, wie es geht.
+
 ## 2.4.0
 
 - Plugins: Mit dem neuen Recht „overlay“ darf ein Plugin eine Mini-Pille zeigen, die über Vollbild-Apps und Spielen stehen bleibt, wenn sich die Notch zurückzieht – wie die FPS-Pille der eingebauten Messung. Gedacht für das neue GameMode-Plugin.

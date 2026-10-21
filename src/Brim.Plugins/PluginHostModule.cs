@@ -6,9 +6,10 @@ using Brim.Core.Widgets;
 namespace Brim.Plugins;
 
 /// <summary>
-/// Plugin-Host (Plan 4.2) als Modul: findet Plugins in den Plugin-Ordnern, startet die eingeschalteten
-/// und zeigt im Tab „Plugins“ rechts die Verwaltung. Einschalten heißt zugleich, den im Manifest
-/// genannten Rechten zuzustimmen – die Karte nennt sie direkt neben dem Schalter.
+/// Plugin-Host (Plan 4.2) als Modul: findet Plugins in den Plugin-Ordnern und startet die eingeschalteten.
+/// Der Tab „Plugins“ ist nur zum Ein- und Ausschalten da; Plugins zeigen dort nichts Eigenes, ihre Inhalte
+/// kommen als Widgets auf „Jetzt“. Einschalten heißt zugleich, den im Manifest genannten Rechten zuzustimmen –
+/// die Zeile nennt sie direkt neben dem Schalter.
 /// </summary>
 public sealed class PluginHostModule : IBrimModule
 {
@@ -46,6 +47,9 @@ public sealed class PluginHostModule : IBrimModule
             }
         }
     }
+
+    /// <summary>Öffnet die Bibliothek (Einstellungen → Plugins); von der App gesetzt.</summary>
+    public Action? OpenLibrary { get; set; }
 
     /// <summary>Etwas an den Plugins hat sich geändert (Zustand, installiert, entfernt). Kommt aus beliebigen Threads.</summary>
     public event Action? Changed;
@@ -365,6 +369,11 @@ public sealed class PluginHostModule : IBrimModule
             OpenFolder();
             return;
         }
+        if (action == "open-library")
+        {
+            OpenLibrary?.Invoke();
+            return;
+        }
         // Aktionen aus Plugin-Inhalten: „<plugin>|<aktion>“
         var bar = action.IndexOf('|');
         if (bar <= 0)
@@ -457,18 +466,6 @@ public sealed class PluginHostModule : IBrimModule
         return true;
     }
 
-    public void OnTabVisibilityChanged(NotchTab tab, bool visible)
-    {
-        if (tab != NotchTab.Plugins)
-        {
-            return;
-        }
-        foreach (var runner in Runners())
-        {
-            runner.SetTabVisible(visible);
-        }
-    }
-
     private void OpenFolder()
     {
         var folder = _directories.FirstOrDefault();
@@ -514,75 +511,122 @@ public sealed class PluginHostModule : IBrimModule
             broken = [.. _broken];
         }
 
-        var rows = new List<Widget>
+        var header = new StackWidget(
+            new IconWidget(Glyphs.Puzzle) { Size = 14, Color = BrimColors.Slate },
+            new TextWidget("Plugins") { Style = TextStyle.Secondary, FontSize = 12, Grow = 1 },
+            new ButtonWidget("open-library")
+            {
+                Kind = ButtonKind.Secondary,
+                Glyph = Glyphs.Download,
+                Label = "Bibliothek",
+                Size = 26,
+                GlyphSize = 12,
+                AccessibleName = "Plugin-Bibliothek öffnen",
+            },
+            new ButtonWidget("open-folder")
+            {
+                Glyph = Glyphs.Folder,
+                Size = 26,
+                GlyphSize = 12,
+                GlyphColor = BrimColors.Slate,
+                AccessibleName = "Plugin-Ordner öffnen",
+            })
         {
-            new StackWidget(
-                new TextWidget("Plugins") { Style = TextStyle.Secondary, FontSize = 12, Grow = 1 },
-                new ButtonWidget("open-folder")
-                {
-                    Glyph = Glyphs.Folder,
-                    Size = 22,
-                    GlyphSize = 11,
-                    GlyphColor = BrimColors.Slate,
-                    AccessibleName = "Plugin-Ordner öffnen",
-                }),
+            Spacing = 8,
         };
+
+        var rows = new List<Widget>();
         foreach (var runner in runners)
         {
-            var manifest = runner.Manifest;
-            var enabled = IsEnabled(manifest);
-            var permissions = manifest.Permissions.Count == 0
-                ? "Braucht keine Rechte"
-                : "Darf: " + string.Join(", ", manifest.Permissions.Select(p => PluginManifest.KnownPermissions[p]));
-            var stateColor = runner.State switch
-            {
-                PluginState.Running => BrimColors.Charge,
-                PluginState.Failed => BrimColors.Danger,
-                PluginState.Restarting => BrimColors.Warning,
-                _ => BrimColors.Slate,
-            };
-            rows.Add(new StackWidget(
-                new StackWidget(
-                    new TextWidget(manifest.Name) { Grow = 1 },
-                    new SwitchWidget("toggle:" + manifest.Id, enabled) { AccessibleName = $"{manifest.Name} einschalten. {permissions}" })
-                {
-                    Spacing = 6,
-                },
-                new TextWidget(StateText(runner.State, runner.Detail)) { Style = TextStyle.Caption, Color = stateColor },
-                new TextWidget(permissions) { Style = TextStyle.Caption })
-            {
-                Orientation = StackOrientation.Vertical,
-                Spacing = 1,
-                Align = CrossAlign.Stretch,
-                AccessibleName = $"{manifest.Name} {manifest.Version}",
-            });
+            rows.Add(PluginRow(runner));
         }
         foreach (var (directory, error) in broken)
         {
-            rows.Add(new StackWidget(
-                new TextWidget(Path.GetFileName(directory)) { Grow = 0 },
-                new TextWidget("Fehlerhaft: " + error) { Style = TextStyle.Caption, Color = BrimColors.Danger, Wrap = true })
+            rows.Add(Row(
+                new IconWidget(Glyphs.Puzzle) { Size = 16, Color = BrimColors.Danger },
+                [
+                    new TextWidget(Path.GetFileName(directory)),
+                    new TextWidget("Fehlerhaft: " + error) { Style = TextStyle.Caption, Color = BrimColors.Danger, Wrap = true },
+                ],
+                null));
+        }
+        if (rows.Count == 0)
+        {
+            rows.Add(new TextWidget("Noch keine Plugins. Über „Bibliothek“ findest du welche.") { Style = TextStyle.Secondary, Wrap = true });
+        }
+        else
+        {
+            rows.Add(new TextWidget("Inhalte der Plugins findest du als Widgets auf „Jetzt“: „Jetzt“ lange drücken, dann „+ Widget“.")
             {
-                Orientation = StackOrientation.Vertical,
-                Spacing = 1,
-                Align = CrossAlign.Stretch,
+                Style = TextStyle.Caption,
+                Wrap = true,
             });
         }
-        if (runners.Count == 0 && broken.Count == 0)
-        {
-            rows.Add(new TextWidget("Noch keine Plugins. Du findest sie in den Einstellungen unter Plugins → Bibliothek.") { Style = TextStyle.Secondary, Wrap = true });
-        }
 
+        // Volle Breite: Die Seite gehört allein der Verwaltung.
         context.SetView("manage", new StackWidget(
-            new ListWidget(rows) { Spacing = 8, Scrollable = true, Grow = 1 })
+            header,
+            new ListWidget(rows) { Spacing = 6, Scrollable = true, Grow = 1 })
         {
             Orientation = StackOrientation.Vertical,
+            Spacing = 10,
             Align = CrossAlign.Stretch,
             Background = BrimColors.Graphite,
             CornerRadius = 14,
-            Padding = (12, 8, 8, 8),
+            Padding = (14, 10, 10, 10),
             Grow = 1,
-        }, NotchTab.Plugins, TabColumn.Side);
+        }, NotchTab.Plugins, TabColumn.Main);
+    }
+
+    /// <summary>Eine Zeile: Name und Version, Zustand, Rechte, Widgets – rechts der Schalter.</summary>
+    private Widget PluginRow(PluginRunner runner)
+    {
+        var manifest = runner.Manifest;
+        var enabled = IsEnabled(manifest);
+        var permissions = manifest.Permissions.Count == 0
+            ? "Braucht keine Rechte"
+            : "Darf: " + string.Join(", ", manifest.Permissions.Select(p => PluginManifest.KnownPermissions[p]));
+        var stateColor = runner.State switch
+        {
+            PluginState.Running => BrimColors.Charge,
+            PluginState.Failed => BrimColors.Danger,
+            PluginState.Restarting => BrimColors.Warning,
+            _ => BrimColors.Slate,
+        };
+        var lines = new List<Widget>
+        {
+            new StackWidget(
+                new TextWidget(manifest.Name),
+                new TextWidget(manifest.Version) { Style = TextStyle.MonoCaption, Color = BrimColors.Slate })
+            {
+                Spacing = 8,
+            },
+            new TextWidget($"{StateText(runner.State, runner.Detail)} · {permissions}") { Style = TextStyle.Caption, Color = stateColor, Wrap = true },
+        };
+        if (manifest.Widgets.Count > 0)
+        {
+            lines.Add(new TextWidget("Widgets: " + string.Join(", ", manifest.Widgets.Select(w => w.Name))) { Style = TextStyle.Caption, Wrap = true });
+        }
+        var toggle = new SwitchWidget("toggle:" + manifest.Id, enabled) { AccessibleName = $"{manifest.Name} einschalten. {permissions}" };
+        return Row(new IconWidget(Glyphs.Puzzle) { Size = 16, Color = enabled ? BrimColors.Fog : BrimColors.Slate }, lines, toggle);
+    }
+
+    private static Widget Row(Widget icon, IReadOnlyList<Widget> lines, Widget? trailing)
+    {
+        var text = new StackWidget(lines)
+        {
+            Orientation = StackOrientation.Vertical,
+            Spacing = 1,
+            Align = CrossAlign.Stretch,
+            Grow = 1,
+        };
+        return new StackWidget(trailing is null ? [icon, text] : [icon, text, trailing])
+        {
+            Spacing = 12,
+            Background = BrimColors.TabTrack,
+            CornerRadius = 10,
+            Padding = (12, 8, 10, 8),
+        };
     }
 
     public async ValueTask DisposeAsync()

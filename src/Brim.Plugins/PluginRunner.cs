@@ -46,7 +46,6 @@ internal sealed class PluginRunner : IAsyncDisposable
     private readonly int _index;
     private readonly Lock _gate = new();
     private readonly HashSet<string> _activities = [];
-    private readonly HashSet<string> _views = [];
     private readonly List<DateTimeOffset> _crashes = [];
     private IPluginProcess? _process;
     private JsonRpcConnection? _connection;
@@ -56,7 +55,6 @@ internal sealed class PluginRunner : IAsyncDisposable
     private bool _stopping;
     private long _rateWindow;
     private int _rateCount;
-    private bool _tabVisible;
 
     public PluginRunner(PluginManifest manifest, ModuleContext context, IPluginLauncher launcher, Func<PluginConfig> config, int index, Action stateChanged)
     {
@@ -146,10 +144,6 @@ internal sealed class PluginRunner : IAsyncDisposable
                 return;
             }
             Log.Info($"Plugin {Id} läuft");
-            if (_tabVisible)
-            {
-                Notify(PluginProtocol.TabVisibility, new VisibilityParams(true));
-            }
             // Zwischen „hello“ und „läuft“ kann sich die Belegung der Kacheln geändert haben; jetzt erst
             // darf sie rausgehen (vorher verwirft Notify alles, was kein laufendes Plugin betrifft).
             SendPlacedWidgets();
@@ -294,21 +288,15 @@ internal sealed class PluginRunner : IAsyncDisposable
     /// <summary>Alles, was das Plugin gezeigt hat, verschwindet mit ihm.</summary>
     private void Cleanup()
     {
-        string[] activities, views;
+        string[] activities;
         lock (_gate)
         {
             activities = [.. _activities];
-            views = [.. _views];
             _activities.Clear();
-            _views.Clear();
         }
         foreach (var id in activities)
         {
             _context.End(id);
-        }
-        foreach (var id in views)
-        {
-            _context.RemoveView(id);
         }
         if (Manifest.Widgets.Count > 0)
         {
@@ -410,7 +398,7 @@ internal sealed class PluginRunner : IAsyncDisposable
         JsonRpcConnection? connection;
         lock (_gate)
         {
-            connection = State == PluginState.Running || method == PluginProtocol.TabVisibility ? _connection : null;
+            connection = State == PluginState.Running ? _connection : null;
         }
         if (connection is null)
         {
@@ -423,12 +411,6 @@ internal sealed class PluginRunner : IAsyncDisposable
                 Log.Info($"Plugin {Id} nicht erreichbar: {t.Exception?.InnerException?.Message}");
             }
         }, TaskScheduler.Default);
-    }
-
-    public void SetTabVisible(bool visible)
-    {
-        _tabVisible = visible;
-        Notify(PluginProtocol.TabVisibility, new VisibilityParams(visible));
     }
 
     // ───────── Plugin → Brim ─────────
@@ -452,8 +434,8 @@ internal sealed class PluginRunner : IAsyncDisposable
             PluginProtocol.ActivityStart or PluginProtocol.ActivityUpdate => PostActivity(Parse<ActivityParams>(parameters)!),
             PluginProtocol.ActivityEnd => EndActivity(Parse<IdParams>(parameters)!),
             PluginProtocol.HudShow => ShowHud(Parse<HudParams>(parameters)!),
-            PluginProtocol.ViewSet => SetView(Parse<ViewParams>(parameters)!),
-            PluginProtocol.ViewClear => ClearView(Parse<IdParams>(parameters)!),
+            PluginProtocol.ViewSet => IgnoreView(),
+            PluginProtocol.ViewClear => null,
             PluginProtocol.LogMessage => WriteLog(Parse<LogParams>(parameters)!),
             PluginProtocol.WidgetSet => SetWidget(Parse<WidgetSetParams>(parameters)!),
             _ => throw new JsonRpcException(JsonRpcException.MethodNotFound, $"Unbekannte Methode {method}"),
@@ -614,27 +596,23 @@ internal sealed class PluginRunner : IAsyncDisposable
         });
     }
 
-    private object? SetView(ViewParams p)
-    {
-        CheckId(p.Id);
-        var content = Prepare(p.Content, "content")!;
-        lock (_gate)
-        {
-            _views.Add(Scoped(p.Id));
-        }
-        // Plugins in der Reihenfolge ihres Ordners, innerhalb eines Plugins nach seiner Angabe.
-        _context.SetView(Scoped(p.Id), content, NotchTab.Plugins, TabColumn.Main, (_index + 1) * 100 + Math.Clamp(p.Order, 0, 99));
-        return null;
-    }
+    private bool _viewWarned;
 
-    private object? ClearView(IdParams p)
+    /// <summary>
+    /// Früher eine Karte im Tab „Plugins“. Die Seite ist jetzt nur zum Ein- und Ausschalten da; Inhalte kommen als
+    /// Widgets (<c>widgets</c> im Manifest, <c>widget.set</c>). Ältere Plugins laufen weiter, ihre Karten erscheinen nicht.
+    /// </summary>
+    private object? IgnoreView()
     {
-        CheckId(p.Id);
         lock (_gate)
         {
-            _views.Remove(Scoped(p.Id));
+            if (_viewWarned)
+            {
+                return null;
+            }
+            _viewWarned = true;
         }
-        _context.RemoveView(Scoped(p.Id));
+        Log.Warn($"Plugin {Id}: view.set wird nicht mehr angezeigt, Inhalte bitte als Widgets liefern (docs/plugins.md)");
         return null;
     }
 

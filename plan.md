@@ -474,6 +474,14 @@ Entscheidungen: Katalog als Datei `catalog/plugins.json` in diesem Repository (B
 - **Oberfläche:** Einstellungen → Plugins → Bibliothek mit Suche, Karten (Abzeichen „Von Brim“, Version, Größe, Rechte, Fehler), Fortschritt, Entfernen mit Rückfrage.
 - **Eintragen:** `build/catalog/Add-Plugin.ps1 -Repository <besitzer/name> -Tag v<Version>` rechnet Prüfsumme und Rechte aus dem Release nach; der Pull Request ist die Prüfung.
 
+### 7l. Plugin-Seite nur zur Verwaltung (21.10.2026, Brim 2.5)
+
+Entscheidung (Tobias): Der Tab „Plugins“ ist nur zum Aktivieren und Deaktivieren da. Plugins zeigen dort nichts Eigenes, sie tragen ausschließlich Widgets bei (Seite „Jetzt“, Widget-Editor).
+
+- **Host:** Die Verwaltung liegt über die volle Breite (`TabColumn.Main`): je Plugin Name, Version, Zustand, Rechte, Widgets und Schalter, oben „Bibliothek“ (öffnet Einstellungen → Plugins) und der Plugin-Ordner.
+- **API:** `view.set`/`view.clear` werden angenommen, damit ältere Plugins weiterlaufen, aber nicht gezeigt (einmal Warnung im Log). `tab.visibility` wird nicht mehr gesendet. Im SDK sind `SetViewAsync`, `ClearViewAsync` und `TabVisibilityChanged` veraltet. Der Slot `expanded.tab` hat keine Wirkung mehr.
+- **Beispiele** `ServerStatus` und `python-counter` liefern Widgets.
+
 ### 8a. Einführung (Brim 2.0, 20.10.2026)
 
 - **Wann:** nur beim ersten Start einer frischen Installation (`Onboarding.ShouldRun`: keine Einstellungsdatei); bestehende Installationen gelten als eingeführt. Erneut über Einstellungen → Info.
