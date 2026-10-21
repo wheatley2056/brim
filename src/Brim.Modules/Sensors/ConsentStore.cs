@@ -120,10 +120,18 @@ internal sealed partial class ConsentStoreSource : ICapabilitySource
 
     private static void Arm(Watch watch)
     {
-        var result = RegNotifyChangeKeyValue(watch.Key.Handle, true, NotifyChangeName | NotifyChangeLastSet, watch.Signal.SafeWaitHandle, true);
-        if (result != 0)
+        try
         {
-            Core.Log.Warn($"Änderungen an {watch.Capability} lassen sich nicht beobachten (Fehler {result})");
+            var result = RegNotifyChangeKeyValue(watch.Key.Handle, true, NotifyChangeName | NotifyChangeLastSet, watch.Signal.SafeWaitHandle, true);
+            if (result != 0)
+            {
+                Core.Log.Warn($"Änderungen an {watch.Capability} lassen sich nicht beobachten (Fehler {result})");
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // Beim Beenden: Die Meldung kam noch, während Schlüssel und Signal schon geschlossen wurden.
+            // Eine Ausnahme im Threadpool-Rückruf würde den ganzen Prozess mitnehmen.
         }
     }
 

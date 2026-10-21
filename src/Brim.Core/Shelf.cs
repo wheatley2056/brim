@@ -277,5 +277,6 @@ public sealed class ShelfStore
     }
 
     private static string Normalize(string path) =>
-        System.IO.Path.GetFullPath(path).TrimEnd('\\', '/') + "\\";
+        System.IO.Path.GetFullPath(path).TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)
+        + System.IO.Path.DirectorySeparatorChar;
 }

@@ -388,6 +388,50 @@ public sealed class BrimSettings
 
     /// <summary>Module, die der Nutzer abgeschaltet hat (Modul-IDs).</summary>
     public List<string> DisabledModules { get; set; } = [];
+
+    /// <summary>
+    /// Ersetzt Abschnitte, die in der Datei fehlen oder ausdrücklich <c>null</c> sind, durch Standardwerte.
+    /// Eine von Hand bearbeitete <c>settings.json</c> soll Brim nicht beim Start umwerfen.
+    /// </summary>
+    public void Normalize()
+    {
+        Updates ??= new();
+        Library ??= new();
+        Library.CatalogUrl ??= PluginLibrarySettings.DefaultCatalogUrl;
+        Battery ??= new();
+        Games ??= new();
+        Notifications ??= new();
+        Share ??= new();
+        AutoHide ??= new();
+        Shelf ??= new();
+        Animation ??= new();
+        Appearance ??= new();
+        Now ??= new();
+        Display ??= new();
+        Interaction ??= new();
+        Clock ??= new();
+        Plugins ??= [];
+        PluginDirectories ??= [];
+        DisabledModules ??= [];
+
+        Appearance.Fonts ??= new();
+        Appearance.Fonts.Custom ??= [];
+        AutoHide.Apps ??= [];
+        AutoHide.ScreenShareMarkers ??= [];
+        Notifications.MutedApps ??= [];
+        Now.Tiles ??= NowSettings.DefaultTiles();
+        Share.MailboxUrl ??= new ShareSettings().MailboxUrl;
+        Share.TransitRelay ??= new ShareSettings().TransitRelay;
+        foreach (var plugin in Plugins.Values)
+        {
+            if (plugin is null)
+            {
+                continue;
+            }
+            plugin.Granted ??= [];
+            plugin.Values ??= [];
+        }
+    }
 }
 
 /// <summary>Lädt und speichert <see cref="BrimSettings"/> als JSON.</summary>
@@ -400,6 +444,7 @@ public sealed class SettingsStore
     };
 
     private readonly string _path;
+    private readonly Lock _gate = new();
 
     public SettingsStore(string path)
     {
@@ -415,30 +460,39 @@ public sealed class SettingsStore
 
     public BrimSettings Load()
     {
-        try
+        lock (_gate)
         {
-            Existed = File.Exists(_path);
-            if (Existed)
+            try
             {
-                Current = JsonSerializer.Deserialize<BrimSettings>(File.ReadAllText(_path), Options) ?? new BrimSettings();
+                Existed = File.Exists(_path);
+                if (Existed)
+                {
+                    Current = JsonSerializer.Deserialize<BrimSettings>(File.ReadAllText(_path), Options) ?? new BrimSettings();
+                }
+                Current.Normalize();
+                Current.Now.Upgrade();
             }
-            Current.Now.Upgrade();
+            catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
+            {
+                Log.Warn($"Einstellungen unlesbar, nutze Standard: {_path}", ex);
+                Current = new BrimSettings();
+            }
+            return Current;
         }
-        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
-        {
-            Log.Warn($"Einstellungen unlesbar, nutze Standard: {_path}", ex);
-            Current = new BrimSettings();
-        }
-        return Current;
     }
 
     public void Save(BrimSettings settings)
     {
-        Current = settings;
-        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-        var temp = _path + ".tmp";
-        File.WriteAllText(temp, JsonSerializer.Serialize(settings, Options));
-        File.Move(temp, _path, overwrite: true);
+        // Auch Plugins und Module speichern (Schalter im Tab „Plugins“); ohne Schloss schrieben zwei
+        // Threads gleichzeitig in dieselbe Datei, und eine der Änderungen ginge verloren.
+        lock (_gate)
+        {
+            Current = settings;
+            Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+            var temp = _path + ".tmp";
+            File.WriteAllText(temp, JsonSerializer.Serialize(settings, Options));
+            File.Move(temp, _path, overwrite: true);
+        }
         Changed?.Invoke(settings);
     }
 }

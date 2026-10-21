@@ -288,7 +288,17 @@ internal sealed class NotchWindowManager : IDisposable
     private void RegisterHotkey()
     {
         var primary = _windows.FirstOrDefault();
-        if (primary is null || primary.Handle == _hotkeyWindow || !_settings.Current.Interaction.HotkeyEnabled)
+        if (primary is null)
+        {
+            return;
+        }
+        if (!_settings.Current.Interaction.HotkeyEnabled)
+        {
+            // Abgeschaltet: ein noch angemeldetes Kürzel wieder freigeben (sonst bliebe es bis zum Neustart aktiv).
+            UnregisterHotkey();
+            return;
+        }
+        if (primary.Handle == _hotkeyWindow)
         {
             return;
         }
