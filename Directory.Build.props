@@ -7,7 +7,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <Company>Brim</Company>
     <Product>Brim</Product>
-    <Version>2.2.3</Version>
+    <Version>2.3.0</Version>
   </PropertyGroup>
 
   <PropertyGroup>

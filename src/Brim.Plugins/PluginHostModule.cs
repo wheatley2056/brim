@@ -20,6 +20,7 @@ public sealed class PluginHostModule : IBrimModule
     private readonly Lock _gate = new();
     private readonly List<PluginRunner> _runners = [];
     private readonly List<(string Directory, string Error)> _broken = [];
+    private readonly SemaphoreSlim _changing = new(1, 1);
     private ModuleContext? _context;
     private BrimSettings? _settings;
 
@@ -46,6 +47,25 @@ public sealed class PluginHostModule : IBrimModule
         }
     }
 
+    /// <summary>Etwas an den Plugins hat sich geändert (Zustand, installiert, entfernt). Kommt aus beliebigen Threads.</summary>
+    public event Action? Changed;
+
+    /// <summary>Standardordner; hierhin installiert die Bibliothek.</summary>
+    public string DefaultDirectory => _directories[0];
+
+    /// <summary>
+    /// Liegt das Plugin im Standardordner? Nur dann darf die Bibliothek es ersetzen oder entfernen; Plugins aus
+    /// eigenen Ordnern (<c>PluginDirectories</c>, beim Entwickeln) fasst sie nicht an.
+    /// </summary>
+    public bool IsManaged(string id)
+    {
+        var runner = Runners().FirstOrDefault(r => r.Id == id);
+        return runner is null || IsInside(runner.Manifest.Directory, DefaultDirectory);
+    }
+
+    /// <summary>Eingeschaltet und allen Rechten zugestimmt?</summary>
+    public bool IsEnabled(string id) => Runners().FirstOrDefault(r => r.Id == id) is { } runner && IsEnabled(runner.Manifest);
+
     public PluginState StateOf(string id)
     {
         lock (_gate)
@@ -58,6 +78,7 @@ public sealed class PluginHostModule : IBrimModule
     {
         _context = context;
         _settings = context.Settings;
+        CleanLeftovers();
         Discover();
         Publish();
         foreach (var runner in Runners().Where(r => IsEnabled(r.Manifest)))
@@ -84,7 +105,7 @@ public sealed class PluginHostModule : IBrimModule
         {
             foreach (var dir in Directory.EnumerateDirectories(root).Order(StringComparer.OrdinalIgnoreCase))
             {
-                if (!File.Exists(Path.Combine(dir, PluginManifest.FileName)))
+                if (!File.Exists(Path.Combine(dir, PluginManifest.FileName)) || IsLeftover(dir))
                 {
                     continue;
                 }
@@ -110,11 +131,201 @@ public sealed class PluginHostModule : IBrimModule
             _broken.AddRange(broken);
             for (var i = 0; i < found.Count; i++)
             {
-                var id = found[i].Id;
-                _runners.Add(new PluginRunner(found[i], _context!, _launcher, () => Config(id), i, Publish));
+                _runners.Add(CreateRunner(found[i], i));
             }
         }
         Log.Info($"{found.Count} Plugin(s) gefunden");
+    }
+
+    private PluginRunner CreateRunner(PluginManifest manifest, int index) =>
+        new(manifest, _context!, _launcher, () => Config(manifest.Id), index, Publish);
+
+    // ───────── Installieren und Entfernen (Bibliothek) ─────────
+
+    /// <summary>
+    /// Bringt ein geprüftes Plugin aus dem Bereitstellungsordner in den Standardordner und startet es. Eine ältere
+    /// Fassung wird vorher beendet und ersetzt; ihre Einstellungen bleiben. Mit <paramref name="grant"/> stimmt der
+    /// Nutzer den Rechten zu und schaltet es ein (Installieren in der Bibliothek). Ohne bleibt es, wie es war;
+    /// neue Rechte schalten es wie bisher aus, bis der Nutzer zustimmt.
+    /// </summary>
+    public async Task InstallAsync(string staged, bool grant)
+    {
+        if (_context is null)
+        {
+            throw new InvalidOperationException("Plugin-Host läuft nicht");
+        }
+        var manifest = PluginManifest.Load(staged);
+        await _changing.WaitAsync();
+        try
+        {
+            var old = Runners().FirstOrDefault(r => r.Id == manifest.Id);
+            if (old is not null && !IsInside(old.Manifest.Directory, DefaultDirectory))
+            {
+                throw new InvalidOperationException($"{manifest.Name} liegt in einem eigenen Ordner ({old.Manifest.Directory}) und wird dort verwaltet");
+            }
+            var target = old?.Manifest.Directory ?? Path.Combine(DefaultDirectory, manifest.Id);
+            if (old is not null)
+            {
+                await old.StopAsync();
+            }
+            try
+            {
+                Replace(staged, target);
+            }
+            catch
+            {
+                // Alte Fassung läuft weiter, als wäre nichts gewesen.
+                if (old is not null && IsEnabled(old.Manifest))
+                {
+                    _ = old.StartAsync();
+                }
+                throw;
+            }
+
+            var installed = PluginManifest.Load(target);
+            var runner = CreateRunner(installed, old is null ? Runners().Count : IndexOf(old));
+            lock (_gate)
+            {
+                if (old is not null)
+                {
+                    _runners[_runners.IndexOf(old)] = runner;
+                }
+                else
+                {
+                    _runners.Add(runner);
+                }
+                _broken.RemoveAll(b => string.Equals(Path.GetFullPath(b.Directory), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase));
+            }
+            if (grant)
+            {
+                var config = Config(installed.Id);
+                config.Enabled = true;
+                config.Granted = [.. installed.Permissions];
+                SaveSettings();
+            }
+            Log.Info($"Plugin {installed.Id} {installed.Version} installiert");
+            Publish();
+            if (IsEnabled(installed))
+            {
+                await runner.StartAsync();
+            }
+        }
+        finally
+        {
+            _changing.Release();
+        }
+    }
+
+    /// <summary>Beendet das Plugin, löscht seinen Ordner und vergisst Schalter, Rechte und Einstellungen.</summary>
+    public async Task RemoveAsync(string id)
+    {
+        await _changing.WaitAsync();
+        try
+        {
+            var runner = Runners().FirstOrDefault(r => r.Id == id) ?? throw new InvalidOperationException($"{id} ist nicht installiert");
+            if (!IsInside(runner.Manifest.Directory, DefaultDirectory))
+            {
+                throw new InvalidOperationException($"{runner.Manifest.Name} liegt in einem eigenen Ordner und wird dort verwaltet");
+            }
+            await runner.StopAsync();
+            lock (_gate)
+            {
+                _runners.Remove(runner);
+            }
+            // Erst umbenennen, dann löschen: Hält Windows noch eine Datei fest, ist das Plugin trotzdem weg.
+            var trash = runner.Manifest.Directory + ".removed-" + Guid.NewGuid().ToString("N")[..8];
+            Directory.Move(runner.Manifest.Directory, trash);
+            PluginInstaller.TryDeleteDirectory(trash);
+            var plugins = _settings!.Plugins;
+            lock (plugins)
+            {
+                plugins.Remove(id);
+            }
+            SaveSettings();
+            Log.Info($"Plugin {id} entfernt");
+            Publish();
+        }
+        finally
+        {
+            _changing.Release();
+        }
+    }
+
+    private int IndexOf(PluginRunner runner)
+    {
+        lock (_gate)
+        {
+            return _runners.IndexOf(runner);
+        }
+    }
+
+    /// <summary>Alten Ordner beiseite, neuen an seine Stelle; klappt das nicht, kommt der alte zurück.</summary>
+    private static void Replace(string staged, string target)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        string? backup = null;
+        if (Directory.Exists(target))
+        {
+            backup = target + ".old-" + Guid.NewGuid().ToString("N")[..8];
+            Directory.Move(target, backup);
+        }
+        try
+        {
+            Directory.Move(staged, target);
+        }
+        catch
+        {
+            if (backup is not null)
+            {
+                Directory.Move(backup, target);
+            }
+            throw;
+        }
+        if (backup is not null)
+        {
+            PluginInstaller.TryDeleteDirectory(backup);
+        }
+    }
+
+    /// <summary>Reste aus <see cref="Replace"/> und <see cref="RemoveAsync"/>, die Windows beim letzten Mal festhielt.</summary>
+    private void CleanLeftovers()
+    {
+        if (!Directory.Exists(DefaultDirectory))
+        {
+            return;
+        }
+        foreach (var dir in Directory.EnumerateDirectories(DefaultDirectory))
+        {
+            if (IsLeftover(dir))
+            {
+                PluginInstaller.TryDeleteDirectory(dir);
+            }
+        }
+    }
+
+    private static bool IsLeftover(string dir)
+    {
+        var name = Path.GetFileName(dir);
+        return name.Contains(".old-", StringComparison.Ordinal) || name.Contains(".removed-", StringComparison.Ordinal);
+    }
+
+    private static bool IsInside(string path, string root)
+    {
+        var full = Path.GetFullPath(path);
+        var parent = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        return full.StartsWith(parent, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            _save(_settings!);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Warn("Einstellungen nicht gespeichert", ex);
+        }
     }
 
     private PluginConfig Config(string id)
@@ -179,14 +390,7 @@ public sealed class PluginHostModule : IBrimModule
             config.Granted = [.. runner.Manifest.Permissions];
         }
         Log.Info($"Plugin {id} {(enabled ? "eingeschaltet" : "ausgeschaltet")}");
-        try
-        {
-            _save(_settings);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Log.Warn("Einstellungen nicht gespeichert", ex);
-        }
+        SaveSettings();
         if (enabled)
         {
             runner.ResetCrashes();
@@ -296,6 +500,7 @@ public sealed class PluginHostModule : IBrimModule
 
     private void Publish()
     {
+        Changed?.Invoke();
         var context = _context;
         if (context is null)
         {
@@ -365,7 +570,7 @@ public sealed class PluginHostModule : IBrimModule
         }
         if (runners.Count == 0 && broken.Count == 0)
         {
-            rows.Add(new TextWidget("Noch keine Plugins. Lege sie im Plugin-Ordner ab und starte Brim neu.") { Style = TextStyle.Secondary, Wrap = true });
+            rows.Add(new TextWidget("Noch keine Plugins. Du findest sie in den Einstellungen unter Plugins → Bibliothek.") { Style = TextStyle.Secondary, Wrap = true });
         }
 
         context.SetView("manage", new StackWidget(

@@ -344,9 +344,22 @@ public sealed class UpdateSettings
     public int IdleMinutes { get; set; } = 3;
 }
 
+/// <summary>Plugin-Bibliothek: Katalog zum Durchsuchen und Installieren, Updates installierter Plugins.</summary>
+public sealed class PluginLibrarySettings
+{
+    public const string DefaultCatalogUrl = "https://raw.githubusercontent.com/wheatley2056/brim/main/catalog/plugins.json";
+
+    /// <summary>Woher der Katalog kommt (JSON wie <c>catalog/plugins.json</c> im Brim-Repository).</summary>
+    public string CatalogUrl { get; set; } = DefaultCatalogUrl;
+
+    /// <summary>Plugins aus der Bibliothek im Hintergrund aktualisieren (nur ohne neue Rechte).</summary>
+    public bool AutoUpdate { get; set; } = true;
+}
+
 public sealed class BrimSettings
 {
     public UpdateSettings Updates { get; set; } = new();
+    public PluginLibrarySettings Library { get; set; } = new();
     public BatterySettings Battery { get; set; } = new();
     public GameSettings Games { get; set; } = new();
     public NotificationSettings Notifications { get; set; } = new();
@@ -383,6 +396,8 @@ public sealed class BrimSettings
     public void Normalize()
     {
         Updates ??= new();
+        Library ??= new();
+        Library.CatalogUrl ??= PluginLibrarySettings.DefaultCatalogUrl;
         Battery ??= new();
         Games ??= new();
         Notifications ??= new();

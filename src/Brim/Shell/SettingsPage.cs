@@ -33,6 +33,7 @@ internal sealed class SettingsPage : UserControl
     private readonly Action _preview;
     private readonly Action _restart;
     private readonly Func<IReadOnlyList<PluginManifest>> _plugins;
+    private readonly PluginLibrary? _library;
     private readonly NavigationView _navigation = new()
     {
         IsBackButtonVisible = NavigationViewBackButtonVisible.Collapsed,
@@ -58,10 +59,11 @@ internal sealed class SettingsPage : UserControl
 
     /// <param name="window">Fenster, in dem die Seite steckt (für die Dateiauswahl).</param>
     public SettingsPage(SettingsStore store, IReadOnlyList<(string Id, string Name)> modules, string? version, Action preview, Action restart,
-        Func<IReadOnlyList<PluginManifest>> plugins, Func<nint> window)
+        Func<IReadOnlyList<PluginManifest>> plugins, PluginLibrary? library, Func<nint> window)
     {
         _window = window;
         _plugins = plugins;
+        _library = library;
         _store = store;
         _modules = modules;
         _version = version;
@@ -73,6 +75,12 @@ internal sealed class SettingsPage : UserControl
             _saveTimer.Stop();
             Save();
         };
+        if (library is not null)
+        {
+            // Nur abonniert, solange die Seite steht: Die Bibliothek lebt länger als jedes Einstellungsfenster.
+            Loaded += (_, _) => library.Changed += OnLibraryChanged;
+            Unloaded += (_, _) => library.Changed -= OnLibraryChanged;
+        }
         Unloaded += (_, _) =>
         {
             // Nichts verlieren, was in den letzten Millisekunden geändert wurde.
@@ -155,6 +163,8 @@ internal sealed class SettingsPage : UserControl
 
     private void ShowSection(string tag)
     {
+        _libraryList = null;
+        _libraryState = null;
         var panel = new StackPanel { Spacing = 6, MaxWidth = 760, HorizontalAlignment = HorizontalAlignment.Left };
         var title = Sections.First(s => s.Tag == tag).Label;
         panel.Children.Add(new TextBlock { Text = title, FontSize = 28, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 12) });
@@ -584,6 +594,11 @@ internal sealed class SettingsPage : UserControl
 
     private void Plugins(StackPanel p)
     {
+        if (_library is not null)
+        {
+            Library(p, _library);
+            p.Children.Add(Header("Installiert"));
+        }
         p.Children.Add(Hint("Plugins schaltest du im Tab „Plugins“ der Notch ein und aus; dort steht auch, was sie dürfen."));
         var folder = Path.Combine(App.DataDirectory, "Plugins");
         var open = new Button { Content = "Ordner öffnen" };
@@ -622,6 +637,205 @@ internal sealed class SettingsPage : UserControl
 
         var docs = new HyperlinkButton { Content = "Plugins entwickeln", NavigateUri = new Uri(AutoUpdater.RepositoryUrl + "/blob/main/docs/plugins.md") };
         p.Children.Add(docs);
+    }
+
+    // ───────── Bibliothek ─────────
+
+    private StackPanel? _libraryList;
+    private TextBlock? _libraryState;
+    private string _libraryQuery = "";
+    private bool _libraryPending;
+
+    private void Library(StackPanel p, PluginLibrary library)
+    {
+        p.Children.Add(Header("Bibliothek"));
+        p.Children.Add(Hint("Plugins aus dem Brim-Katalog. Brim prüft jedes Zip gegen die Prüfsumme im Katalog, bevor es installiert wird."));
+        var search = new TextBox { PlaceholderText = "Plugins durchsuchen", Text = _libraryQuery, MinWidth = 280 };
+        search.TextChanged += (_, _) =>
+        {
+            _libraryQuery = search.Text.Trim();
+            FillLibrary(library);
+        };
+        var refresh = new Button { Content = new FontIcon { Glyph = "\uE72C", FontSize = 14 } };
+        ToolTipService.SetToolTip(refresh, "Katalog neu laden");
+        refresh.Click += async (_, _) =>
+        {
+            refresh.IsEnabled = false;
+            await library.RefreshAsync();
+            refresh.IsEnabled = true;
+        };
+        var bar = new Grid { ColumnSpacing = 8 };
+        bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        bar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(refresh, 1);
+        bar.Children.Add(search);
+        bar.Children.Add(refresh);
+        p.Children.Add(bar);
+        _libraryState = Secondary("");
+        _libraryState.FontSize = 12;
+        p.Children.Add(_libraryState);
+        _libraryList = new StackPanel { Spacing = 6 };
+        p.Children.Add(_libraryList);
+        p.Children.Add(Toggle("Plugins automatisch aktualisieren", "Im Hintergrund, wenn eine neue Version keine neuen Rechte verlangt.",
+            S.Library.AutoUpdate, v => S.Library.AutoUpdate = v));
+        FillLibrary(library);
+        if (!library.HasCatalog || library.CatalogLoaded < DateTimeOffset.UtcNow.AddMinutes(-10))
+        {
+            _ = library.RefreshAsync();
+        }
+    }
+
+    /// <summary>Fortschritt kommt oft und aus anderen Threads: höchstens ein Neuaufbau in der Warteschlange.</summary>
+    private void OnLibraryChanged()
+    {
+        if (_libraryPending || _library is not { } library)
+        {
+            return;
+        }
+        _libraryPending = true;
+        if (!DispatcherQueue.TryEnqueue(() =>
+            {
+                _libraryPending = false;
+                FillLibrary(library);
+            }))
+        {
+            _libraryPending = false;
+        }
+    }
+
+    private void FillLibrary(PluginLibrary library)
+    {
+        if (_libraryList is null || _libraryState is null)
+        {
+            return;
+        }
+        _libraryState.Text = library.CatalogError is { } error
+            ? error + (library.HasCatalog ? " – zeige den zuletzt geladenen Katalog." : ".")
+            : library.CatalogLoaded is { } loaded ? $"Katalog geladen {loaded.ToLocalTime():g}" : "Lade Katalog …";
+        _libraryList.Children.Clear();
+        var items = library.Items()
+            .Where(i => _libraryQuery.Length == 0
+                || i.Name.Contains(_libraryQuery, StringComparison.CurrentCultureIgnoreCase)
+                || i.Entry?.Summary.Contains(_libraryQuery, StringComparison.CurrentCultureIgnoreCase) == true
+                || i.Entry?.Categories.Any(c => c.Contains(_libraryQuery, StringComparison.CurrentCultureIgnoreCase)) == true)
+            .OrderBy(i => i.Status == LibraryStatus.Local)
+            .ThenBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        foreach (var item in items)
+        {
+            _libraryList.Children.Add(LibraryCard(library, item));
+        }
+        if (items.Count == 0 && library.HasCatalog)
+        {
+            _libraryList.Children.Add(Secondary(_libraryQuery.Length > 0 ? "Nichts gefunden." : "Der Katalog ist leer."));
+        }
+    }
+
+    private static string PermissionText(IEnumerable<string> permissions)
+    {
+        var names = permissions.Select(p => PluginManifest.KnownPermissions.GetValueOrDefault(p, p)).ToList();
+        return names.Count == 0 ? "Braucht keine Rechte" : "Darf: " + string.Join(", ", names);
+    }
+
+    private Border LibraryCard(PluginLibrary library, LibraryItem item)
+    {
+        var entry = item.Entry;
+        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 2 };
+        var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        title.Children.Add(new TextBlock { Text = item.Name, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        if (entry is { Official: true })
+        {
+            var badge = (Border)XamlReader.Load($"<Border {XamlNamespace} CornerRadius='4' Padding='6,1,6,1' VerticalAlignment='Center' "
+                + "Background='{ThemeResource AccentFillColorDefaultBrush}' />");
+            var label = (TextBlock)XamlReader.Load($"<TextBlock {XamlNamespace} FontSize='11' Foreground='{{ThemeResource TextOnAccentFillColorPrimaryBrush}}' />");
+            label.Text = "Von Brim";
+            badge.Child = label;
+            title.Children.Add(badge);
+        }
+        text.Children.Add(title);
+
+        void Line(string? value)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                var line = Secondary(value);
+                line.FontSize = 12;
+                text.Children.Add(line);
+            }
+        }
+        Line(entry?.Summary);
+        var installed = item.Installed?.Version;
+        Line(item.Status switch
+        {
+            LibraryStatus.Available => $"Version {entry!.Version}" + (entry.Author.Length > 0 ? $" · {entry.Author}" : "") + (entry.Size > 0 ? $" · {entry.Size / (1024.0 * 1024):0.#} MB" : ""),
+            LibraryStatus.Installed => $"Installiert · Version {installed}",
+            LibraryStatus.UpdateAvailable => $"Installiert {installed} · Update auf {entry!.Version}",
+            LibraryStatus.UpdateNeedsConsent => $"Installiert {installed} · Version {entry!.Version} darf zusätzlich: "
+                + string.Join(", ", item.NewPermissions.Select(p => PluginManifest.KnownPermissions.GetValueOrDefault(p, p))),
+            LibraryStatus.NeedsNewerBrim => $"Version {entry!.Version} braucht Brim {entry.MinBrim}",
+            _ => installed is null ? null : $"Version {installed} · " + (library.CanRemove(item) ? "nicht aus der Bibliothek" : "eigener Ordner"),
+        });
+        Line(PermissionText(entry?.Permissions ?? item.Installed?.Permissions ?? []));
+        if (library.Error(item.Id) is { } error)
+        {
+            var failed = (TextBlock)XamlReader.Load($"<TextBlock {XamlNamespace} TextWrapping='Wrap' FontSize='12' Foreground='{{ThemeResource SystemFillColorCriticalBrush}}' />");
+            failed.Text = error;
+            text.Children.Add(failed);
+        }
+
+        FrameworkElement control;
+        if (library.Progress(item.Id) is { } progress)
+        {
+            control = new ProgressBar { Width = 140, Minimum = 0, Maximum = 1, Value = progress, IsIndeterminate = progress <= 0 };
+        }
+        else
+        {
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            if (item.Status is LibraryStatus.Available or LibraryStatus.UpdateAvailable or LibraryStatus.UpdateNeedsConsent)
+            {
+                var install = new Button
+                {
+                    Content = item.Status == LibraryStatus.Available ? "Installieren" : "Aktualisieren",
+                    Style = (Style)Application.Current.Resources["AccentButtonStyle"],
+                };
+                // Klick = Zustimmung zu den Rechten auf der Karte; das Plugin ist danach eingeschaltet.
+                ToolTipService.SetToolTip(install, PermissionText(entry!.Permissions));
+                install.Click += (_, _) => _ = library.InstallAsync(item.Id);
+                buttons.Children.Add(install);
+            }
+            if (library.CanRemove(item))
+            {
+                buttons.Children.Add(RemoveButton(library, item));
+            }
+            control = buttons;
+        }
+
+        var grid = new Grid { ColumnSpacing = 16 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(text);
+        control.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(control, 1);
+        grid.Children.Add(control);
+        var card = CardBorder();
+        card.Child = grid;
+        return card;
+    }
+
+    /// <summary>„Entfernen“ mit Rückfrage im Flyout (klappt im Fenster und in der Notch).</summary>
+    private static Button RemoveButton(PluginLibrary library, LibraryItem item)
+    {
+        var remove = new Button { Content = "Entfernen" };
+        var confirm = new Button { Content = "Entfernen", Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+        var question = new TextBlock { Text = $"{item.Name} und seine Einstellungen entfernen?", TextWrapping = TextWrapping.Wrap, MaxWidth = 260 };
+        var flyout = new Flyout { Content = new StackPanel { Spacing = 12, Children = { question, confirm } } };
+        confirm.Click += (_, _) =>
+        {
+            flyout.Hide();
+            _ = library.RemoveAsync(item.Id);
+        };
+        remove.Flyout = flyout;
+        return remove;
     }
 
     private void About(StackPanel p)
