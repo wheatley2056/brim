@@ -139,11 +139,22 @@ public class ManifestTests : IDisposable
         Assert.Equal("py", manifest.ResolveEntry());
     }
 
+    [Fact]
+    public void Optional_permissions_count_when_known_and_are_ignored_when_not()
+    {
+        var manifest = Write("""{ "id": "de.test.x", "name": "x", "entry": "py", "permissions": ["network"], "optionalPermissions": ["overlay", "hologram"] }""");
+
+        Assert.Equal(["overlay"], manifest.GrantedOptional);
+        Assert.Equal(["overlay"], manifest.EffectivePermissions([]));
+        Assert.Equal(["network", "overlay"], manifest.EffectivePermissions(["network"]));
+    }
+
     [Theory]
     [InlineData("""{ "id": "Kaputt", "name": "x", "entry": "py" }""", "Kennung")]
     [InlineData("""{ "id": "de.test.x", "name": "x", "entry": "../boese.exe" }""", "nicht im Ordner")]
     [InlineData("""{ "id": "de.test.x", "name": "x", "entry": "C:/Windows/notepad.exe" }""", "nicht im Ordner")]
-    [InlineData("""{ "id": "de.test.x", "name": "x", "entry": "py", "permissions": ["root"] }""", "Unbekanntes Recht")]
+    [InlineData("""{ "id": "de.test.x", "name": "x", "entry": "py", "permissions": ["root"] }""", "Braucht ein neueres Brim")]
+    [InlineData("""{ "id": "de.test.x", "name": "x", "entry": "py", "optionalPermissions": ["alerts"] }""", "kann nicht optional sein")]
     [InlineData("""{ "id": "de.test.x", "name": "x", "entry": "py", "api": "2" }""", "API-Version")]
     [InlineData("""{ "id": "de.test.x", "name": "x", "entry": """, "kein gültiges JSON")]
     [InlineData("""{ "id": "de.test.x", "name": "x", "entry": "py", "shelfActions": [{ "id": "up", "label": "Hochladen" }] }""", "braucht das Recht „shelf“")]

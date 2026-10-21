@@ -81,7 +81,7 @@ internal sealed class PluginRunner : IAsyncDisposable
     /// <summary>Letzter Fehler, für die Verwaltung im Tab „Plugins“.</summary>
     public string? Detail => _detail;
 
-    private bool Granted(string permission) => _config().Granted.Contains(permission, StringComparer.Ordinal);
+    private bool Granted(string permission) => Manifest.EffectivePermissions(_config().Granted).Contains(permission, StringComparer.Ordinal);
 
     // ───────── Start und Ende ─────────
 
@@ -496,7 +496,7 @@ internal sealed class PluginRunner : IAsyncDisposable
         {
             Id = Id,
             Settings = Manifest.EffectiveSettings(config.Values),
-            Permissions = Manifest.Permissions.Where(config.Granted.Contains).ToList(),
+            Permissions = Manifest.EffectivePermissions(config.Granted).ToList(),
         };
         _hello?.TrySetResult();
         return result;
