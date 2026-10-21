@@ -6,12 +6,14 @@ namespace Brim.Shell;
 /// Schutz vor Abstürzen im System beim Material als Vektorform (<see cref="MaterialLayer"/>): Ein Absturz im
 /// Compositor lässt sich nicht abfangen. Deshalb liegt während des Versuchs eine Markierung im Datenordner; erst
 /// wenn das Material ein paar Sekunden ohne Absturz läuft, verschwindet sie. Findet Brim sie beim nächsten Start,
-/// ist es beim letzten Mal dabei abgestürzt und nimmt gleich den alten Weg über die Fensterregion.
+/// ist es beim letzten Mal dabei abgestürzt und nimmt gleich den alten Weg über die Fensterregion. Die Markierung
+/// trägt die Version: Nach einem Update probiert Brim es noch einmal, denn das Update kann den Absturz beheben.
 /// </summary>
 internal static class VectorMaterialGuard
 {
     private static readonly TimeSpan Settle = TimeSpan.FromSeconds(10);
     private static readonly string Marker = Path.Combine(App.DataDirectory, "material-vector.trying");
+    private static readonly string Version = typeof(VectorMaterialGuard).Assembly.GetName().Version?.ToString() ?? "?";
     private static bool? _blocked;
     private static int _pending;
 
@@ -22,11 +24,11 @@ internal static class VectorMaterialGuard
         {
             if (_blocked is null)
             {
-                _blocked = File.Exists(Marker);
+                _blocked = CrashedVersion() == Version;
                 if (_blocked == true)
                 {
-                    Log.Warn("Material: Brim ist beim letzten Versuch mit der Vektorform abgestürzt, nehme die Fensterregion. "
-                        + $"Zum erneuten Versuch {Marker} löschen.");
+                    Log.Warn($"Material: Brim {Version} ist beim letzten Versuch mit der Vektorform abgestürzt, nehme die "
+                        + $"Fensterregion. Zum erneuten Versuch {Marker} löschen.");
                 }
             }
             return _blocked.Value;
@@ -36,7 +38,7 @@ internal static class VectorMaterialGuard
     public static void Begin()
     {
         _pending++;
-        Try(() => File.WriteAllText(Marker, DateTimeOffset.Now.ToString("O")));
+        Try(() => File.WriteAllText(Marker, $"{Version}\n{DateTimeOffset.Now:O}"));
     }
 
     /// <summary>Eingebunden; nach einer Weile ohne Absturz gilt der Versuch als gelungen.</summary>
@@ -48,6 +50,23 @@ internal static class VectorMaterialGuard
         {
             _pending = 0;
             Try(() => File.Delete(Marker));
+        }
+    }
+
+    /// <summary>Version, mit der Brim beim letzten Versuch abgestürzt ist, sonst <c>null</c>.</summary>
+    private static string? CrashedVersion()
+    {
+        try
+        {
+            return File.Exists(Marker) ? File.ReadLines(Marker).FirstOrDefault()?.Trim() : null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
         }
     }
 
