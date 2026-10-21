@@ -196,8 +196,8 @@ public partial class App : Application
             _tray?.Notify($"Brim {notes.Version} ist da", "Klicke hier, um das Update jetzt zu installieren. Brim startet dabei kurz neu.", InstallUpdate);
         });
         _updater.Start();
-        // Katalog höchstens stündlich, auch wenn Brim selbst öfter nach Updates sieht.
-        _library?.Start(() => TimeSpan.FromMinutes(Math.Max(60, _settings.Current.Updates.CheckMinutes)));
+        // Plugins im selben Takt wie Brim selbst; der Katalog liegt auf raw.githubusercontent.com, ohne API-Limit.
+        _library?.Start(() => TimeSpan.FromMinutes(Math.Max(UpdateSettings.MinCheckMinutes, _settings.Current.Updates.CheckMinutes)));
 
         // Teilen im LAN: Identität, Empfang und Suche (Plan 4.4a). Fehler hier dürfen die Notch nicht stören.
         try
