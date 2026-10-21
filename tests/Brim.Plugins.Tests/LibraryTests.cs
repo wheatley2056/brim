@@ -83,6 +83,7 @@ public sealed class CatalogTests
     }
 }
 
+[Collection(PluginRunnerCollection.Name)]
 public sealed class LibraryTests : IAsyncDisposable
 {
     private const string PluginId = "de.test.weather";

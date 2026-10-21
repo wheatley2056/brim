@@ -211,8 +211,14 @@ public sealed class PluginLibrary : IDisposable
         {
             var progress = new Progress<double>(p =>
             {
+                // Progress meldet über den Thread-Pool und kann nach dem Ende ankommen: dann nichts mehr eintragen,
+                // sonst bliebe das Plugin als „lädt“ hängen und ließe sich nicht erneut installieren.
                 lock (_gate)
                 {
+                    if (!_busy.ContainsKey(id))
+                    {
+                        return;
+                    }
                     _busy[id] = p;
                 }
                 OnChanged();

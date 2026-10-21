@@ -58,6 +58,17 @@ internal sealed class InProcessLauncher(Func<string, CancellationToken, Task> pl
     }
 }
 
+/// <summary>
+/// Tests, die <see cref="PluginRunner.ConnectTimeout"/> (statisch) setzen und echte Plugins starten, laufen nacheinander:
+/// Sonst verkürzt ein Test die Zeit für „hello“ mitten im anderen.
+/// </summary>
+[CollectionDefinition(Name)]
+public sealed class PluginRunnerCollection
+{
+    public const string Name = "PluginRunner";
+}
+
+[Collection(PluginRunnerCollection.Name)]
 public sealed class HostTests : IAsyncDisposable
 {
     private const string PluginId = "de.test.demo";
@@ -360,17 +371,21 @@ public sealed class HostTests : IAsyncDisposable
             brim.WidgetsPlaced += async widgets =>
             {
                 placed.Enqueue(widgets);
-                foreach (var size in widgets.GetValueOrDefault("calls") ?? [])
-                {
-                    await brim.SetWidgetAsync("calls", size, new ButtonWidget("dial") { Label = $"Anrufe {size}" }, token);
-                }
                 try
                 {
+                    foreach (var size in widgets.GetValueOrDefault("calls") ?? [])
+                    {
+                        await brim.SetWidgetAsync("calls", size, new ButtonWidget("dial") { Label = $"Anrufe {size}" }, token);
+                    }
                     await brim.SetWidgetAsync("calls", TileSize.Small, new TextWidget("zu klein"), token);
                 }
                 catch (JsonRpcException ex)
                 {
                     refused = ex;
+                }
+                catch (Exception ex) when (ex is ObjectDisposedException or IOException or OperationCanceledException)
+                {
+                    // Der Handler ist async void: Endet der Test, während er noch sendet, darf das den Testprozess nicht beenden.
                 }
             };
             await brim.RunAsync(token);
