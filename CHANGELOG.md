@@ -3,6 +3,15 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 2.5.0
+
+Updates sofort mitbekommen und mit einem Klick installieren.
+
+- Brim sieht jetzt alle 15 Minuten nach einem neuen Update (bisher alle 4 Stunden). Einstellbar unter Einstellungen → Info, ab 5 Minuten.
+- Liegt ein Update bereit, klappt die Notch kurz mit „Brim x.y ist da“ auf, und Windows zeigt eine Benachrichtigung. Ein Klick auf „Installieren“ oder auf die Benachrichtigung spielt es sofort ein; Brim startet dabei kurz neu.
+- Danach bleibt kompakt „Update x.y“ in der Notch stehen. Aufgeklappt siehst du, was neu ist, und kannst „Jetzt installieren“ oder „Später“ wählen.
+- Wer nichts tut, bekommt das Update wie bisher unbemerkt, sobald ein paar Minuten niemand am Rechner arbeitet. Benachrichtigen und automatisch aktualisieren lassen sich unter Einstellungen → Info einzeln abschalten.
+
 ## 2.4.0
 
 - Plugins: Mit dem neuen Recht „overlay“ darf ein Plugin eine Mini-Pille zeigen, die über Vollbild-Apps und Spielen stehen bleibt, wenn sich die Notch zurückzieht – wie die FPS-Pille der eingebauten Messung. Gedacht für das neue GameMode-Plugin.

@@ -334,11 +334,16 @@ public sealed class NotificationSettings
 
 public sealed class UpdateSettings
 {
+    public const int MinCheckMinutes = 5;
+
     /// <summary>Automatisch aktualisieren (nur in der installierten Fassung).</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Wie oft nach Updates gesehen wird.</summary>
-    public int CheckHours { get; set; } = 4;
+    /// <summary>Sofort in der Notch und per Windows-Benachrichtigung melden, wenn ein Update bereitliegt.</summary>
+    public bool Notify { get; set; } = true;
+
+    /// <summary>Wie oft nach Updates gesehen wird (Minuten).</summary>
+    public int CheckMinutes { get; set; } = 15;
 
     /// <summary>So lange ohne Eingabe, bevor Brim für ein Update neu startet.</summary>
     public int IdleMinutes { get; set; } = 3;

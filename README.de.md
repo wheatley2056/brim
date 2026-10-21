@@ -66,7 +66,7 @@ Der Tab „System“ zeigt CPU, RAM, GPU und Netzwerk mit Verlauf der letzten Mi
 Liegt ein Fenster unter der Notch – maximiert, im Vollbild oder einfach hochgeschoben –, schmilzt Brim in die Kante. Auch beim Ziehen eines Fensters zur Snap-Leiste zieht sie sich zurück. Teilst du deinen Bildschirm in Teams, Zoom, Meet oder Webex, bleibt sie aus dem Bild. Regeln pro App (OBS immer zeigen, Premiere immer ausblenden), „nur Desktop“, Ausblenden bei Leerlauf und eine Verzögerung stellst du in den Einstellungen ein. Maus an die Oberkante oder Win+Alt+N, und sie kommt wieder herunter.
 
 ### 🔄 Updates, die du nicht merkst
-Brim aktualisiert sich im Hintergrund aus den GitHub-Releases, lädt nur, was sich geändert hat, und startet erst neu, wenn du ein paar Minuten nicht am Rechner bist. Danach erzählt die Notch, was neu ist.
+Brim sieht alle 15 Minuten in den GitHub-Releases nach und lädt nur, was sich geändert hat. Sobald ein Update bereitliegt, sagen dir die Notch und eine Windows-Benachrichtigung Bescheid, und ein Klick installiert es. Sonst startet Brim von selbst neu, wenn du ein paar Minuten nicht am Rechner bist. Danach erzählt die Notch, was neu ist.
 
 <p align="center">
   <img src="docs/assets/update.png" alt="Changelog in der Notch nach einem Update, mit dem Knopf Verstanden" width="760">
