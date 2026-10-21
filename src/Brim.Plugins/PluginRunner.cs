@@ -70,10 +70,16 @@ internal sealed class PluginRunner : IAsyncDisposable
 
     public PluginManifest Manifest { get; }
     public string Id => Manifest.Id;
-    public PluginState State { get; private set; }
+
+    // Zustand und Fehler werden von mehreren Threads gelesen (Verwaltung im Tab, Timer für den Neustart);
+    // geschrieben werden sie nur unter _gate, gelesen ohne. volatile, damit niemand einen alten Stand sieht.
+    private volatile PluginState _state;
+    private volatile string? _detail;
+
+    public PluginState State => _state;
 
     /// <summary>Letzter Fehler, für die Verwaltung im Tab „Plugins“.</summary>
-    public string? Detail { get; private set; }
+    public string? Detail => _detail;
 
     private bool Granted(string permission) => _config().Granted.Contains(permission, StringComparer.Ordinal);
 
@@ -84,14 +90,18 @@ internal sealed class PluginRunner : IAsyncDisposable
         int generation;
         lock (_gate)
         {
-            if (State is PluginState.Starting or PluginState.Running)
+            if (_state is PluginState.Starting or PluginState.Running)
             {
                 return;
             }
             _stopping = false;
             generation = ++_generation;
+            // Schon hier „startet“ setzen, im selben Schloss wie die Prüfung: Zwei gleichzeitige Starts
+            // (Timer und Nutzer) dürfen nicht beide einen Prozess hochziehen.
+            _state = PluginState.Starting;
+            _detail = null;
         }
-        SetState(PluginState.Starting, null);
+        _stateChanged();
 
         // Zufälliger Name: Andere Programme können die Pipe nicht erraten und sich nicht als Brim ausgeben.
         var pipeName = "brim-" + Convert.ToHexString(RandomNumberGenerator.GetBytes(8)).ToLowerInvariant();
@@ -128,12 +138,21 @@ internal sealed class PluginRunner : IAsyncDisposable
             _ = connection.Completion.ContinueWith(t => OnStoppedAsync(generation,
                 t.IsFaulted ? "Protokollfehler: " + t.Exception?.InnerException?.Message : "Verbindung getrennt"), TaskScheduler.Default);
             await hello.Task.WaitAsync(ConnectTimeout);
-            SetState(PluginState.Running, null);
+            // Nur melden, wenn dieser Start noch der aktuelle ist: Ist das Plugin zwischen „hello“ und hier
+            // abgestürzt, hat OnStoppedAsync den Zustand schon gesetzt – ein spätes „läuft“ würde den Absturz
+            // samt geplantem Neustart überschreiben.
+            if (!TrySetState(generation, PluginState.Running, null))
+            {
+                return;
+            }
             Log.Info($"Plugin {Id} läuft");
             if (_tabVisible)
             {
                 Notify(PluginProtocol.TabVisibility, new VisibilityParams(true));
             }
+            // Zwischen „hello“ und „läuft“ kann sich die Belegung der Kacheln geändert haben; jetzt erst
+            // darf sie rausgehen (vorher verwirft Notify alles, was kein laufendes Plugin betrifft).
+            SendPlacedWidgets();
         }
         catch (Exception ex)
         {
@@ -239,18 +258,26 @@ internal sealed class PluginRunner : IAsyncDisposable
 
         if (restartIn is { } delay)
         {
-            // Erst den Timer stellen, dann den Zustand melden: Wer auf „startet neu“ reagiert (die Verwaltung,
-            // Tests mit gestellter Zeit), findet den Neustart schon geplant vor.
+            // Timer und Zustand im selben Schloss: Wer auf „startet neu“ reagiert (die Verwaltung, Tests mit
+            // gestellter Zeit), findet den Neustart geplant vor – und ein sofort feuernder Timer kann den
+            // Zustand nicht mehr mit einem veralteten „startet neu“ überschreiben.
             lock (_gate)
             {
                 _restart?.Dispose();
                 _restart = _context.Time.CreateTimer(_ => _ = StartAsync(), null, delay, Timeout.InfiniteTimeSpan);
+                _state = PluginState.Restarting;
+                _detail = reason;
             }
-            SetState(PluginState.Restarting, reason);
+            _stateChanged();
         }
         else
         {
-            SetState(PluginState.Failed, reason);
+            lock (_gate)
+            {
+                _state = PluginState.Failed;
+                _detail = reason;
+            }
+            _stateChanged();
             Log.Warn($"Plugin {Id} nach {MaxCrashes} Abstürzen abgeschaltet");
         }
     }
@@ -325,7 +352,9 @@ internal sealed class PluginRunner : IAsyncDisposable
         var signature = string.Join(";", placed.Select(w => w.Id + ":" + string.Join(",", w.Sizes)));
         lock (_gate)
         {
-            if (signature == _placedWidgets)
+            // Nur merken, wenn es auch rausgeht: Ein Plugin, das gerade noch startet, bekommt die Belegung
+            // sonst nie – die gemerkte Kennung würde den nächsten Versuch als „unverändert“ abtun.
+            if (signature == _placedWidgets || _state != PluginState.Running)
             {
                 return;
             }
@@ -347,10 +376,30 @@ internal sealed class PluginRunner : IAsyncDisposable
         return null;
     }
 
+    /// <summary>Setzt den Zustand, wenn dieser Start noch der aktuelle ist (kein Absturz und kein Stop dazwischen).</summary>
+    /// <returns><c>false</c>, wenn ein neuerer Zustand gilt und nichts geändert wurde.</returns>
+    private bool TrySetState(int generation, PluginState state, string? detail)
+    {
+        lock (_gate)
+        {
+            if (generation != _generation || _stopping)
+            {
+                return false;
+            }
+            _state = state;
+            _detail = detail;
+        }
+        _stateChanged();
+        return true;
+    }
+
     private void SetState(PluginState state, string? detail)
     {
-        State = state;
-        Detail = detail;
+        lock (_gate)
+        {
+            _state = state;
+            _detail = detail;
+        }
         _stateChanged();
     }
 

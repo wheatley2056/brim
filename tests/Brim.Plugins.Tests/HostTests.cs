@@ -259,11 +259,14 @@ public sealed class HostTests : IAsyncDisposable
             await using var brim = await BrimPlugin.ConnectAsync(pipe, token);
             brim.NotificationPosted += n => received.Enqueue($"{n.Title}: {n.Body}");
             brim.NotchExpandedChanged += e => expanded.Enqueue(e);
+            // Erst wenn das Plugin zuhört, sagt „läuft“ etwas aus: „hello“ kann beantwortet sein, bevor die
+            // Handler oben hängen, und die erste Benachrichtigung ginge verloren.
+            await brim.SetActivityAsync(new ActivityParams { Id = "ready", Leading = new TextWidget("bereit") }, token);
             await brim.RunAsync(token);
         });
 
         var host = await StartHost(launcher, true, "notifications");
-        await Until(() => host.StateOf(PluginId) == PluginState.Running);
+        await Until(() => host.StateOf(PluginId) == PluginState.Running && Activity("ready") is not null);
 
         Assert.True(host.RouteNotification("Swyx Messenger", "Anna", "Hast du kurz Zeit?"));
         Assert.False(host.RouteNotification("Outlook", "Newsletter", "…"));
@@ -284,11 +287,12 @@ public sealed class HostTests : IAsyncDisposable
         {
             await using var brim = await BrimPlugin.ConnectAsync(pipe, token);
             brim.ShelfItems += (action, paths) => received.Enqueue(action + ":" + string.Join(",", paths));
+            await brim.SetActivityAsync(new ActivityParams { Id = "ready", Leading = new TextWidget("bereit") }, token);
             await brim.RunAsync(token);
         });
 
         var host = await StartHost(launcher, true, "shelf");
-        await Until(() => host.StateOf(PluginId) == PluginState.Running);
+        await Until(() => host.StateOf(PluginId) == PluginState.Running && Activity("ready") is not null);
 
         var action = Assert.Single(host.ShelfActions());
         Assert.Equal("Hochladen", action.Action.Label);
