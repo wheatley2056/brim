@@ -63,6 +63,12 @@ internal sealed class WidgetRenderer
         return element;
     }
 
+    /// <summary>Farben aus Einstellungen → Aussehen → Farben; gesetzt von <see cref="NotchView.ApplyAppearance"/>.</summary>
+    public static NotchColorSettings Palette { get; set; } = new();
+
+    /// <summary>Farbe eines Widgets nach dem Farbschema (bei „ruhig“ wird Buntes zur Farbe der Werte).</summary>
+    private static SolidColorBrush Tinted(string color) => Brushes.Get(NotchPalette.Map(color, Palette));
+
     // ───────── Text, Symbol ─────────
 
     private static TextBlock RenderText(TextWidget w, TextBlock? tb)
@@ -81,14 +87,14 @@ internal sealed class WidgetRenderer
             TextStyle.Mono => ("NotchMonoFont", 13d, FontWeights.Normal, BrimColors.Fog),
             TextStyle.MonoCaption => ("NotchMonoFont", 11d, FontWeights.Normal, BrimColors.Slate),
             TextStyle.Display => ("NotchDisplayFont", 44d, FontWeights.SemiBold, BrimColors.Fog),
-            TextStyle.Status => ("NotchClockFont", 12d, FontWeights.Normal, BrimColors.Slate),
+            TextStyle.Status => ("NotchClockFont", 12d, FontWeights.Normal, Palette.Status),
             _ => ("NotchTextFont", 13d, FontWeights.Normal, BrimColors.Fog),
         };
         tb.FontFamily = (FontFamily)Application.Current.Resources[font];
         tb.FontSize = w.FontSize ?? size;
         tb.FontWeight = weight;
         tb.CharacterSpacing = w.Style is TextStyle.Title or TextStyle.Display ? -20 : 0;
-        tb.Foreground = Brushes.Get(w.Color ?? color);
+        tb.Foreground = w.Color is { } own ? Tinted(own) : Brushes.Get(color);
         // Werte neben der Uhr: gleich breite Ziffern, damit nichts springt, auch in Proportionalschriften.
         Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(tb, w.Style == TextStyle.Status ? FontNumeralAlignment.Tabular : FontNumeralAlignment.Normal);
         return tb;
@@ -99,7 +105,7 @@ internal sealed class WidgetRenderer
         icon ??= new FontIcon { FontFamily = (FontFamily)Application.Current.Resources["NotchIconFont"] };
         icon.Glyph = w.Glyph;
         icon.FontSize = w.Size;
-        icon.Foreground = Brushes.Get(w.Color ?? BrimColors.Fog);
+        icon.Foreground = Tinted(w.Color ?? BrimColors.Fog);
         return icon;
     }
 
@@ -280,7 +286,7 @@ internal sealed class WidgetRenderer
             _track.Height = _fill.Height = w.Thickness;
             _track.CornerRadius = _fill.CornerRadius = new CornerRadius(w.Thickness / 2);
             _track.Background = Brushes.Get(BrimColors.Track);
-            _fill.Background = Brushes.Get(w.Color ?? BrimColors.Fog);
+            _fill.Background = Tinted(w.Color ?? BrimColors.Fog);
             Layout();
         }
 
@@ -317,7 +323,7 @@ internal sealed class WidgetRenderer
             _track.Stroke = Brushes.Get(w.TrackColor ?? "#3A3226");
             _track.StrokeThickness = _arc.StrokeThickness = w.Thickness;
             _track.Margin = new Thickness(w.Thickness / 2);
-            _arc.Stroke = Brushes.Get(color);
+            _arc.Stroke = Tinted(color);
 
             var value = Math.Clamp(w.Value, 0, 0.9999);
             var r = (w.Size - w.Thickness) / 2;
@@ -502,7 +508,7 @@ internal sealed class WidgetRenderer
         {
             _widget = w;
             Height = w.Height;
-            _line.Stroke = Brushes.Get(w.Color ?? BrimColors.Fog);
+            _line.Stroke = Tinted(w.Color ?? BrimColors.Fog);
             _line.StrokeThickness = w.Thickness;
             Layout();
         }
@@ -563,7 +569,7 @@ internal sealed class WidgetRenderer
             {
                 Layout();
             }
-            var brush = Brushes.Get(w.Color ?? BrimColors.Charge);
+            var brush = Tinted(w.Color ?? BrimColors.Charge);
             for (var i = 0; i < _bars.Count && i < w.Values.Count; i++)
             {
                 _bars[i].Fill = brush;
@@ -642,7 +648,7 @@ internal sealed class WidgetRenderer
 
         public void Update(LevelWidget w)
         {
-            var brush = Brushes.Get(w.Color ?? BrimColors.DefaultAccent);
+            var brush = Tinted(w.Color ?? BrimColors.DefaultAccent);
             var factor = w.Height / 18;
             Height = w.Height;
             for (var i = 0; i < _bars.Length; i++)

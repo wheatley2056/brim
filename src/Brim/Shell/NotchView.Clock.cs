@@ -45,7 +45,8 @@ public sealed partial class NotchView
         var text = SharedClock.Text;
 
         // Beim Bearbeiten von „Jetzt“ steht oben rechts „Fertig“ statt der Uhr.
-        var visible = p.Mode is NotchMode.Idle or NotchMode.Expanded && text.Length > 0 && _board?.IsEditing != true && !_settingsOpen && !_onboarding;
+        var visible = (p.Mode is NotchMode.Idle or NotchMode.Expanded || (p.Mode == NotchMode.Compact && ClockInCompact))
+            && text.Length > 0 && _board?.IsEditing != true && !_settingsOpen && !_onboarding;
         if (!visible)
         {
             FadeClock(false);
@@ -63,14 +64,20 @@ public sealed partial class NotchView
             x = center + NotchGeometry.Expanded.Width / 2 - ExpandedPaddingRight - width * scale;
             y = ExpandedPaddingTop + HeaderHeight / 2 - height * scale / 2;
         }
+        else if (p.Mode == NotchMode.Compact)
+        {
+            // Kompakt (Termin, Musik …): zwischen den beiden Seiten, mittig in der Pille.
+            scale = _hovering ? HoverContentScale : 1;
+            x = center - width * scale / 2;
+            y = PillY(BaseShape(NotchMode.Compact).Height, height, scale);
+        }
         else
         {
-            var shape = ShapeFor(NotchMode.Idle);
             scale = _hovering ? HoverContentScale : 1;
             // Uhr mittig, links oder rechts (IdleLayout); beim Anschwellen wächst sie um ihre Mitte.
             var left = center - _idle.Width / 2;
             x = left + IdleClockX + width * (1 - scale) / 2;
-            y = shape.Height / 2 - height * scale / 2;
+            y = PillY(BaseShape(NotchMode.Idle).Height, height, scale);
         }
 
         // Kommt die Uhr aus dem Nichts (z. B. aus der kompakten Ansicht), erscheint sie gleich am Ziel.
@@ -78,6 +85,17 @@ public sealed partial class NotchView
         MoveClock(x, y, scale, spring, jump, modeChanged);
         FadeClock(true);
     }
+
+    /// <summary>Uhr auch in der kompakten Notch (Einstellungen → Aussehen → Uhr).</summary>
+    private bool ClockInCompact => _displaySettings?.Current.Clock.InCompact == true;
+
+    /// <summary>
+    /// Oberkante der Uhr in der Pille: mittig in der Form ohne Anschwellen, mal dem Faktor beim Hover. So steht sie
+    /// auf derselben Höhe wie die Werte daneben, deren Ebene von oben wächst. Vorher stand sie mittig in der
+    /// angeschwollenen Form und rutschte beim Hover 3 DIP tiefer als die Werte. Dazu die Feinjustierung.
+    /// </summary>
+    private double PillY(double pillHeight, double clockHeight, double scale) =>
+        (pillHeight - clockHeight) * scale / 2 + (_displaySettings?.Current.Clock.ClampedIdleOffset ?? 0);
 
     private void MoveClock(double x, double y, double scale, Spring spring, bool jump, bool modeChanged)
     {

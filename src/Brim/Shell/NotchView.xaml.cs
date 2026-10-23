@@ -232,6 +232,10 @@ public sealed partial class NotchView : UserControl
         CanvasRoot.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0);
         CanvasRoot.RenderTransform = appearance.Size == 1 ? null : new Microsoft.UI.Xaml.Media.ScaleTransform { ScaleX = appearance.Size, ScaleY = appearance.Size };
 
+        // Farben: die Uhr sofort, Widgets beim nächsten Zeichnen.
+        WidgetRenderer.Palette = appearance.Colors;
+        SharedClock.Foreground = Brushes.Get(appearance.Colors.Clock);
+
         // Schrift: Widgets lesen die Ressourcen beim nächsten Zeichnen; Uhr, Tabs und feste Texte hier.
         var (text, menu, clock) = NotchFonts.Apply(appearance);
         FontFamily = text;
@@ -385,6 +389,11 @@ public sealed partial class NotchView : UserControl
 
     private FrameworkElement UpdateCompact(NotchPresentation p)
     {
+        // Steht die Uhr in der Mitte, teilen sich die beiden Seiten den Rest, statt unter die Uhr zu laufen.
+        var side = ClockInCompact && SharedClock.Width > 0
+            ? Math.Max(0, (CompactLayer.Width - CompactLayer.Padding.Left - CompactLayer.Padding.Right - SharedClock.Width) / 2 - IdleLayout.Spacing)
+            : double.PositiveInfinity;
+        LeadingPresenter.MaxWidth = TrailingPresenter.MaxWidth = side;
         Render("leading", LeadingPresenter, p.Primary, p.Primary?.Activity.Leading);
         Render("trailing", TrailingPresenter, p.Primary, p.Primary?.Activity.Trailing);
         return CompactLayer;
