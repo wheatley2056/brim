@@ -190,6 +190,26 @@ public class IdleLayoutTests
     }
 
     [Fact]
+    public void Values_at_the_edge_leave_a_gap_to_the_clock()
+    {
+        // Uhr links, Werte rechts am Rand: 2 × 14 + 60 + Lücke 48 + 80.
+        var left = IdleLayout.Arrange(ClockAlignment.Left, 60, [R(80)], edgeGap: 48);
+        Assert.True(left.AtEdge);
+        Assert.Equal(2 * 14 + 60 + 48 + 80, left.Width);
+        Assert.Equal(14, left.ClockX);
+
+        // Mittig: Die Lücke gilt auf beiden Seiten, die Uhr bleibt in der Mitte.
+        var center = IdleLayout.Arrange(ClockAlignment.Center, 60, [R(80), L(50)], edgeGap: 48);
+        Assert.Equal(2 * 14 + 60 + 2 * (48 + 80), center.Width);
+        Assert.Equal((center.Width - 60) / 2, center.ClockX);
+
+        // Ohne Lücke ändert sich nichts an der bisherigen Breite, nur die Ausrichtung.
+        var none = IdleLayout.Arrange(ClockAlignment.Left, 60, [R(80), L(50)], edgeGap: 0);
+        Assert.Equal(IdleLayout.Arrange(ClockAlignment.Left, 60, [R(80), L(50)]).Width, none.Width);
+        Assert.False(IdleLayout.Arrange(ClockAlignment.Left, 60, [R(80)]).AtEdge);
+    }
+
+    [Fact]
     public void Widths_are_even_so_the_edges_stay_on_whole_pixels()
     {
         var a = IdleLayout.Arrange(ClockAlignment.Left, 60.3, [R(181.2)]);
@@ -291,5 +311,59 @@ public class TileCardTests
             + card.Children.OfType<SpacerWidget>().Where(s => s.Grow == 0).Sum(s => s.Size);
         Assert.Equal(TileCard.HeaderGap, fixedGaps);
         Assert.Contains(card.Children, c => c is TextWidget { Text: "Inhalt" });
+    }
+}
+
+public class NotchPaletteTests
+{
+    private static readonly NotchColorSettings Calm = new() { Scheme = NotchColorScheme.Calm, Status = "#FF808080" };
+
+    [Fact]
+    public void Colorful_keeps_every_color()
+    {
+        Assert.Equal(BrimColors.Charge, NotchPalette.Map(BrimColors.Charge, new NotchColorSettings()));
+    }
+
+    [Fact]
+    public void Calm_turns_colors_into_the_value_color_but_keeps_grays_and_red()
+    {
+        Assert.Equal("#FF808080", NotchPalette.Map(BrimColors.Charge, Calm));
+        Assert.Equal("#FF808080", NotchPalette.Map(BrimColors.Cpu, Calm));
+        Assert.Equal(BrimColors.Fog, NotchPalette.Map(BrimColors.Fog, Calm));
+        Assert.Equal(BrimColors.Track, NotchPalette.Map(BrimColors.Track, Calm));
+        Assert.Equal(BrimColors.Danger, NotchPalette.Map(BrimColors.Danger, Calm));
+        // Durchscheinend bleibt durchscheinend.
+        Assert.Equal("#40808080", NotchPalette.Map("#405BD98A", Calm));
+    }
+
+    [Fact]
+    public void Status_values_take_the_value_color_where_they_are_gray()
+    {
+        var colors = new NotchColorSettings { Status = "#FFFFFFFF" };
+        var battery = new StackWidget(new IconWidget("x") { Color = BrimColors.Slate }, new TextWidget("80 %") { Color = BrimColors.Slate });
+        var tinted = (StackWidget)NotchPalette.Status(battery, colors);
+        Assert.Equal("#FFFFFFFF", ((IconWidget)tinted.Children[0]).Color);
+        Assert.Equal("#FFFFFFFF", ((TextWidget)tinted.Children[1]).Color);
+        // Lädt (blau): bleibt im bunten Schema blau.
+        var charging = new TextWidget("80 %") { Color = BrimColors.Charging };
+        Assert.Equal(BrimColors.Charging, ((TextWidget)NotchPalette.Status(charging, colors)).Color);
+    }
+
+    [Fact]
+    public void Broken_colors_from_the_file_fall_back_to_the_defaults()
+    {
+        var clamped = new NotchColorSettings { Clock = "rot", Status = "#12", Scheme = (NotchColorScheme)9 }.Clamped();
+        Assert.Equal(BrimColors.Fog, clamped.Clock);
+        Assert.Equal(BrimColors.Slate, clamped.Status);
+        Assert.Equal(NotchColorScheme.Colorful, clamped.Scheme);
+    }
+
+    [Fact]
+    public void Clock_offset_and_gap_stay_within_bounds()
+    {
+        Assert.Equal(ClockSettings.MaxIdleOffset, new ClockSettings { IdleOffset = 40 }.ClampedIdleOffset);
+        Assert.Equal(0, new ClockSettings { IdleOffset = double.NaN }.ClampedIdleOffset);
+        Assert.Equal(NotchDisplaySettings.MaxValuesGap, new NotchDisplaySettings { ValuesGap = 999 }.ClampedValuesGap);
+        Assert.Equal(0, new NotchDisplaySettings { ValuesGap = -5 }.ClampedValuesGap);
     }
 }

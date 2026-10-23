@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Brim.Core.Widgets;
 
 namespace Brim.Core;
 
@@ -62,13 +63,98 @@ public sealed class AppearanceSettings
     /// <summary>Schrift je Bereich (Einstellungen → Aussehen → Schriften).</summary>
     public FontSettings Fonts { get; set; } = new();
 
+    /// <summary>Farben der Uhr und der Werte, bunt oder ruhig (Einstellungen → Aussehen → Farben).</summary>
+    public NotchColorSettings Colors { get; set; } = new();
+
     public AppearanceSettings Clamped() => new()
     {
         Form = Enum.IsDefined(Form) ? Form : NotchForm.Notch,
         Material = Enum.IsDefined(Material) ? Material : NotchMaterial.Black,
         Fonts = Fonts ?? new(),
+        Colors = (Colors ?? new()).Clamped(),
         Size = double.IsFinite(Size) ? Math.Clamp(Size, NotchGeometry.MinSize, NotchGeometry.MaxSize) : 1.0,
     };
+}
+
+/// <summary>Wie bunt die Notch ist.</summary>
+public enum NotchColorScheme
+{
+    /// <summary>Jede Gruppe in ihrer Farbe (CPU, Akku, Medien …), wie bisher.</summary>
+    Colorful,
+
+    /// <summary>Alles in der Farbe der Werte; nur Warnungen (rot) bleiben farbig.</summary>
+    Calm,
+}
+
+public sealed class NotchColorSettings
+{
+    public NotchColorScheme Scheme { get; set; } = NotchColorScheme.Colorful;
+
+    /// <summary>Farbe der Uhr (in Ruhe und oben rechts).</summary>
+    public string Clock { get; set; } = BrimColors.Fog;
+
+    /// <summary>Farbe der Werte neben der Uhr; bei „ruhig“ auch für alles, was sonst bunt wäre.</summary>
+    public string Status { get; set; } = BrimColors.Slate;
+
+    /// <summary>Unlesbare Farben aus der Datei werden zum Standard.</summary>
+    public NotchColorSettings Clamped() => new()
+    {
+        Scheme = Enum.IsDefined(Scheme) ? Scheme : NotchColorScheme.Colorful,
+        Clock = NotchPalette.IsColor(Clock) ? Clock : BrimColors.Fog,
+        Status = NotchPalette.IsColor(Status) ? Status : BrimColors.Slate,
+    };
+}
+
+/// <summary>Farben der Widgets nach <see cref="NotchColorSettings"/>.</summary>
+public static class NotchPalette
+{
+    /// <summary>Unterhalb dieses Abstands zwischen hellstem und dunkelstem Kanal gilt eine Farbe als Grau.</summary>
+    private const int GrayChroma = 24;
+
+    /// <summary>
+    /// Farbe, mit der ein Widget gezeichnet wird. Bei „ruhig“ wird alles Bunte zur Farbe der Werte; Grautöne
+    /// (Schrift, Spuren) und Rot (Akku fast leer, Fehler) bleiben, damit Warnungen auffallen.
+    /// </summary>
+    public static string Map(string color, NotchColorSettings colors)
+    {
+        if (colors.Scheme != NotchColorScheme.Calm || !IsColor(color))
+        {
+            return color;
+        }
+        var (a, r, g, b) = AccentColor.Parse(color);
+        var chroma = Math.Max(r, Math.Max(g, b)) - Math.Min(r, Math.Min(g, b));
+        if (chroma < GrayChroma || Same(color, BrimColors.Danger))
+        {
+            return color;
+        }
+        // Durchscheinende Farben (Spuren, Flächen) behalten ihre Deckkraft.
+        var (_, sr, sg, sb) = AccentColor.Parse(colors.Status);
+        return a == 255 ? colors.Status : $"#{a:X2}{sr:X2}{sg:X2}{sb:X2}";
+    }
+
+    /// <summary>
+    /// Wert neben der Uhr in der gewählten Farbe: Was dort neutral grau ist (Text, Akku im Normalfall), nimmt die
+    /// Farbe der Werte an; farbige Zustände folgen <see cref="Map"/>.
+    /// </summary>
+    public static Widget Status(Widget widget, NotchColorSettings colors) => widget switch
+    {
+        TextWidget t when t.Color is { } c && Same(c, BrimColors.Slate) => t with { Color = colors.Status },
+        IconWidget i when i.Color is { } c && Same(c, BrimColors.Slate) => i with { Color = colors.Status },
+        StackWidget s => s with { Children = s.Children.Select(child => Status(child, colors)).ToList() },
+        _ => widget,
+    };
+
+    public static bool IsColor(string? hex)
+    {
+        if (hex is null)
+        {
+            return false;
+        }
+        var s = hex.TrimStart('#');
+        return s.Length is 6 or 8 && s.All(char.IsAsciiHexDigit);
+    }
+
+    private static bool Same(string a, string b) => AccentColor.Parse(a) == AccentColor.Parse(b);
 }
 
 public sealed class InteractionSettings
@@ -94,6 +180,19 @@ public sealed class ClockSettings
 
     /// <summary>Größe in den Grenzen, die in die Pille passen; Unsinn aus der Datei wird zur Standardgröße.</summary>
     public double ClampedIdleSize => double.IsFinite(IdleSize) ? Math.Clamp(IdleSize, MinIdleSize, MaxIdleSize) : DefaultIdleSize;
+
+    /// <summary>Feinjustierung der Höhe in der Pille (DIP, positiv = tiefer), falls die Schrift optisch nicht mittig sitzt.</summary>
+    public double IdleOffset { get; set; }
+
+    public const double MaxIdleOffset = 6;
+
+    public double ClampedIdleOffset => double.IsFinite(IdleOffset) ? Math.Clamp(IdleOffset, -MaxIdleOffset, MaxIdleOffset) : 0;
+
+    /// <summary>
+    /// Uhr auch in der kompakten Notch (anstehender Termin, Musik, Timer …) zwischen den beiden Seiten zeigen.
+    /// Bisher verschwand sie, sobald etwas lief.
+    /// </summary>
+    public bool InCompact { get; set; }
 }
 
 public enum ShelfStorage
@@ -237,6 +336,16 @@ public enum NotificationStyle
 /// <summary>Uhr in der ruhenden Notch.</summary>
 public enum ClockAlignment { Center, Left, Right }
 
+/// <summary>Wo die Werte neben der Uhr stehen.</summary>
+public enum IdleValues
+{
+    /// <summary>Direkt an der Uhr.</summary>
+    NextToClock,
+
+    /// <summary>Am Rand der Notch (links bündig links, rechts bündig rechts), dazwischen eine Lücke.</summary>
+    AtEdge,
+}
+
 /// <summary>Datum neben der Uhr.</summary>
 public enum DateFormat
 {
@@ -275,6 +384,16 @@ public sealed class NotchDisplaySettings
 
     /// <summary>Bei mittiger Uhr: den ganzen Inhalt zentrieren statt der Uhr, wenn eine Seite länger ist.</summary>
     public bool CenterContent { get; set; }
+
+    /// <summary>Werte direkt neben der Uhr oder an den Rand gerückt, mit einer Lücke zur Uhr.</summary>
+    public IdleValues Values { get; set; } = IdleValues.NextToClock;
+
+    /// <summary>Mindestbreite der Lücke zwischen Uhr und Werten, wenn sie am Rand stehen (DIP).</summary>
+    public double ValuesGap { get; set; } = DefaultValuesGap;
+
+    public const double DefaultValuesGap = 48, MaxValuesGap = 200;
+
+    public double ClampedValuesGap => double.IsFinite(ValuesGap) ? Math.Clamp(ValuesGap, 0, MaxValuesGap) : DefaultValuesGap;
 
     public bool Load { get; set; }
     public bool Date { get; set; }
@@ -415,6 +534,7 @@ public sealed class BrimSettings
         DisabledModules ??= [];
 
         Appearance.Fonts ??= new();
+        Appearance.Colors ??= new();
         Appearance.Fonts.Custom ??= [];
         AutoHide.Apps ??= [];
         AutoHide.ScreenShareMarkers ??= [];
