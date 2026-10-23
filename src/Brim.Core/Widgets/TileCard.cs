@@ -21,13 +21,19 @@ public static class TileCard
         return new StackWidget(children) { Spacing = 6 };
     }
 
-    /// <summary>Kopfzeile oben, Inhalt füllt den Rest.</summary>
+    /// <summary>Kleinster Abstand zwischen Kopfzeile und Inhalt.</summary>
+    public const double HeaderGap = 4;
+
+    /// <summary>
+    /// Kopfzeile oben, Inhalt mittig im Rest. Den Platz verteilen nur die Füller: Ein Abstand zwischen allen vier
+    /// Teilen kostete auch ohne freien Platz 18 DIP, und in der kleinen Kachel (57 DIP innen) fiel die letzte
+    /// Zeile unten heraus („System“: RAM).
+    /// </summary>
     public static StackWidget Card(StackWidget header, Widget body) =>
-        new(header, new SpacerWidget { Grow = 1 }, body, new SpacerWidget { Grow = 1 })
+        new(header, new SpacerWidget { Size = HeaderGap }, new SpacerWidget { Grow = 1 }, body, new SpacerWidget { Grow = 1 })
         {
             Orientation = StackOrientation.Vertical,
             Align = CrossAlign.Stretch,
-            Spacing = 6,
             Grow = 1,
         };
 
