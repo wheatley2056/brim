@@ -505,7 +505,8 @@ public sealed partial class ResourcesModule : IBrimModule
         }
         return TileCard.Card(
             TileCard.Header(Glyphs.Cpu, BrimColors.Cpu, "System"),
-            new StackWidget(rows) { Orientation = StackOrientation.Vertical, Align = CrossAlign.Stretch, Spacing = 5 });
+            // Klein: Kopfzeile und zwei Zeilen füllen die 57 DIP fast ganz, daher enger.
+            new StackWidget(rows) { Orientation = StackOrientation.Vertical, Align = CrossAlign.Stretch, Spacing = size == TileSize.Small ? 3 : 5 });
     }
 
     private static StackWidget Bar(string name, double? value, string color, CultureInfo culture) =>
