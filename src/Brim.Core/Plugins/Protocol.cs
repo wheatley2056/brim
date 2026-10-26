@@ -22,7 +22,9 @@ public static class PluginProtocol
     public const string ActivityUpdate = "activity.update";
     public const string ActivityEnd = "activity.end";
     public const string HudShow = "hud.show";
+    /// <summary>Veraltet: Der Tab „Plugins“ ist nur zur Verwaltung da. Brim nimmt es an, zeigt aber nichts (Inhalte als Widgets).</summary>
     public const string ViewSet = "view.set";
+    /// <summary>Veraltet, siehe <see cref="ViewSet"/>.</summary>
     public const string ViewClear = "view.clear";
     public const string LogMessage = "log";
     public const string WidgetSet = "widget.set";
@@ -31,6 +33,7 @@ public static class PluginProtocol
     public const string ActionInvoked = "action.invoked";
     public const string ShelfItems = "shelf.items";
     public const string SettingsChanged = "settings.changed";
+    /// <summary>Veraltet: Brim sendet es nicht mehr, der Tab „Plugins“ zeigt keine Plugin-Inhalte.</summary>
     public const string TabVisibility = "tab.visibility";
 
     /// <summary>Die Notch wurde auf- oder zugeklappt (z. B. Live-Werte nur dann senden).</summary>
@@ -99,7 +102,7 @@ public sealed record HudParams
     public string? Announcement { get; init; }
 }
 
-/// <summary>Inhalt im Tab „Plugins“ (Slot <c>expanded.tab</c>).</summary>
+/// <summary>Veraltet: früher Inhalt im Tab „Plugins“ (Slot <c>expanded.tab</c>), siehe <see cref="PluginProtocol.ViewSet"/>.</summary>
 public sealed record ViewParams
 {
     public required string Id { get; init; }

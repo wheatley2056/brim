@@ -13,6 +13,12 @@ Updates sofort mitbekommen und mit einem Klick installieren.
 - Danach bleibt kompakt „Update x.y“ in der Notch stehen. Aufgeklappt siehst du, was neu ist, und kannst „Jetzt installieren“ oder „Später“ wählen.
 - Wer nichts tut, bekommt das Update wie bisher unbemerkt, sobald ein paar Minuten niemand am Rechner arbeitet. Benachrichtigen und automatisch aktualisieren lassen sich unter Einstellungen → Info einzeln abschalten.
 
+Der Tab „Plugins“ ist jetzt nur noch zum Ein- und Ausschalten da. Was Plugins zeigen, kommt als Widget auf „Jetzt“.
+
+- Plugins: Die Seite listet jedes Plugin über die volle Breite mit Version, Zustand, Rechten, seinen Widgets und dem Schalter. Oben führt „Bibliothek“ direkt zu Einstellungen → Plugins, daneben öffnet sich der Plugin-Ordner.
+- Plugins legen keine eigenen Karten mehr auf diese Seite. Ihre Inhalte fügst du als Widgets hinzu: „Jetzt“ lange drücken, dann „+ Widget“.
+- Für Entwickler: `view.set` wird noch angenommen, aber nicht mehr gezeigt, und `tab.visibility` entfällt. Inhalte kommen über `widgets` im Manifest und `widget.set`. Die Beispiele zeigen, wie es geht.
+
 ## 2.5.0
 
 Behoben:

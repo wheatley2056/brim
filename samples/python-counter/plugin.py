@@ -1,4 +1,4 @@
-"""Beispiel-Plugin für Brim in Python, ohne Bibliotheken: ein Zähler im Tab „Plugins“.
+"""Beispiel-Plugin für Brim in Python, ohne Bibliotheken: ein Zähler als Widget auf „Jetzt“.
 
 Brim startet das Skript und gibt den Namen der Pipe in BRIM_PIPE mit. Das Protokoll ist
 JSON-RPC 2.0, eine Nachricht pro Zeile (siehe docs/plugins.md).
@@ -11,6 +11,7 @@ import sys
 pipe = open("\\\\.\\pipe\\" + os.environ["BRIM_PIPE"], "r+b", buffering=0)
 ids = itertools.count(1)
 count = 0
+sizes = []  # Größen, in denen das Widget gerade liegt (aus „widget.placed“)
 
 
 def send(message):
@@ -31,20 +32,24 @@ def read():
 
 
 def show():
-    request("view.set", {
-        "id": "counter",
-        "content": {
-            "type": "stack", "spacing": 12, "padding": [12, 10, 12, 10],
-            "background": "#1C1D21", "cornerRadius": 14,
-            "children": [
-                {"type": "text", "text": "Zähler", "style": "secondary", "grow": 1},
-                {"type": "button", "actionId": "minus", "glyph": "", "size": 32, "glyphSize": 14, "accessibleName": "Weniger"},
-                {"type": "text", "text": str(count), "style": "mono", "fontSize": 20, "fixedWidth": 48},
-                {"type": "button", "actionId": "plus", "glyph": "", "size": 32, "glyphSize": 14, "accessibleName": "Mehr"},
-                {"type": "button", "actionId": "reset", "kind": "secondary", "label": "Zurücksetzen"},
-            ],
-        },
-    })
+    # Inhalt nur für die gelegten Größen; liegt das Widget nirgends, gibt es nichts zu tun.
+    for size in sizes:
+        request("widget.set", {
+            "id": "counter",
+            "size": size,
+            "content": {
+                "type": "stack", "orientation": "vertical", "spacing": 6, "align": "stretch", "grow": 1,
+                "children": [
+                    {"type": "text", "text": "Zähler", "style": "caption"},
+                    {"type": "text", "text": str(count), "style": "mono", "fontSize": 24, "grow": 1},
+                    {"type": "stack", "spacing": 8, "children": [
+                        {"type": "button", "actionId": "minus", "glyph": "\ue738", "size": 28, "glyphSize": 12, "accessibleName": "Weniger"},
+                        {"type": "button", "actionId": "plus", "glyph": "\ue710", "size": 28, "glyphSize": 12, "accessibleName": "Mehr"},
+                        {"type": "button", "actionId": "reset", "kind": "secondary", "label": "0"},
+                    ]},
+                ],
+            },
+        })
 
 
 # Erst „hello“ und auf die Antwort warten; vorher nimmt Brim nichts anderes an.
@@ -62,6 +67,9 @@ while True:
     method = message.get("method")
     if method == "shutdown":
         break
+    if method == "widget.placed":
+        sizes = next((w["sizes"] for w in message["params"]["widgets"] if w["id"] == "counter"), [])
+        show()
     if method == "action.invoked":
         action = message["params"]["actionId"]
         count = {"plus": count + 1, "minus": count - 1, "reset": 0}.get(action, count)

@@ -139,6 +139,15 @@ internal sealed class SettingsPage : UserControl
         ("about", "Info", ""),
     ];
 
+    /// <summary>Springt zu einem Bereich (Tag aus <see cref="Sections"/>, z. B. „plugins“ für die Bibliothek).</summary>
+    public void Select(string tag)
+    {
+        if (_navigation.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == tag) is { } item)
+        {
+            _navigation.SelectedItem = item;
+        }
+    }
+
     private BrimSettings S => _store.Current;
 
     private void Changed()
