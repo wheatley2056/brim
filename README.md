@@ -66,7 +66,7 @@ The System tab shows CPU, RAM, GPU and network with one-minute history, plus the
 When a window sits under the notch — maximized, fullscreen, or just pushed up — Brim melts into the edge. Dragging a window toward the top for Snap Layouts hides it too. While you share your screen in Teams, Zoom, Meet or Webex it stays out of the picture. Per-app rules (always show for OBS, always hide for Premiere), a desktop-only mode, hiding when idle and a hide delay are in the settings. Rest your mouse at the top edge or press Win+Alt+N and it drops back down.
 
 ### 🔄 Updates you won't notice
-Brim updates itself from GitHub releases in the background, downloads only what changed, and restarts only when you're away for a few minutes. Afterwards the notch tells you what's new.
+Brim checks GitHub releases every 15 minutes and downloads only what changed. As soon as an update is ready, the notch and a Windows notification tell you, and one click installs it. Otherwise Brim restarts on its own once you're away for a few minutes. Afterwards the notch tells you what's new.
 
 <p align="center">
   <img src="docs/assets/update.png" alt="Changelog in the notch after an update, with a Got it button" width="760">
