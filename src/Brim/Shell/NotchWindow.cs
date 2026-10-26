@@ -665,9 +665,12 @@ internal sealed partial class NotchWindow : WindowEx
         SystemBackdrop = new MaterialBackdrop(material);
     }
 
-    /// <summary>Material auf die Form in diesem Moment legen (ohne Abstand der Insel: der steckt im Rand der Zeichenfläche).</summary>
+    /// <summary>
+    /// Material auf die Form in diesem Moment legen. Mit dem Abstand der Insel: Das Fensterziel beginnt oben am
+    /// Fenster, nicht im Rand der Zeichenfläche – ohne ihn lag das Glas 6 DIP über der Insel.
+    /// </summary>
     private void UpdateMaterialLayer() =>
-        _materialLayer?.Update(NotchGeometry.Outline(View.CurrentShape, View.BeadCount, 0), _scale);
+        _materialLayer?.Update(NotchGeometry.Outline(View.CurrentShape, View.BeadCount, NotchGeometry.Gap(View.Form)), _scale);
 
     /// <summary>Bei Glas genau der gezeichnete Umriss, sonst schiene das Acryl um die Notch herum durch.</summary>
     private void ApplyGlassRegion() =>

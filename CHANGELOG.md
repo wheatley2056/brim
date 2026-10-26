@@ -3,7 +3,7 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
-## 2.5.0
+## 2.6.0
 
 Updates sofort mitbekommen und mit einem Klick installieren.
 
@@ -12,6 +12,14 @@ Updates sofort mitbekommen und mit einem Klick installieren.
 - Liegt ein Update bereit, klappt die Notch kurz mit „Brim x.y ist da“ auf, und Windows zeigt eine Benachrichtigung. Ein Klick auf „Installieren“ oder auf die Benachrichtigung spielt es sofort ein; Brim startet dabei kurz neu.
 - Danach bleibt kompakt „Update x.y“ in der Notch stehen. Aufgeklappt siehst du, was neu ist, und kannst „Jetzt installieren“ oder „Später“ wählen.
 - Wer nichts tut, bekommt das Update wie bisher unbemerkt, sobald ein paar Minuten niemand am Rechner arbeitet. Benachrichtigen und automatisch aktualisieren lassen sich unter Einstellungen → Info einzeln abschalten.
+
+## 2.5.0
+
+Behoben:
+
+- Insel mit Acryl oder Mica: Das Glas liegt wieder genau unter der Insel statt 6 px darüber.
+- „Jetzt“ bearbeiten: Der Rahmen unter dem Zeiger flackert nicht mehr weg und bleibt nach dem Ziehen nicht mehr hängen.
+- Kachel „System“ (klein): Die RAM-Zeile wird nicht mehr abgeschnitten.
 
 ## 2.4.0
 

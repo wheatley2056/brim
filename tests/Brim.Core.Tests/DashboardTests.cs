@@ -278,3 +278,18 @@ public class ClockWidthTests
     public void Clock_size_in_the_pill_stays_within_bounds(double stored, double expected) =>
         Assert.Equal(expected, new ClockSettings { IdleSize = stored }.ClampedIdleSize);
 }
+
+public class TileCardTests
+{
+    [Fact]
+    public void Card_costs_only_the_header_gap_when_space_is_tight()
+    {
+        // Feste Abstände der Karte: Spacing zwischen allen Teilen plus feste Füller. Mehr als ein paar DIP
+        // schieben in der kleinen Kachel (57 DIP innen) die letzte Zeile hinaus.
+        var card = TileCard.Card(TileCard.Header("x", BrimColors.Cpu, "System"), new TextWidget("Inhalt"));
+        var fixedGaps = card.Spacing * (card.Children.Count - 1)
+            + card.Children.OfType<SpacerWidget>().Where(s => s.Grow == 0).Sum(s => s.Size);
+        Assert.Equal(TileCard.HeaderGap, fixedGaps);
+        Assert.Contains(card.Children, c => c is TextWidget { Text: "Inhalt" });
+    }
+}

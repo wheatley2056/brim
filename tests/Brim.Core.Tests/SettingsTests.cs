@@ -34,7 +34,7 @@ public sealed class SettingsStoreTests : IDisposable
     [Fact]
     public void Older_update_settings_check_every_quarter_hour_and_notify()
     {
-        // Bis 2.4 stand hier „CheckHours“; das fällt weg, es gilt der neue Standard.
+        // Bis 2.5 stand hier „CheckHours“; das fällt weg, es gilt der neue Standard.
         Directory.CreateDirectory(_root);
         File.WriteAllText(SettingsFile, """{ "Updates": { "Enabled": false, "CheckHours": 4, "IdleMinutes": 3 } }""");
 
