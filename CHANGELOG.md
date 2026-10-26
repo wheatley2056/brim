@@ -13,6 +13,13 @@ Updates sofort mitbekommen und mit einem Klick installieren.
 - Danach bleibt kompakt „Update x.y“ in der Notch stehen. Aufgeklappt siehst du, was neu ist, und kannst „Jetzt installieren“ oder „Später“ wählen.
 - Wer nichts tut, bekommt das Update wie bisher unbemerkt, sobald ein paar Minuten niemand am Rechner arbeitet. Benachrichtigen und automatisch aktualisieren lassen sich unter Einstellungen → Info einzeln abschalten.
 
+Die Notch nach deinem Geschmack (Einstellungen → Aussehen).
+
+- Uhr: Die Höhe der Uhr in der Pille lässt sich fein einstellen. Fährst du mit der Maus über die Notch, steht die Uhr jetzt auf einer Höhe mit den Werten daneben, statt ein Stück tiefer zu rutschen.
+- Uhr: Mit „Uhr auch bei laufenden Aktivitäten“ bleibt sie bei einem anstehenden Termin, bei Musik oder beim Timer in der Mitte der kompakten Notch stehen.
+- Werte neben der Uhr: „Am Rand“ rückt Datum, Akku und Systemwerte an den Rand der Notch; zwischen ihnen und der Uhr bleibt eine Lücke, deren Breite du einstellst.
+- Farben: Uhr und Werte bekommen eine eigene Farbe, z. B. den Akku in Grau. Das Farbschema „Ruhig“ zeigt alles, was sonst bunt wäre, in der Farbe der Werte, auch im Tab „System“. Nur Warnungen bleiben rot.
+
 Der Tab „Plugins“ ist jetzt nur noch zum Ein- und Ausschalten da. Was Plugins zeigen, kommt als Widget auf „Jetzt“.
 
 - Plugins: Die Seite listet jedes Plugin über die volle Breite mit Version, Zustand, Rechten, seinen Widgets und dem Schalter. Oben führt „Bibliothek“ direkt zu Einstellungen → Plugins, daneben öffnet sich der Plugin-Ordner.
