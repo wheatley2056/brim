@@ -24,6 +24,7 @@ Der Tab „Plugins“ ist jetzt nur noch zum Ein- und Ausschalten da. Was Plugin
 
 - Plugins: Die Seite listet jedes Plugin über die volle Breite mit Version, Zustand, Rechten, seinen Widgets und dem Schalter. Oben führt „Bibliothek“ direkt zu Einstellungen → Plugins, daneben öffnet sich der Plugin-Ordner.
 - Plugins legen keine eigenen Karten mehr auf diese Seite. Ihre Inhalte fügst du als Widgets hinzu: „Jetzt“ lange drücken, dann „+ Widget“.
+- Plugins können Rechte als optional anfordern (`optionalPermissions`). Kennt eine Brim-Version ein solches Recht nicht, läuft das Plugin trotzdem, nur ohne diese Funktion. Verlangt ein Plugin ein Recht, das es erst in einer neueren Version gibt, steht auf seiner Karte jetzt „Braucht ein neueres Brim“ statt „Unbekanntes Recht“.
 - Für Entwickler: `view.set` wird noch angenommen, aber nicht mehr gezeigt, und `tab.visibility` entfällt. Inhalte kommen über `widgets` im Manifest und `widget.set`. Die Beispiele zeigen, wie es geht.
 
 ## 2.5.0

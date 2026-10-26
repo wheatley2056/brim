@@ -2,6 +2,24 @@
   "schema": 1,
   "plugins": [
     {
+      "id": "de.brim.gamemode",
+      "name": "GameMode",
+      "summary": "Erkennt Spiele von selbst und zeigt FPS, Frametime, CPU-/GPU-Last und GPU-Temperatur, im Vollbild als kleine Pille.",
+      "author": "Brim",
+      "repository": "https://github.com/wheatley2056/brim-gamemode",
+      "categories": [
+        "Spiele"
+      ],
+      "permissions": [
+        "overlay"
+      ],
+      "version": "1.0.0",
+      "download": "https://github.com/wheatley2056/brim-gamemode/releases/download/v1.0.0/brim-gamemode.zip",
+      "sha256": "3fd38e9ab6d21d9f940b1498dac37e0b0fb5a7d48a90f4545d15f620bfdc192b",
+      "size": 2724093,
+      "minBrim": "2.4.0"
+    },
+    {
       "id": "de.brim.outlook",
       "name": "Outlook",
       "summary": "Nächster Termin mit Countdown, neue E-Mails und Aufgaben aus Outlook in der Notch.",

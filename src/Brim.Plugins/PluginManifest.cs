@@ -53,6 +53,24 @@ public sealed partial record PluginManifest
     public string Api { get; init; } = PluginProtocol.ApiVersion;
     public List<string> Slots { get; init; } = [];
     public List<string> Permissions { get; init; } = [];
+
+    /// <summary>
+    /// Rechte, die das Plugin nutzt, wenn diese Brim-Version sie kennt, ohne an ihnen zu scheitern (z. B. „overlay“,
+    /// das es erst ab 2.4.0 gibt). Ältere Versionen ignorieren das Feld, unbekannte Einträge ignoriert auch diese.
+    /// Erlaubt sind nur Rechte aus <see cref="OptionalAllowed"/>; sie gelten, solange das Plugin eingeschaltet ist.
+    /// </summary>
+    public List<string> OptionalPermissions { get; init; } = [];
+
+    /// <summary>Rechte, die nur etwas zeigen oder erklären und deshalb optional sein dürfen.</summary>
+    public static readonly IReadOnlySet<string> OptionalAllowed = new HashSet<string>(StringComparer.Ordinal) { "network", "media", "overlay" };
+
+    /// <summary>Die optionalen Rechte, die diese Brim-Version kennt und gewährt.</summary>
+    public IEnumerable<string> GrantedOptional => OptionalPermissions.Where(p => KnownPermissions.ContainsKey(p) && !Permissions.Contains(p)).Distinct();
+
+    /// <summary>Was das Plugin darf, wenn es eingeschaltet ist: zugestimmte Pflichtrechte und bekannte optionale.</summary>
+    public IEnumerable<string> EffectivePermissions(IEnumerable<string> granted) =>
+        Permissions.Where(granted.Contains).Concat(GrantedOptional);
+
     public List<PluginSettingDefinition> Settings { get; init; } = [];
 
     /// <summary>
@@ -153,7 +171,14 @@ public sealed partial record PluginManifest
         {
             if (!KnownPermissions.ContainsKey(permission))
             {
-                throw new InvalidDataException($"Unbekanntes Recht „{permission}“");
+                throw new InvalidDataException($"Braucht ein neueres Brim (Recht „{permission}“ gibt es in dieser Version noch nicht)");
+            }
+        }
+        foreach (var permission in OptionalPermissions)
+        {
+            if (KnownPermissions.ContainsKey(permission) && !OptionalAllowed.Contains(permission))
+            {
+                throw new InvalidDataException($"Recht „{permission}“ kann nicht optional sein, es gehört unter permissions");
             }
         }
     }
