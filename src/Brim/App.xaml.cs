@@ -28,6 +28,7 @@ public partial class App : Application
     private TrayIcon? _tray;
     private NearbyService? _nearby;
     private AutoUpdater? _updater;
+    private UpdateModule? _updateModule;
     private PluginHostModule? _plugins;
     private PluginLibrary? _library;
     private List<IBrimModule> _allModules = [];
@@ -187,8 +188,16 @@ public partial class App : Application
         {
             return;
         }
+        // Neues Update geladen: sofort in der Notch und als Windows-Benachrichtigung; ein Klick installiert.
+        _updateModule!.InstallRequested = InstallUpdate;
+        _updater.Ready += notes => dispatcher.TryEnqueue(() =>
+        {
+            _updateModule?.ShowAvailable(notes);
+            _tray?.Notify($"Brim {notes.Version} ist da", "Klicke hier, um das Update jetzt zu installieren. Brim startet dabei kurz neu.", InstallUpdate);
+        });
         _updater.Start();
-        _library?.Start(() => TimeSpan.FromHours(Math.Max(1, _settings.Current.Updates.CheckHours)));
+        // Plugins im selben Takt wie Brim selbst; der Katalog liegt auf raw.githubusercontent.com, ohne API-Limit.
+        _library?.Start(() => TimeSpan.FromMinutes(Math.Max(UpdateSettings.MinCheckMinutes, _settings.Current.Updates.CheckMinutes)));
 
         // Teilen im LAN: Identität, Empfang und Suche (Plan 4.4a). Fehler hier dürfen die Notch nicht stören.
         try
@@ -239,7 +248,15 @@ public partial class App : Application
         {
             yield return _plugins!;
         }
-        yield return new UpdateModule(DataDirectory, IsDemo ? null : _updater!.CurrentVersion);
+        yield return _updateModule = new UpdateModule(DataDirectory, IsDemo ? null : _updater!.CurrentVersion);
+    }
+
+    private void InstallUpdate()
+    {
+        if (_updater?.InstallNow() != true)
+        {
+            _updateModule?.InstallFailed();
+        }
     }
 
     private async void ExitApp()

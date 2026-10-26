@@ -8,8 +8,10 @@ using Velopack.Sources;
 namespace Brim.Shell;
 
 /// <summary>
-/// Unbemerkte Updates über Velopack aus den GitHub-Releases: im Hintergrund prüfen und laden,
-/// anwenden erst, wenn niemand am Rechner arbeitet (keine Eingabe, Notch zu, keine Übertragung).
+/// Updates über Velopack aus den GitHub-Releases: alle paar Minuten prüfen und im Hintergrund laden.
+/// Liegt ein Update bereit, meldet <see cref="Ready"/> es sofort (Notch und Windows-Benachrichtigung),
+/// und <see cref="InstallNow"/> spielt es mit einem Klick ein. Sonst wird es angewendet, wenn niemand
+/// am Rechner arbeitet (keine Eingabe, Notch zu, keine Übertragung).
 /// Nach dem Neustart zeigt <see cref="UpdateModule"/> den Changelog in der Notch.
 /// </summary>
 internal sealed class AutoUpdater : IDisposable
@@ -42,6 +44,9 @@ internal sealed class AutoUpdater : IDisposable
 
     public string? CurrentVersion => _manager.CurrentVersion?.ToString();
 
+    /// <summary>Ein Update ist geladen und lässt sich sofort installieren: Version und Changelog.</summary>
+    public event Action<UpdateNotes>? Ready;
+
     public void Start()
     {
         if (!_manager.IsInstalled)
@@ -53,7 +58,10 @@ internal sealed class AutoUpdater : IDisposable
     }
 
     private TimeSpan CheckInterval =>
-        Seconds("BRIM_UPDATE_CHECK_SECONDS") ?? TimeSpan.FromHours(Math.Max(1, _settings.Current.Updates.CheckHours));
+        Seconds("BRIM_UPDATE_CHECK_SECONDS") ?? TimeSpan.FromMinutes(Math.Max(UpdateSettings.MinCheckMinutes, _settings.Current.Updates.CheckMinutes));
+
+    /// <summary>Überhaupt nach Updates sehen: zum unbemerkten Einspielen oder um Bescheid zu geben.</summary>
+    private bool Checking => _settings.Current.Updates is { } u && (u.Enabled || u.Notify);
 
     private TimeSpan IdleNeeded =>
         Seconds("BRIM_UPDATE_IDLE_SECONDS") ?? TimeSpan.FromMinutes(Math.Max(1, _settings.Current.Updates.IdleMinutes));
@@ -68,15 +76,19 @@ internal sealed class AutoUpdater : IDisposable
             await Task.Delay(Seconds("BRIM_UPDATE_CHECK_SECONDS") ?? TimeSpan.FromMinutes(1), _cts.Token);
             while (!_cts.IsCancellationRequested)
             {
-                if (_settings.Current.Updates.Enabled && _ready is null)
+                if (Checking)
                 {
+                    // Auch mit einem geladenen Update weiter prüfen: Kommt inzwischen ein neueres, gilt das.
                     await CheckAndDownloadAsync();
                 }
-                if (_ready is not null)
+                if (_ready is not null && _settings.Current.Updates.Enabled)
                 {
                     await ApplyWhenIdleAsync(_ready);
                 }
-                await Task.Delay(CheckInterval, _cts.Token);
+                else
+                {
+                    await Task.Delay(CheckInterval, _cts.Token);
+                }
             }
         }
         catch (OperationCanceledException)
@@ -94,10 +106,18 @@ internal sealed class AutoUpdater : IDisposable
                 return;
             }
             var target = update.TargetFullRelease;
+            if (_ready is not null && _ready.Version.Equals(target.Version))
+            {
+                return;
+            }
             Log.Info($"Updates: {target.Version} gefunden, lade im Hintergrund");
             await _manager.DownloadUpdatesAsync(update, null, _cts.Token);
             _ready = target;
-            Log.Info($"Updates: {target.Version} bereit, warte auf eine ruhige Minute");
+            Log.Info($"Updates: {target.Version} bereit");
+            if (_settings.Current.Updates.Notify)
+            {
+                Ready?.Invoke(new UpdateNotes(target.Version.ToString(), target.NotesMarkdown ?? ""));
+            }
         }
         catch (OperationCanceledException)
         {
@@ -119,13 +139,40 @@ internal sealed class AutoUpdater : IDisposable
         {
             if (Win32.IdleTime() >= IdleNeeded && !_isBusy())
             {
-                Log.Info($"Updates: wende {target.Version} an");
-                SaveNotes(target);
-                _manager.ApplyUpdatesAndRestart(target, ["--updated"]);
-                return; // beendet den Prozess
+                Apply(target);
+                return;
             }
             await Task.Delay(poll, _cts.Token);
         }
+    }
+
+    /// <summary>
+    /// Das geladene Update sofort einspielen (Klick in der Notch oder auf die Benachrichtigung).
+    /// Gelingt es, endet der Prozess; <c>false</c> heißt, es ist nichts passiert.
+    /// </summary>
+    public bool InstallNow()
+    {
+        if (_ready is not { } target)
+        {
+            return false;
+        }
+        try
+        {
+            Apply(target);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Updates: {target.Version} ließ sich nicht installieren", ex);
+            return false;
+        }
+    }
+
+    private void Apply(VelopackAsset target)
+    {
+        Log.Info($"Updates: wende {target.Version} an");
+        SaveNotes(target);
+        _manager.ApplyUpdatesAndRestart(target, ["--updated"]); // beendet den Prozess
     }
 
     /// <summary>Changelog für den Hinweis nach dem Neustart aufheben.</summary>

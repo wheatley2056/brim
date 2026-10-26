@@ -22,6 +22,9 @@ internal sealed class NowBoard : Grid
 {
     private static readonly TimeSpan LongPress = TimeSpan.FromMilliseconds(550);
 
+    /// <summary>Rahmen der Kacheln beim Bearbeiten; unter dem Zeiger in der Akzentfarbe.</summary>
+    private const string TileOutline = "#FF3A3B42";
+
     /// <summary>Gruppen der Galerie in dieser Reihenfolge; alles andere (Plugins) danach.</summary>
     private static readonly string[] BuiltInCategories = ["Brim", "Uhren", "Kalender", "Medien", "System"];
 
@@ -42,6 +45,10 @@ internal sealed class NowBoard : Grid
     private bool _editing;
     private (int Index, Point Start, Border Tile)? _drag;
     private Point _pressAt;
+
+    // Kachel unter dem Zeiger beim Bearbeiten (Index in den Einstellungen): Rahmen in Akzentfarbe und Größenwahl.
+    // Im Feld statt nur in den Ereignissen, weil jedes Neuzeichnen (die Uhr jede Sekunde) den Rahmen neu setzt.
+    private int? _hoverIndex;
 
     /// <summary>Bearbeiten an oder aus: Die Notch bleibt so lange offen.</summary>
     public event Action<bool>? EditingChanged;
@@ -205,7 +212,7 @@ internal sealed class NowBoard : Grid
         var bare = activity && placement.Size == TileSize.Full && !_editing;
         tile.Background = bare ? null : Brushes.Get(BrimColors.Graphite);
         tile.CornerRadius = new CornerRadius(16);
-        tile.BorderBrush = Brushes.Get("#FF3A3B42");
+        tile.BorderBrush = Brushes.Get(_editing && _hoverIndex == index ? BrimColors.DefaultAccent : TileOutline);
         tile.BorderThickness = new Thickness(_editing ? 1 : 0);
         tile.Padding = bare ? new Thickness(0) : activity ? new Thickness(14) : new Thickness(Dashboard.TilePadding);
 
@@ -263,6 +270,7 @@ internal sealed class NowBoard : Grid
         if (_overlays.TryGetValue(tile, out var existing))
         {
             existing.Margin = tile.Margin;
+            ShowHover(tile, existing);
             return existing;
         }
         var overlay = new Grid { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
@@ -290,6 +298,8 @@ internal sealed class NowBoard : Grid
         remove.Click += (_, _) =>
         {
             Tiles.RemoveAt(index);
+            // Unter dem Zeiger liegt danach eine andere Kachel (oder keine); sie meldet sich beim nächsten Bewegen.
+            _hoverIndex = null;
             Save();
         };
         overlay.Children.Add(remove);
@@ -337,18 +347,44 @@ internal sealed class NowBoard : Grid
                 bar.Children.Add(button);
             }
             overlay.Children.Add(bar);
-            overlay.PointerEntered += (_, _) =>
-            {
-                bar.Visibility = Visibility.Visible;
-                tile.BorderBrush = Brushes.Get(BrimColors.DefaultAccent);
-            };
-            overlay.PointerExited += (_, _) =>
-            {
-                bar.Visibility = Visibility.Collapsed;
-                tile.BorderBrush = Brushes.Get("#FF3A3B42");
-            };
         }
+        // Rahmen für jede Kachel, nicht nur für solche mit Größenwahl; beim Ziehen bleibt alles, wie es ist.
+        overlay.PointerEntered += (_, _) =>
+        {
+            if (_drag is null)
+            {
+                SetHover(index);
+            }
+        };
+        overlay.PointerExited += (_, _) =>
+        {
+            if (_drag is null && _hoverIndex == index)
+            {
+                SetHover(null);
+            }
+        };
+        ShowHover(tile, overlay);
         return overlay;
+    }
+
+    private void SetHover(int? index)
+    {
+        _hoverIndex = index;
+        foreach (var (tile, overlay) in _overlays)
+        {
+            ShowHover(tile, overlay);
+        }
+    }
+
+    /// <summary>Rahmen und Größenwahl einer Kachel nach <see cref="_hoverIndex"/>.</summary>
+    private void ShowHover(Border tile, Grid overlay)
+    {
+        var on = _editing && _drag is null && tile.Tag is int index && index == _hoverIndex;
+        tile.BorderBrush = Brushes.Get(on ? BrimColors.DefaultAccent : TileOutline);
+        foreach (var bar in overlay.Children.OfType<StackPanel>())
+        {
+            bar.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     /// <summary>Freies Feld beim Bearbeiten: gestrichelt mit „+“, öffnet die Galerie.</summary>
@@ -443,6 +479,7 @@ internal sealed class NowBoard : Grid
             return;
         }
         _editing = editing;
+        _hoverIndex = null;
         if (!editing)
         {
             CloseGallery();
@@ -915,6 +952,8 @@ internal sealed class NowBoard : Grid
                 _drag = (index, point.Position, tile);
                 CapturePointer(e.Pointer);
                 Canvas.SetZIndex(tile, 10);
+                // Während des Ziehens kein Akzentrahmen: Die Ereignisse der Ebenen kommen dann nicht zuverlässig.
+                SetHover(null);
                 if (_overlays.TryGetValue(tile, out var overlay))
                 {
                     overlay.Opacity = 0;
@@ -960,6 +999,8 @@ internal sealed class NowBoard : Grid
         var position = e.GetCurrentPoint(this).Position;
         if (Distance(position, drag.Start) < 8)
         {
+            // Nur geklickt: Die Kachel liegt noch unter dem Zeiger.
+            SetHover(drag.Index);
             return;
         }
         // Ziel: die Kachel unter dem Zeiger; sonst ans Ende.
@@ -970,6 +1011,11 @@ internal sealed class NowBoard : Grid
         {
             _settings.Current.Now.Tiles = Dashboard.Move(Tiles, drag.Index, target);
             Save();
+        }
+        else
+        {
+            // Zurück an den Platz: Rahmen dort, wo der Zeiger jetzt ist.
+            SetHover(TileAt(position) is { Tag: int under } ? under : null);
         }
     }
 
