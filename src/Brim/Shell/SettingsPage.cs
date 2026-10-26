@@ -326,6 +326,10 @@ internal sealed class SettingsPage : UserControl
         p.Children.Add(Toggle("Sekunden anzeigen", null, S.Clock.ShowSeconds, v => S.Clock.ShowSeconds = v));
         p.Children.Add(Slider("Größe der Uhr in der Pille", ClockSettings.MinIdleSize, ClockSettings.MaxIdleSize, 1, S.Clock.ClampedIdleSize,
             v => S.Clock.IdleSize = Math.Round(v)));
+        p.Children.Add(Slider("Höhe der Uhr in der Pille (− höher, + tiefer)", -ClockSettings.MaxIdleOffset, ClockSettings.MaxIdleOffset, 0.5, S.Clock.ClampedIdleOffset,
+            v => S.Clock.IdleOffset = Math.Round(v * 2) / 2));
+        p.Children.Add(Toggle("Uhr auch bei laufenden Aktivitäten", "Anstehender Termin, Musik, Timer: Die Uhr bleibt in der Mitte der kompakten Notch stehen, statt zu verschwinden.",
+            S.Clock.InCompact, v => S.Clock.InCompact = v));
         var today = DateTime.Now;
         string Example(DateFormat format) => today.ToString(DateFormats.Pattern(format), CultureInfo.CurrentCulture);
         p.Children.Add(Toggle("Datum", "Neben der Uhr, rechts.", d.Date, v => d.Date = v));
@@ -336,6 +340,11 @@ internal sealed class SettingsPage : UserControl
 
         p.Children.Add(Header("Werte neben der Uhr"));
         p.Children.Add(Hint("Systemwerte stehen links der Uhr, Datum und Akku rechts. Wird es zu breit, fällt zuerst das Netzwerk weg, dann CPU und RAM."));
+        p.Children.Add(Choice("Ausrichtung", "„Am Rand“ rückt die Werte an den Rand der Notch, zwischen ihnen und der Uhr bleibt eine Lücke.",
+            [("An der Uhr", IdleValues.NextToClock), ("Am Rand – Lücke in der Mitte", IdleValues.AtEdge)],
+            d.Values, v => d.Values = v));
+        p.Children.Add(Slider("Lücke zur Uhr bei „Am Rand“", 0, NotchDisplaySettings.MaxValuesGap, 4, d.ClampedValuesGap,
+            v => d.ValuesGap = Math.Round(v)));
         p.Children.Add(Toggle("CPU und RAM", "Auslastung in Prozent, alle 2 Sekunden, solange die Notch ruht.", d.Load, v => d.Load = v));
         p.Children.Add(Toggle("Netzwerk", "Aktuelle Download- und Uploadrate.", d.Network, v => d.Network = v));
         p.Children.Add(Choice("Einheit", "Bit pro Sekunde zeigt dieselben Werte wie der Task-Manager.",
@@ -346,8 +355,33 @@ internal sealed class SettingsPage : UserControl
             [("Vorschau zeigen", NotificationStyle.Preview), ("Nur blauer Punkt", NotificationStyle.Dot)],
             S.Notifications.Style, v => S.Notifications.Style = v));
 
+        var c = a.Colors;
+        p.Children.Add(Header("Farben"));
+        p.Children.Add(Choice("Farbschema", "„Ruhig“: Akku, CPU, Medien und Co. erscheinen in der Farbe der Werte, auch unter „System“. Nur Warnungen bleiben rot.",
+            [("Bunt", NotchColorScheme.Colorful), ("Ruhig – nur Warnungen farbig", NotchColorScheme.Calm)],
+            c.Scheme, v => c.Scheme = v));
+        p.Children.Add(Choice("Uhr", null, ColorChoices, ListedColor(c.Clock), v => c.Clock = v));
+        p.Children.Add(Choice("Werte und Symbole", "Datum, Akku, CPU/RAM und Netzwerk neben der Uhr; bei „Ruhig“ auch alles, was sonst bunt wäre.",
+            ColorChoices, ListedColor(c.Status), v => c.Status = v));
+
         Fonts(p);
     }
+
+    private static readonly (string Label, string Value)[] ColorChoices =
+    [
+        ("Weiß", BrimColors.Fog),
+        ("Hellgrau", "#C9CCD3"),
+        ("Grau", BrimColors.Slate),
+        ("Dunkelgrau", "#6B6F78"),
+        ("Pfirsich (Brim)", BrimColors.DefaultAccent),
+        ("Blau", BrimColors.Charging),
+        ("Grün", BrimColors.Charge),
+        ("Gelb", BrimColors.Warning),
+    ];
+
+    /// <summary>Gespeicherte Farbe als Eintrag der Liste („#FFF2F3F5“ ist „Weiß“), damit die Auswahl stimmt.</summary>
+    private static string ListedColor(string stored) =>
+        ColorChoices.Select(o => o.Value).FirstOrDefault(v => NotchPalette.IsColor(stored) && AccentColor.Parse(v) == AccentColor.Parse(stored)) ?? stored;
 
     private static readonly (FontRole Role, string Label, string Description)[] FontRoles =
     [

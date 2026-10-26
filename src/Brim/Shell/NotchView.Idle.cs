@@ -46,7 +46,8 @@ public sealed partial class NotchView
                 var moduleId = key.Split('/', 2)[0];
                 slot = (new WidgetRenderer((action, value) => _hub.Invoke(new ActionInvocation(moduleId, action, value))), null);
             }
-            var element = slot.Renderer.Render(widget, slot.Element);
+            // Grau gesetzte Werte (z. B. Akku im Normalfall) in der Farbe aus Einstellungen → Aussehen → Farben.
+            var element = slot.Renderer.Render(NotchPalette.Status(widget, WidgetRenderer.Palette), slot.Element);
             _statusSlots[key] = (slot.Renderer, element);
             // Natürliche Breite messen, dann die gleichbleibende setzen; Zahlen stehen rechtsbündig darin.
             element.Width = double.NaN;
@@ -67,14 +68,28 @@ public sealed partial class NotchView
         _statusWidths.Retain(shown.Select(s => s.Key));
 
         var clockWidth = FitClock(display.Clock);
-        var arrangement = IdleLayout.Arrange(display.Clock, clockWidth, shown.Select(s => s.Item).ToList(), display.CenterContent);
+        var edgeGap = display.Values == IdleValues.AtEdge ? display.ClampedValuesGap : (double?)null;
+        var arrangement = IdleLayout.Arrange(display.Clock, clockWidth, shown.Select(s => s.Item).ToList(), display.CenterContent, edgeGap);
         _idle = arrangement;
 
         Place(_idleLeft, arrangement.Left.Select(i => shown[i].Element).Reverse());
         Place(_idleRight, arrangement.Right.Select(i => shown[i].Element));
         IdleLayer.Width = arrangement.Width;
-        _idleLeft.Margin = new Thickness(0, 0, arrangement.Width - arrangement.ClockX + IdleLayout.Spacing, 0);
-        _idleRight.Margin = new Thickness(arrangement.ClockX + clockWidth + IdleLayout.Spacing, 0, 0, 0);
+        if (arrangement.AtEdge)
+        {
+            // Am Rand: links bündig links, rechts bündig rechts; die Lücke liegt zwischen Werten und Uhr.
+            _idleLeft.HorizontalAlignment = HorizontalAlignment.Left;
+            _idleRight.HorizontalAlignment = HorizontalAlignment.Right;
+            _idleLeft.Margin = new Thickness(IdleLayout.Padding, 0, 0, 0);
+            _idleRight.Margin = new Thickness(0, 0, IdleLayout.Padding, 0);
+        }
+        else
+        {
+            _idleLeft.HorizontalAlignment = HorizontalAlignment.Right;
+            _idleRight.HorizontalAlignment = HorizontalAlignment.Left;
+            _idleLeft.Margin = new Thickness(0, 0, arrangement.Width - arrangement.ClockX + IdleLayout.Spacing, 0);
+            _idleRight.Margin = new Thickness(arrangement.ClockX + clockWidth + IdleLayout.Spacing, 0, 0, 0);
+        }
         ElementCompositionPreview.GetElementVisual(IdleLayer).CenterPoint = new Vector3((float)arrangement.Width / 2, 0, 0);
     }
 
