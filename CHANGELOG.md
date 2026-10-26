@@ -3,6 +3,16 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 2.6.0
+
+Updates sofort mitbekommen und mit einem Klick installieren.
+
+- Brim sieht jetzt alle 15 Minuten nach einem neuen Update (bisher alle 4 Stunden). Einstellbar unter Einstellungen → Info, ab 5 Minuten.
+- Plugins aus der Bibliothek aktualisieren sich im selben Takt, also ebenfalls alle 15 Minuten, von selbst. Nur wenn eine neue Version mehr Rechte will, wartet sie wie bisher auf deinen Klick.
+- Liegt ein Update bereit, klappt die Notch kurz mit „Brim x.y ist da“ auf, und Windows zeigt eine Benachrichtigung. Ein Klick auf „Installieren“ oder auf die Benachrichtigung spielt es sofort ein; Brim startet dabei kurz neu.
+- Danach bleibt kompakt „Update x.y“ in der Notch stehen. Aufgeklappt siehst du, was neu ist, und kannst „Jetzt installieren“ oder „Später“ wählen.
+- Wer nichts tut, bekommt das Update wie bisher unbemerkt, sobald ein paar Minuten niemand am Rechner arbeitet. Benachrichtigen und automatisch aktualisieren lassen sich unter Einstellungen → Info einzeln abschalten.
+
 ## 2.5.0
 
 Behoben:

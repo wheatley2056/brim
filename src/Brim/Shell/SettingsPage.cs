@@ -841,8 +841,11 @@ internal sealed class SettingsPage : UserControl
     private void About(StackPanel p)
     {
         p.Children.Add(Card("Brim", _version is null ? "Entwicklungsfassung" : $"Version {_version}"));
+        p.Children.Add(Toggle("Über neue Updates benachrichtigen", "Sofort in der Notch und als Windows-Benachrichtigung, mit „Jetzt installieren“.",
+            S.Updates.Notify, v => S.Updates.Notify = v));
         p.Children.Add(Toggle("Automatisch aktualisieren", "Unbemerkt, wenn du gerade nichts tust.", S.Updates.Enabled, v => S.Updates.Enabled = v));
-        p.Children.Add(Number("Nach Updates sehen alle (h)", null, 1, 48, 1, S.Updates.CheckHours, v => S.Updates.CheckHours = v));
+        p.Children.Add(Number("Nach Updates sehen alle (min)", null, UpdateSettings.MinCheckMinutes, 1440, 5,
+            S.Updates.CheckMinutes, v => S.Updates.CheckMinutes = v));
         var json = new Button { Content = "settings.json öffnen" };
         json.Click += (_, _) => Open(Path.Combine(App.DataDirectory, "settings.json"));
         var logs = new Button { Content = "Protokolle" };
