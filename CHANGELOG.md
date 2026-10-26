@@ -3,6 +3,14 @@
 Jede Version bekommt einen Abschnitt `## <Version>`. Die Release-Pipeline nimmt genau diesen
 Abschnitt als Changelog ins Update-Paket; Brim zeigt ihn nach dem Update in der Notch.
 
+## 2.5.0
+
+Behoben:
+
+- Insel mit Acryl oder Mica: Das Glas liegt wieder genau unter der Insel statt 6 px darüber.
+- „Jetzt“ bearbeiten: Der Rahmen unter dem Zeiger flackert nicht mehr weg und bleibt nach dem Ziehen nicht mehr hängen.
+- Kachel „System“ (klein): Die RAM-Zeile wird nicht mehr abgeschnitten.
+
 ## 2.4.0
 
 - Plugins: Mit dem neuen Recht „overlay“ darf ein Plugin eine Mini-Pille zeigen, die über Vollbild-Apps und Spielen stehen bleibt, wenn sich die Notch zurückzieht – wie die FPS-Pille der eingebauten Messung. Gedacht für das neue GameMode-Plugin.
