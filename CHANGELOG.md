@@ -12,7 +12,13 @@ Updates sofort mitbekommen und mit einem Klick installieren.
 - Liegt ein Update bereit, klappt die Notch kurz mit „Brim x.y ist da“ auf, und Windows zeigt eine Benachrichtigung. Ein Klick auf „Installieren“ oder auf die Benachrichtigung spielt es sofort ein; Brim startet dabei kurz neu.
 - Danach bleibt kompakt „Update x.y“ in der Notch stehen. Aufgeklappt siehst du, was neu ist, und kannst „Jetzt installieren“ oder „Später“ wählen.
 - Wer nichts tut, bekommt das Update wie bisher unbemerkt, sobald ein paar Minuten niemand am Rechner arbeitet. Benachrichtigen und automatisch aktualisieren lassen sich unter Einstellungen → Info einzeln abschalten.
+
+Der Tab „Plugins“ ist jetzt nur noch zum Ein- und Ausschalten da. Was Plugins zeigen, kommt als Widget auf „Jetzt“.
+
+- Plugins: Die Seite listet jedes Plugin über die volle Breite mit Version, Zustand, Rechten, seinen Widgets und dem Schalter. Oben führt „Bibliothek“ direkt zu Einstellungen → Plugins, daneben öffnet sich der Plugin-Ordner.
+- Plugins legen keine eigenen Karten mehr auf diese Seite. Ihre Inhalte fügst du als Widgets hinzu: „Jetzt“ lange drücken, dann „+ Widget“.
 - Plugins können Rechte als optional anfordern (`optionalPermissions`). Kennt eine Brim-Version ein solches Recht nicht, läuft das Plugin trotzdem, nur ohne diese Funktion. Verlangt ein Plugin ein Recht, das es erst in einer neueren Version gibt, steht auf seiner Karte jetzt „Braucht ein neueres Brim“ statt „Unbekanntes Recht“.
+- Für Entwickler: `view.set` wird noch angenommen, aber nicht mehr gezeigt, und `tab.visibility` entfällt. Inhalte kommen über `widgets` im Manifest und `widget.set`. Die Beispiele zeigen, wie es geht.
 
 ## 2.5.0
 

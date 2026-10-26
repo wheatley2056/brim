@@ -5,6 +5,9 @@
   "entry": "py",
   "args": ["-3", "plugin.py"],
   "api": "1",
-  "slots": ["hud", "expanded.tab"],
+  "slots": ["hud"],
+  "widgets": [
+    { "id": "counter", "name": "Zähler", "description": "Beispiel aus Python", "sizes": ["small", "medium"] }
+  ],
   "permissions": []
 }
