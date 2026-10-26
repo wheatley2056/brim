@@ -474,7 +474,7 @@ Entscheidungen: Katalog als Datei `catalog/plugins.json` in diesem Repository (B
 - **Oberfläche:** Einstellungen → Plugins → Bibliothek mit Suche, Karten (Abzeichen „Von Brim“, Version, Größe, Rechte, Fehler), Fortschritt, Entfernen mit Rückfrage.
 - **Eintragen:** `build/catalog/Add-Plugin.ps1 -Repository <besitzer/name> -Tag v<Version>` rechnet Prüfsumme und Rechte aus dem Release nach; der Pull Request ist die Prüfung.
 
-### 7l. Plugin-Seite nur zur Verwaltung (21.10.2026, Brim 2.5)
+### 7l. Plugin-Seite nur zur Verwaltung (21.10.2026, Brim 2.6)
 
 Entscheidung (Tobias): Der Tab „Plugins“ ist nur zum Aktivieren und Deaktivieren da. Plugins zeigen dort nichts Eigenes, sie tragen ausschließlich Widgets bei (Seite „Jetzt“, Widget-Editor).
 
