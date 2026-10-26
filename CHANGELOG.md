@@ -12,6 +12,7 @@ Updates sofort mitbekommen und mit einem Klick installieren.
 - Liegt ein Update bereit, klappt die Notch kurz mit „Brim x.y ist da“ auf, und Windows zeigt eine Benachrichtigung. Ein Klick auf „Installieren“ oder auf die Benachrichtigung spielt es sofort ein; Brim startet dabei kurz neu.
 - Danach bleibt kompakt „Update x.y“ in der Notch stehen. Aufgeklappt siehst du, was neu ist, und kannst „Jetzt installieren“ oder „Später“ wählen.
 - Wer nichts tut, bekommt das Update wie bisher unbemerkt, sobald ein paar Minuten niemand am Rechner arbeitet. Benachrichtigen und automatisch aktualisieren lassen sich unter Einstellungen → Info einzeln abschalten.
+- Plugins können Rechte als optional anfordern (`optionalPermissions`). Kennt eine Brim-Version ein solches Recht nicht, läuft das Plugin trotzdem, nur ohne diese Funktion. Verlangt ein Plugin ein Recht, das es erst in einer neueren Version gibt, steht auf seiner Karte jetzt „Braucht ein neueres Brim“ statt „Unbekanntes Recht“.
 
 ## 2.5.0
 
@@ -24,7 +25,6 @@ Behoben:
 ## 2.4.0
 
 - Plugins: Mit dem neuen Recht „overlay“ darf ein Plugin eine Mini-Pille zeigen, die über Vollbild-Apps und Spielen stehen bleibt, wenn sich die Notch zurückzieht – wie die FPS-Pille der eingebauten Messung. Gedacht für das neue GameMode-Plugin.
-- Plugins können Rechte als optional anfordern (`optionalPermissions`). Kennt eine Brim-Version ein solches Recht nicht, läuft das Plugin trotzdem, nur ohne diese Funktion. Verlangt ein Plugin ein Recht, das es erst in einer neueren Version gibt, steht auf seiner Karte jetzt „Braucht ein neueres Brim“ statt „Unbekanntes Recht“.
 
 ## 2.3.1
 
