@@ -670,6 +670,11 @@ internal sealed class SettingsPage : UserControl
                     p.Children.Add(Toggle(label, null, current.ValueKind == JsonValueKind.True,
                         on => config.Values[setting.Key] = JsonSerializer.SerializeToElement(on)));
                 }
+                else if (setting.Type == "password")
+                {
+                    p.Children.Add(Password(label, null, current.ValueKind == JsonValueKind.String ? current.GetString() ?? "" : "",
+                        v => config.Values[setting.Key] = JsonSerializer.SerializeToElement(v)));
+                }
                 else
                 {
                     var text = current.ValueKind == JsonValueKind.String ? current.GetString() ?? "" : current.ValueKind == JsonValueKind.Undefined ? "" : current.ToString();
@@ -1037,6 +1042,18 @@ internal sealed class SettingsPage : UserControl
         box.TextChanged += (_, _) =>
         {
             set(box.Text.Trim());
+            Changed();
+        };
+        return Card(title, description, box);
+    }
+
+    /// <summary>Verdecktes Feld für Passwörter und Schlüssel von Plugins; Leerzeichen am Rand gehören dazu.</summary>
+    private Border Password(string title, string? description, string value, Action<string> set)
+    {
+        var box = new PasswordBox { Password = value, Width = 300 };
+        box.PasswordChanged += (_, _) =>
+        {
+            set(box.Password);
             Changed();
         };
         return Card(title, description, box);
