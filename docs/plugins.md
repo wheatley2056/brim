@@ -54,7 +54,7 @@ Brim only installs a zip from the releases of the listed repository whose SHA-25
 | `optionalPermissions` | Permissions the plugin uses when this version of Brim knows them, without depending on them, e.g. `["overlay"]` (Brim 2.6.0). Older versions ignore the field, and unknown entries are skipped, so the plugin still runs there. Only `network`, `media` and `overlay` may be optional; they apply while the plugin is switched on and are listed on its card. |
 | `shelfActions` | Entries in the shelf's right-click menu, e.g. `[{ "id": "upload", "label": "Upload" }]`. When chosen, the plugin gets `shelf.items` with that `id` as `actionId`. Needs `shelf`. |
 | `notificationApps` | App display names, e.g. `["Swyx Messenger"]`. Their Windows notifications go to this plugin instead of Brim's own preview. Matching is case-insensitive on a part of the name. Needs `notifications`, and Brim's identity must be set up (Settings → Calendar and notifications). |
-| `settings` | Values the user can set (for now in `settings.json` under `Plugins.<id>.Values`). Defaults are sent in `hello`. |
+| `settings` | Values the user can set (for now in `settings.json` under `Plugins.<id>.Values`). Defaults are sent in `hello`. `type` is `string`, `bool` or `password` (a string shown masked in the settings, Brim after 2.6.0; older versions show a normal text box). |
 
 ## Connection
 
