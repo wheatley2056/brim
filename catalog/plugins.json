@@ -38,6 +38,24 @@
       "minBrim": "2.4.0"
     },
     {
+      "id": "de.brim.osticket",
+      "name": "osTicket",
+      "summary": "Offene und dir zugewiesene Tickets aus osTicket in der Notch, Meldung bei neuen Tickets, Ticketliste als Widget.",
+      "author": "Brim",
+      "repository": "https://github.com/wheatley2056/brim-osticket",
+      "categories": [
+        "Produktivität"
+      ],
+      "permissions": [
+        "network"
+      ],
+      "version": "1.0.0",
+      "download": "https://github.com/wheatley2056/brim-osticket/releases/download/v1.0.0/brim-osticket.zip",
+      "sha256": "6520e1054bb60bee53803190d27e330510676232755dd56ba516770e42b18d0d",
+      "size": 281240,
+      "minBrim": "2.0.0"
+    },
+    {
       "id": "de.brim.outlook",
       "name": "Outlook",
       "summary": "Nächster Termin mit Countdown, neue E-Mails und Aufgaben aus Outlook in der Notch.",
