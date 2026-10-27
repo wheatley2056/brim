@@ -2,6 +2,24 @@
   "schema": 1,
   "plugins": [
     {
+      "id": "de.brim.bahn",
+      "name": "Bahn",
+      "summary": "Nächste Züge an deinen Bahnhöfen und auf deiner Pendelstrecke, mit Verspätung, Ausfällen und Gleiswechseln.",
+      "author": "Brim",
+      "repository": "https://github.com/wheatley2056/brim-db",
+      "categories": [
+        "Reisen"
+      ],
+      "permissions": [
+        "network"
+      ],
+      "version": "1.0.0",
+      "download": "https://github.com/wheatley2056/brim-db/releases/download/v1.0.0/brim-db.zip",
+      "sha256": "77d95ff00fb579046aba1921966209378d63992dc9e38d8e61491bb4e24ff95d",
+      "size": 262727,
+      "minBrim": "2.0.0"
+    },
+    {
       "id": "de.brim.gamemode",
       "name": "GameMode",
       "summary": "Erkennt Spiele von selbst und zeigt FPS, Frametime, CPU-/GPU-Last und GPU-Temperatur, im Vollbild als kleine Pille.",
