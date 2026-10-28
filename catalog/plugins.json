@@ -2,6 +2,24 @@
   "schema": 1,
   "plugins": [
     {
+      "id": "de.brim.ai",
+      "name": "KI-Assistent",
+      "summary": "KI in der Notch: Fragen per Tastenkürzel, Antworten von Claude Code, Ollama oder LM Studio, Weiterfragen in Claude Desktop.",
+      "author": "Brim",
+      "repository": "https://github.com/wheatley2056/brim-ai",
+      "categories": [
+        "Produktivität"
+      ],
+      "permissions": [
+        "network"
+      ],
+      "version": "1.0.0",
+      "download": "https://github.com/wheatley2056/brim-ai/releases/download/v1.0.0/brim-ai.zip",
+      "sha256": "f7ea9ad015618cbd6719e6f7b0d645e005021c2fd4c15ff119d5b5196d28c80b",
+      "size": 303237,
+      "minBrim": "2.0.0"
+    },
+    {
       "id": "de.brim.bahn",
       "name": "Bahn",
       "summary": "Nächste Züge an deinen Bahnhöfen und auf deiner Pendelstrecke, mit Verspätung, Ausfällen und Gleiswechseln.",
