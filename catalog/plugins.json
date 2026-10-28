@@ -38,6 +38,25 @@
       "minBrim": "2.0.0"
     },
     {
+      "id": "de.brim.discord",
+      "name": "Discord",
+      "summary": "Dein Sprachkanal in der Notch: wer spricht, Stumm, Taub und Auflegen. Dazu neue Discord-Nachrichten als kurze Meldung.",
+      "author": "Brim",
+      "repository": "https://github.com/wheatley2056/brim-discord",
+      "categories": [
+        "Kommunikation"
+      ],
+      "permissions": [
+        "notifications",
+        "network"
+      ],
+      "version": "1.0.0",
+      "download": "https://github.com/wheatley2056/brim-discord/releases/download/v1.0.0/brim-discord.zip",
+      "sha256": "0ab511a097f281c637f45b721a8ebe13d48e5a70c95540632ce19ed117f06952",
+      "size": 290974,
+      "minBrim": "2.0.0"
+    },
+    {
       "id": "de.brim.gamemode",
       "name": "GameMode",
       "summary": "Erkennt Spiele von selbst und zeigt FPS, Frametime, CPU-/GPU-Last und GPU-Temperatur, im Vollbild als kleine Pille.",
