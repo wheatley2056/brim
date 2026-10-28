@@ -13,10 +13,10 @@
       "permissions": [
         "network"
       ],
-      "version": "1.0.0",
-      "download": "https://github.com/wheatley2056/brim-ai/releases/download/v1.0.0/brim-ai.zip",
-      "sha256": "f7ea9ad015618cbd6719e6f7b0d645e005021c2fd4c15ff119d5b5196d28c80b",
-      "size": 303237,
+      "version": "1.0.1",
+      "download": "https://github.com/wheatley2056/brim-ai/releases/download/v1.0.1/brim-ai.zip",
+      "sha256": "c67af7a4975f9e2cd214cfcbcc23347340541479e49001e3197a96e74606a581",
+      "size": 303214,
       "minBrim": "2.0.0"
     },
     {
