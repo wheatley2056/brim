@@ -186,6 +186,14 @@ public sealed class MediaModule : IBrimModule
         return _duration > TimeSpan.Zero && position > _duration ? _duration : position;
     }
 
+    /// <summary>
+    /// Farbe für Fortschritt, Pegel und Knöpfe: vom Cover nur, wenn so eingestellt. Sonst Pfirsich, den die Notch
+    /// durch die Windows-Akzentfarbe ersetzt (Einstellungen → Aussehen → Akzentfarbe).
+    /// </summary>
+    private string WidgetAccent() => _context?.Settings.Appearance.Accent == AccentSource.Cover
+        ? _accent ?? BrimColors.DefaultAccent
+        : BrimColors.DefaultAccent;
+
     private void Publish()
     {
         var context = _context!;
@@ -196,7 +204,7 @@ public sealed class MediaModule : IBrimModule
             return;
         }
 
-        var accent = _accent ?? BrimColors.DefaultAccent;
+        var accent = WidgetAccent();
         var position = CurrentPosition();
         var progress = _duration > TimeSpan.Zero ? position / _duration : 0;
         var subtitle = string.Join(" · ", new[] { _artist, _source }.Where(s => !string.IsNullOrWhiteSpace(s)));
@@ -210,7 +218,9 @@ public sealed class MediaModule : IBrimModule
             Priority = ActivityPriority.Ongoing,
             Rank = _isPlaying ? 10 : 1,
             IsBackground = background,
-            Accent = accent,
+            // Der Schimmer unter der Notch bleibt vom Cover gefärbt, auch wenn die Bedienelemente die
+            // Windows-Akzentfarbe tragen.
+            Accent = _accent ?? BrimColors.DefaultAccent,
             Leading = new ImageWidget(_cover) { Width = 22, Height = 22, CornerRadius = 6, Placeholder = placeholder, AccessibleName = "Cover" },
             Trailing = new LevelWidget { Active = _isPlaying, Color = accent },
             Bead = new ImageWidget(_cover) { Width = 20, Height = 20, CornerRadius = 5, Placeholder = placeholder },
@@ -240,7 +250,7 @@ public sealed class MediaModule : IBrimModule
         {
             return TileCard.Empty(Glyphs.MusicNote, "Gerade keine Musik");
         }
-        var accent = _accent ?? BrimColors.DefaultAccent;
+        var accent = WidgetAccent();
         (string, string) placeholder = (accent, "#6C5CFF");
         var large = size == TileSize.Large;
         var play = new ButtonWidget("toggle")
