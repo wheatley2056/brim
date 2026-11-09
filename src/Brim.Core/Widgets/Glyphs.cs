@@ -40,6 +40,10 @@ public static class Glyphs
     public static readonly string Bell = G(0xEA8F);
     /// <summary>WLAN (Wifi).</summary>
     public static readonly string Wifi = G(0xE701);
+    /// <summary>Netzwerkkabel (Ethernet).</summary>
+    public static readonly string Ethernet = G(0xE839);
+    /// <summary>Kein Netzwerk (NetworkOffline).</summary>
+    public static readonly string NoNetwork = G(0xF384);
     /// <summary>Mond wie „Nicht stören“ in Windows (QuietHours).</summary>
     public static readonly string QuietHours = G(0xE708);
     /// <summary>Akku mit Blatt (MobBatterySaver10), für Energiesparen.</summary>

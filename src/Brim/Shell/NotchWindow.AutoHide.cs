@@ -118,6 +118,8 @@ internal sealed partial class NotchWindow
             }
             Refresh();
         }
+        // Beim Ziehen eines Fensters bleibt eine Linie in der Akzentfarbe, wo die Snap-Leiste erscheint.
+        View.SetSnapHandoff(_hidden && dragHide);
 
         // Oberkante nur beobachten, solange die Notch wegen eines Fensters versteckt ist.
         var watchEdge = reason && rules.PeekFromTopEdge && !_windowDragging;

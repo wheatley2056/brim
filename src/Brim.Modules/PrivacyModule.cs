@@ -83,7 +83,8 @@ public sealed class PrivacyModule : IBrimModule
             Rank = 8,
             Leading = new StackWidget(icons) { Spacing = 6, AccessibleName = summary },
             Trailing = new TextWidget(all.Count > 1 ? $"{all[0]} +{all.Count - 1}" : all[0]) { Style = TextStyle.Caption, FontSize = 12, FixedWidth = 120 },
-            Bead = new IconWidget(Glyphs.Dot) { Size = 8, Color = color, AccessibleName = summary },
+            // Symbol statt Punkt, wie die Anzeige in der Taskleiste von Windows 11.
+            Bead = new IconWidget(camera.Count > 0 ? Glyphs.Camera : Glyphs.Microphone) { Size = 10, Color = color, AccessibleName = summary },
             Expanded = ExpandedView(camera, microphone),
             Announcement = summary,
         });

@@ -49,6 +49,7 @@ public sealed partial class NotchView
             && text.Length > 0 && _board?.IsEditing != true && !_settingsOpen && !_onboarding;
         if (!visible)
         {
+            UpdateHeaderStatus(null, refresh: false);
             FadeClock(false);
             return;
         }
@@ -63,6 +64,7 @@ public sealed partial class NotchView
             scale = HeaderClockSize / SharedClock.FontSize;
             x = center + NotchGeometry.Expanded.Width / 2 - ExpandedPaddingRight - width * scale;
             y = ExpandedPaddingTop + HeaderHeight / 2 - height * scale / 2;
+            UpdateHeaderStatus(width * scale, refresh: modeChanged);
         }
         else if (p.Mode == NotchMode.Compact)
         {
@@ -70,6 +72,7 @@ public sealed partial class NotchView
             scale = _hovering ? HoverContentScale : 1;
             x = center - width * scale / 2;
             y = PillY(BaseShape(NotchMode.Compact).Height, height, scale);
+            UpdateHeaderStatus(null, refresh: false);
         }
         else
         {
@@ -78,6 +81,7 @@ public sealed partial class NotchView
             var left = center - _idle.Width / 2;
             x = left + IdleClockX + width * (1 - scale) / 2;
             y = PillY(BaseShape(NotchMode.Idle).Height, height, scale);
+            UpdateHeaderStatus(null, refresh: false);
         }
 
         // Kommt die Uhr aus dem Nichts (z. B. aus der kompakten Ansicht), erscheint sie gleich am Ziel.
