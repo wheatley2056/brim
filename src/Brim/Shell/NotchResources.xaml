@@ -85,7 +85,7 @@
     <!-- Tabs „Jetzt · Ablage · System · Plugins“ als Pillen. -->
     <Style x:Key="NotchTabStyle" TargetType="Button" BasedOn="{StaticResource NotchButtonStyle}">
         <Setter Property="Height" Value="24" />
-        <Setter Property="Padding" Value="14,0,14,1" />
+        <Setter Property="Padding" Value="12,0,12,1" />
         <Setter Property="CornerRadius" Value="4" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="FontFamily" Value="{StaticResource NotchTextFont}" />

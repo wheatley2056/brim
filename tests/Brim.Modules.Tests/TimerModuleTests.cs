@@ -145,9 +145,10 @@ public class BluetoothModuleTests
         source.Update(new BluetoothGadget("1", "MX Master 3S", 55));
 
         var card = Assert.Single(hub.Views(NotchTab.System));
-        Assert.Equal(TabColumn.Side, card.Column);
+        Assert.Equal(TabColumn.Cards, card.Column);
         var texts = Brim.Core.Widgets.WidgetTree.All(card.Content).OfType<TextWidget>().Select(t => t.Text).ToList();
-        Assert.Equal(["Bluetooth", "AirPods Pro", "80 %", "MX Master 3S", "55 %"], texts);
+        Assert.Equal(["Bluetooth", "80 %", "AirPods Pro +1"], texts);
+        Assert.Equal("AirPods Pro, Akku 80 %, MX Master 3S, Akku 55 %", card.Content.AccessibleName);
 
         source.Disconnect("1");
         source.Disconnect("2");

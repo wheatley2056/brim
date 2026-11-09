@@ -48,8 +48,11 @@ public static class NotchGeometry
     /// <summary>Aufgeklappt. Außenradius 24 (3 × 8) wie Flyouts und Fenster in Windows 11, früher 38.</summary>
     public static readonly NotchShape Expanded = new(620, 248, 24, 12);
 
-    /// <summary>Aufgeklappt mit Detailansicht (z. B. CPU im Tab „System“): gleiche Breite, mehr Höhe.</summary>
-    public static readonly NotchShape ExpandedTall = new(620, 420, 24, 12);
+    /// <summary>
+    /// Aufgeklappt mit mehr Höhe: der Tab „System“ (Kacheln, Regler, Messwerte) und Detailansichten wie CPU.
+    /// 400 wie im Design „Windows-11-nativ“.
+    /// </summary>
+    public static readonly NotchShape ExpandedTall = new(620, 400, 24, 12);
 
     /// <summary>Einstellungen (und Einführung) in der Notch: so groß wie das Einstellungsfenster, damit alles lesbar ist.</summary>
     public static readonly NotchShape Settings = new(960, 640, 24, 12);

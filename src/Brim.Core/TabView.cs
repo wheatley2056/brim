@@ -2,8 +2,11 @@ using Brim.Core.Widgets;
 
 namespace Brim.Core;
 
-/// <summary>Spalte im Tab „System“: links die Messwerte, rechts schmalere Karten (Plan 4.6, 4.7).</summary>
-public enum TabColumn { Main, Side }
+/// <summary>
+/// Platz im Tab: links die Hauptspalte, rechts schmalere Karten (Plan 4.6, 4.7). <see cref="Cards"/> stellt
+/// Messwerte nebeneinander in eine Reihe am unteren Rand über die volle Breite (Redesign „Windows-11-nativ“).
+/// </summary>
+public enum TabColumn { Main, Side, Cards }
 
 /// <summary>
 /// Fester Inhalt eines Moduls in einem Tab, unabhängig von Aktivitäten (Plan 4.2: <c>view.set</c>

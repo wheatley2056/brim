@@ -40,6 +40,8 @@ public static class Glyphs
     public static readonly string Bell = G(0xEA8F);
     /// <summary>WLAN (Wifi).</summary>
     public static readonly string Wifi = G(0xE701);
+    /// <summary>Pfeil nach unten (ChevronDown), z. B. neben dem Ausgabegerät.</summary>
+    public static readonly string ChevronDown = G(0xE70D);
     /// <summary>Netzwerkkabel (Ethernet).</summary>
     public static readonly string Ethernet = G(0xE839);
     /// <summary>Kein Netzwerk (NetworkOffline).</summary>

@@ -13,11 +13,11 @@ namespace Brim.Shell;
 /// </summary>
 public sealed partial class NotchView
 {
-    /// <summary>Schriftgröße in der Kopfzeile (Design: 12), gleich welche Größe die Uhr in der Ruhe hat.</summary>
-    private const double HeaderClockSize = 12;
+    /// <summary>Schriftgröße in der Kopfzeile (Design „Windows-11-nativ“: 14), gleich welche Größe die Uhr in der Ruhe hat.</summary>
+    private const double HeaderClockSize = 14;
 
     /// <summary>Innenabstand und Kopfzeile des erweiterten Zustands (aus NotchView.xaml).</summary>
-    private const double ExpandedPaddingRight = 24, ExpandedPaddingTop = 14, HeaderHeight = 30;
+    private const double ExpandedPaddingRight = 20, ExpandedPaddingTop = 12, HeaderHeight = 30;
 
     private readonly SpringChannel _clockX = new(0);
     private readonly SpringChannel _clockY = new(0);

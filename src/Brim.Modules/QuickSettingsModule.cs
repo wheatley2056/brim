@@ -2,13 +2,15 @@ using Brim.Core;
 using Brim.Core.Widgets;
 using Brim.Modules.Sensors;
 using Windows.Devices.Radios;
+using Windows.Networking.Connectivity;
 using Windows.System;
 using Windows.System.Power;
 
 namespace Brim.Modules;
 
 /// <summary>Zustand einer Kachel der Schnelleinstellungen.</summary>
-public sealed record QuickTile(string Id, string Glyph, string Label, bool On, bool Available = true);
+/// <param name="Detail">Text unter der Kachel statt <paramref name="Label"/>, z. B. der Name des WLANs.</param>
+public sealed record QuickTile(string Id, string Glyph, string Label, bool On, bool Available = true, string? Detail = null);
 
 /// <summary>Woher die Schnelleinstellungen ihre Zustände haben (austauschbar für Tests).</summary>
 public interface IQuickSettingsSource : IDisposable
@@ -28,7 +30,8 @@ public interface IQuickSettingsSource : IDisposable
 
 /// <summary>
 /// Schnelleinstellungen im Tab „System“ (Redesign „Windows-11-nativ“): WLAN, Bluetooth, Nicht stören und
-/// Energiesparen als Kacheln wie im Windows-Flyout, in derselben Reihenfolge, „an“ in der Akzentfarbe.
+/// Energiesparen als Kacheln wie im Windows-Flyout, in derselben Reihenfolge, „an“ in der Akzentfarbe. Die Kacheln
+/// teilen sich die volle Breite; unter WLAN steht der Name des verbundenen Netzes.
 /// WLAN und Bluetooth schaltet Brim selbst (<see cref="Radio"/>). Für Nicht stören und Energiesparen gibt es
 /// keine öffentliche Schnittstelle zum Schalten; ein Klick öffnet dort die Seite der Windows-Einstellungen.
 /// </summary>
@@ -103,26 +106,27 @@ public sealed class QuickSettingsModule : IBrimModule
         tiles.Where(t => t.Available).Select(t => (Widget)new StackWidget(
             new ButtonWidget(t.Id)
             {
-                Kind = ButtonKind.Round,
+                Kind = ButtonKind.Tile,
                 Glyph = t.Glyph,
-                Size = 44,
-                GlyphSize = 16,
+                Size = 48,
+                GlyphSize = 18,
                 Selected = t.On,
-                AccessibleName = $"{t.Label}: {(t.On ? "an" : "aus")}",
+                AccessibleName = t.Detail is { } detail
+                    ? $"{t.Label}, {detail}: {(t.On ? "an" : "aus")}"
+                    : $"{t.Label}: {(t.On ? "an" : "aus")}",
             },
-            new TextWidget(t.Label) { Style = TextStyle.Secondary, FontSize = 11 })
+            new TextWidget(t.Detail ?? t.Label) { FontSize = 12, Centered = true })
         {
             Orientation = StackOrientation.Vertical,
-            Spacing = 4,
-            Align = CrossAlign.Center,
+            Spacing = 6,
+            Align = CrossAlign.Stretch,
             Grow = 1,
         }).ToList())
     {
-        Spacing = 8,
-        Justify = Justify.SpaceBetween,
-        Background = BrimColors.Graphite,
-        CornerRadius = 8,
-        Padding = (12, 10, 12, 8),
+        Spacing = 10,
+        Align = CrossAlign.Start,
+        // 16 bis zu den Reglern darunter (die Spalte hat 12 Abstand).
+        Padding = (0, 0, 0, 4),
         AccessibleName = "Schnelleinstellungen",
     };
 
@@ -184,7 +188,11 @@ internal sealed class WindowsQuickSettings : IQuickSettingsSource
             Log.Warn("Schnelleinstellungen: Funkmodule nicht lesbar", ex);
         }
         PowerManager.EnergySaverStatusChanged += OnPowerChanged;
+        // Anderes WLAN: der Name unter der Kachel folgt.
+        NetworkInformation.NetworkStatusChanged += OnNetworkChanged;
     }
+
+    private void OnNetworkChanged(object sender) => Changed?.Invoke();
 
     private void OnRadioChanged(Radio sender, object args) => Changed?.Invoke();
 
@@ -197,11 +205,27 @@ internal sealed class WindowsQuickSettings : IQuickSettingsSource
         var saver = PowerManager.EnergySaverStatus;
         return
         [
-            new QuickTile("wifi", Glyphs.Wifi, "WLAN", wifi?.State == RadioState.On, wifi is not null),
+            new QuickTile("wifi", Glyphs.Wifi, "WLAN", wifi?.State == RadioState.On, wifi is not null, wifi?.State == RadioState.On ? Ssid() : null),
             new QuickTile("bluetooth", Glyphs.Bluetooth, "Bluetooth", bluetooth?.State == RadioState.On, bluetooth is not null),
             new QuickTile("dnd", Glyphs.QuietHours, "Nicht stören", QuietHours.IsDoNotDisturb()),
             new QuickTile("saver", Glyphs.Leaf, "Energiesparen", saver == EnergySaverStatus.On, saver != EnergySaverStatus.Disabled),
         ];
+    }
+
+    /// <summary>Name des verbundenen WLANs, wie unter der Kachel in Windows.</summary>
+    private static string? Ssid()
+    {
+        try
+        {
+            return NetworkInformation.GetInternetConnectionProfile() is { IsWlanConnectionProfile: true } profile
+                ? profile.WlanConnectionProfileDetails?.GetConnectedSsid() is { Length: > 0 } ssid ? ssid : null
+                : null;
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("Schnelleinstellungen: WLAN-Name nicht lesbar", ex);
+            return null;
+        }
     }
 
     public async Task ToggleAsync(string id)
@@ -240,6 +264,7 @@ internal sealed class WindowsQuickSettings : IQuickSettingsSource
     public void Dispose()
     {
         PowerManager.EnergySaverStatusChanged -= OnPowerChanged;
+        NetworkInformation.NetworkStatusChanged -= OnNetworkChanged;
         foreach (var radio in _radios)
         {
             radio.StateChanged -= OnRadioChanged;

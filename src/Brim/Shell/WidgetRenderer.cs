@@ -78,6 +78,7 @@ internal sealed class WidgetRenderer
         tb.TextTrimming = w.Ellipsis && !w.Wrap ? TextTrimming.CharacterEllipsis : TextTrimming.None;
         tb.TextWrapping = w.Wrap ? TextWrapping.WrapWholeWords : TextWrapping.NoWrap;
         tb.MaxLines = w.Wrap ? 0 : 1;
+        tb.TextAlignment = w.Centered ? TextAlignment.Center : TextAlignment.Left;
 
         var (font, size, weight, color) = w.Style switch
         {
@@ -88,6 +89,7 @@ internal sealed class WidgetRenderer
             TextStyle.MonoCaption => ("NotchMonoFont", 11d, FontWeights.Normal, BrimColors.Slate),
             TextStyle.Display => ("NotchDisplayFont", 44d, FontWeights.SemiBold, BrimColors.Fog),
             TextStyle.Status => ("NotchClockFont", 12d, FontWeights.Normal, Palette.Status),
+            TextStyle.Value => ("NotchTextFont", 16d, FontWeights.SemiBold, BrimColors.Fog),
             _ => ("NotchTextFont", 13d, FontWeights.Normal, BrimColors.Fog),
         };
         tb.FontFamily = (FontFamily)Application.Current.Resources[font];
@@ -96,7 +98,7 @@ internal sealed class WidgetRenderer
         tb.CharacterSpacing = w.Style is TextStyle.Title or TextStyle.Display ? -20 : 0;
         tb.Foreground = w.Color is { } own ? Tinted(own) : Brushes.Get(color);
         // Werte neben der Uhr und Messwerte: gleich breite Ziffern, damit nichts springt, auch in Proportionalschriften.
-        Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(tb, w.Style is TextStyle.Status or TextStyle.Mono or TextStyle.MonoCaption or TextStyle.Display ? FontNumeralAlignment.Tabular : FontNumeralAlignment.Normal);
+        Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(tb, w.Style is TextStyle.Status or TextStyle.Mono or TextStyle.MonoCaption or TextStyle.Display or TextStyle.Value ? FontNumeralAlignment.Tabular : FontNumeralAlignment.Normal);
         return tb;
     }
 
@@ -190,6 +192,22 @@ internal sealed class WidgetRenderer
     {
         private readonly Border _track = new() { VerticalAlignment = VerticalAlignment.Center };
         private readonly Border _fill = new() { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left };
+
+        /// <summary>Griff wie in Windows 11: 20 px, innen ein Punkt in der Akzentfarbe, der unter der Maus wächst.</summary>
+        private readonly Border _thumb = new()
+        {
+            Width = ThumbSize,
+            Height = ThumbSize,
+            CornerRadius = new CornerRadius(ThumbSize / 2),
+            BorderThickness = new Thickness(1),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
+            Visibility = Visibility.Collapsed,
+            Child = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 10, Height = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+        };
+
+        private const double ThumbSize = 20;
+        private bool _hasThumb;
         private readonly Action<string, double?> _invoke;
         private string? _seekAction;
         private double _value;
@@ -208,7 +226,10 @@ internal sealed class WidgetRenderer
             Background = new SolidColorBrush(Colors.Transparent);
             Children.Add(_track);
             Children.Add(_fill);
+            Children.Add(_thumb);
             SizeChanged += (_, _) => Layout();
+            PointerEntered += (_, _) => Dot(12);
+            PointerExited += (_, _) => Dot(_dragging ? 12 : 10);
             PointerPressed += (_, e) =>
             {
                 if (_seekAction is null || ActualWidth <= 0)
@@ -282,17 +303,37 @@ internal sealed class WidgetRenderer
             _seekAction = w.SeekActionId;
             _live = w.Live;
             IsTabStop = w.SeekActionId is not null;
-            Height = Math.Max(w.Thickness, w.SeekActionId is null ? w.Thickness : 16);
+            _hasThumb = w.Thumb;
+            Height = Math.Max(w.Thickness, w.Thumb ? ThumbSize : w.SeekActionId is null ? w.Thickness : 16);
             _track.Height = _fill.Height = w.Thickness;
             _track.CornerRadius = _fill.CornerRadius = new CornerRadius(w.Thickness / 2);
-            _track.Background = Brushes.Get(BrimColors.Track);
-            _fill.Background = Tinted(w.Color ?? BrimColors.Fog);
+            _track.Background = Brushes.Get(Brushes.TrackLine);
+            var fill = w.Color ?? (w.Thumb ? BrimColors.DefaultAccent : BrimColors.Fog);
+            _fill.Background = Tinted(fill);
+            _thumb.Visibility = w.Thumb ? Visibility.Visible : Visibility.Collapsed;
+            _thumb.Background = Brushes.Get(Brushes.ThumbFill);
+            _thumb.BorderBrush = Brushes.Get(Brushes.ThumbStroke);
+            ((Microsoft.UI.Xaml.Shapes.Ellipse)_thumb.Child).Fill = Tinted(fill);
             Layout();
+        }
+
+        private void Dot(double size)
+        {
+            if (_hasThumb && _thumb.Child is FrameworkElement dot)
+            {
+                dot.Width = dot.Height = size;
+            }
         }
 
         private void Layout()
         {
-            _fill.Width = ActualWidth * _value;
+            // Mit Griff läuft die Füllung bis zu seiner Mitte; der Griff bleibt ganz in der Spur.
+            var width = ActualWidth;
+            _fill.Width = width * _value;
+            if (_hasThumb)
+            {
+                _thumb.Margin = new Thickness(Math.Clamp(width * _value - ThumbSize / 2, 0, Math.Max(0, width - ThumbSize)), 0, 0, 0);
+            }
         }
     }
 
@@ -714,7 +755,7 @@ internal sealed class WidgetRenderer
                 button.CornerRadius = new CornerRadius(w.Size / 2);
                 // Wiedergabe-Knopf und andere Hauptaktionen in der Akzentfarbe (Windows oder Pfirsich).
                 button.Background = Brushes.Get(BrimColors.DefaultAccent);
-                button.Content = Glyph(w.Glyph, w.GlyphSize, w.GlyphColor ?? BrimColors.Obsidian);
+                button.Content = Glyph(w.Glyph, w.GlyphSize, w.GlyphColor ?? Brushes.OnAccent);
                 break;
             case ButtonKind.Row:
                 button.Width = double.NaN;
@@ -730,7 +771,19 @@ internal sealed class WidgetRenderer
                 button.Width = button.Height = w.Size;
                 button.CornerRadius = new CornerRadius(w.Size / 2);
                 button.Background = Brushes.Get(w.Selected ? BrimColors.DefaultAccent : BrimColors.Track);
-                button.Content = Glyph(w.Glyph, w.GlyphSize, w.GlyphColor ?? (w.Selected ? BrimColors.Obsidian : BrimColors.Fog));
+                button.Content = Glyph(w.Glyph, w.GlyphSize, w.GlyphColor ?? (w.Selected ? Brushes.OnAccent : BrimColors.Fog));
+                break;
+            case ButtonKind.Tile:
+                button.Width = double.NaN;
+                button.Height = w.Size;
+                button.HorizontalAlignment = HorizontalAlignment.Stretch;
+                button.HorizontalContentAlignment = HorizontalAlignment.Center;
+                button.Padding = new Thickness(0);
+                button.CornerRadius = new CornerRadius(6);
+                button.Background = Brushes.Get(w.Selected ? BrimColors.DefaultAccent : Brushes.CardFill);
+                button.BorderBrush = Brushes.Get(w.Selected ? "#00000000" : Brushes.CardStroke);
+                button.BorderThickness = new Thickness(1);
+                button.Content = Glyph(w.Glyph, w.GlyphSize, w.GlyphColor ?? (w.Selected ? Brushes.OnAccent : BrimColors.Fog));
                 break;
             case ButtonKind.Secondary:
                 button.Width = double.NaN;
@@ -852,8 +905,13 @@ internal sealed class WidgetRenderer
         private void Hover(bool on)
         {
             _hover = on;
-            var color = _actionId is not null && on ? BrimColors.Track : _background;
+            // Graphit heißt „Karte“: durchscheinend mit feinem Rand wie in Windows-11-Flyouts.
+            var card = string.Equals(_background, BrimColors.Graphite, StringComparison.OrdinalIgnoreCase);
+            var hover = _actionId is not null && on;
+            var color = card ? (hover ? Brushes.CardHover : Brushes.CardFill) : hover ? BrimColors.Track : _background;
             Background = color is null ? null : Brushes.Get(color);
+            BorderBrush = card ? Brushes.Get(Brushes.CardStroke) : null;
+            BorderThickness = new Thickness(card ? 1 : 0);
         }
     }
 
@@ -1084,9 +1142,28 @@ internal static class Brushes
         }
     }
 
+    /// <summary>
+    /// Karten wie in Windows-11-Flyouts: dunkel durchscheinend Weiß mit feinem hellem Rand, hell Weiß mit feinem
+    /// dunklem Rand. Paare „dunkel|hell“ werden nicht umgerechnet, sondern je nach Modus gewählt.
+    /// </summary>
+    public const string CardFill = "#0DFFFFFF|#FFFFFF", CardHover = "#17FFFFFF|#F6F6F6", CardStroke = "#12FFFFFF|#0F000000";
+
+    /// <summary>Spur von Reglern und Fortschritt (16 % Weiß bzw. Schwarz).</summary>
+    public const string TrackLine = "#29FFFFFF|#29000000";
+
+    /// <summary>Symbol auf Akzentfläche: auf der hellen Stufe (dunkler Modus) schwarz, auf der dunklen weiß.</summary>
+    public const string OnAccent = "#000000|#FFFFFF";
+
+    /// <summary>Griff des Schiebereglers wie in Windows 11.</summary>
+    public const string ThumbFill = "#454545|#FFFFFF", ThumbStroke = "#12FFFFFF|#1A000000";
+
     /// <summary>Farbe, die tatsächlich gezeichnet wird.</summary>
     public static string Resolve(string hex)
     {
+        if (hex.IndexOf('|') is var bar and > 0)
+        {
+            return hex[(_light ? bar + 1 : 0)..(_light ? hex.Length : bar)];
+        }
         if (!NotchPalette.IsColor(hex))
         {
             return hex;

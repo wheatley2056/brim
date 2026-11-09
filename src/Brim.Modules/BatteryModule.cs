@@ -169,7 +169,15 @@ public sealed class BatteryModule : IBrimModule
             context.End("status");
         }
 
-        context.SetView("card", Card(state), column: TabColumn.Side, order: 0);
+        if (state.Present)
+        {
+            // Erste der Messwert-Karten im Tab „System“ (Design „Windows-11-nativ“).
+            context.SetView("card", Card(state), column: TabColumn.Cards, order: 0);
+        }
+        else
+        {
+            context.RemoveView("card");
+        }
         PublishTile(context, state);
         context.SetStatus("status", state.Present && context.Settings.Display.Battery ? StatusWidget(state) : null);
     }
@@ -240,25 +248,10 @@ public sealed class BatteryModule : IBrimModule
         return color == BrimColors.Charge ? BrimColors.Slate : color;
     }
 
-    private Widget Card(BatteryState state) => new StackWidget(
-        new IconWidget(Glyph(state)) { Size = 18, Color = ColorFor(state, Settings) },
-        new TextWidget($"{state.Percent} %"),
-        new TextWidget(StatusText(state)) { Style = TextStyle.Caption, FontSize = 12, Grow = 1 },
-        new ButtonWidget("settings")
-        {
-            Glyph = Glyphs.Settings,
-            Size = 22,
-            GlyphSize = 11,
-            GlyphColor = BrimColors.Slate,
-            AccessibleName = "Energieeinstellungen öffnen",
-        })
-    {
-        Spacing = 8,
-        Background = BrimColors.Graphite,
-        CornerRadius = 8,
-        Padding = (12, 6, 6, 6),
-        AccessibleName = $"Akku {state.Percent} %, {StatusText(state)}",
-    };
+    /// <summary>Karte wie die Messwerte daneben; ein Klick öffnet die Energieeinstellungen von Windows.</summary>
+    private Widget Card(BatteryState state) => ResourcesModule.Card("settings", "Akku", $"{state.Percent} %",
+        new TextWidget(StatusText(state)) { Style = TextStyle.Secondary, FontSize = 12, Color = StatusColor(state, Settings) == BrimColors.Slate ? null : StatusColor(state, Settings) })
+        with { AccessibleName = $"Akku {state.Percent} %, {StatusText(state)}. Energieeinstellungen öffnen" };
 
     private Widget ExpandedView(BatteryState state) => new StackWidget(
         new StackWidget(

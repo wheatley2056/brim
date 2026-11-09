@@ -106,29 +106,26 @@ public sealed partial class BluetoothModule : IBrimModule
             context.RemoveView("card");
             return;
         }
-        var rows = new List<Widget>
-        {
+        // Messwert-Karte neben Akku, CPU … (Design „Windows-11-nativ“): Akku des ersten Geräts groß, darunter sein Name.
+        var first = gadgets[0];
+        var name = gadgets.Count > 1 ? $"{first.Name} +{gadgets.Count - 1}" : first.Name;
+        context.SetView("card", new StackWidget(
             new TextWidget("Bluetooth") { Style = TextStyle.Secondary, FontSize = 12 },
-        };
-        rows.AddRange(gadgets.Select(g => (Widget)new StackWidget(
-            new IconWidget(LooksLikeHeadphones(g.Name) ? Glyphs.Headphones : Glyphs.Bluetooth) { Size = 13, Color = BrimColors.Slate },
-            new TextWidget(g.Name) { Grow = 1 },
-            g.BatteryPercent is { } percent
-                ? new TextWidget($"{percent} %") { Style = TextStyle.MonoCaption, FontSize = 12, Color = percent <= 20 ? BrimColors.Warning : BrimColors.Slate }
-                : new SpacerWidget())
-        {
-            Spacing = 8,
-            AccessibleName = g.BatteryPercent is { } b ? $"{g.Name}, Akku {b} %" : g.Name,
-        }));
-        context.SetView("card", new StackWidget(rows)
+            new TextWidget(first.BatteryPercent is { } percent ? $"{percent} %" : "Verbunden")
+            {
+                Style = TextStyle.Value,
+                Color = first.BatteryPercent is <= 20 ? BrimColors.Warning : null,
+            },
+            new TextWidget(name) { Style = TextStyle.Secondary, FontSize = 12 })
         {
             Orientation = StackOrientation.Vertical,
             Spacing = 4,
             Align = CrossAlign.Stretch,
             Background = BrimColors.Graphite,
             CornerRadius = 8,
-            Padding = (12, 8, 12, 8),
-        }, column: TabColumn.Side, order: 5);
+            Padding = (12, 10, 12, 10),
+            AccessibleName = string.Join(", ", gadgets.Select(g => g.BatteryPercent is { } b ? $"{g.Name}, Akku {b} %" : g.Name)),
+        }, column: TabColumn.Cards, order: 20);
     }
 
     private void OnConnected(BluetoothGadget gadget, bool initial)

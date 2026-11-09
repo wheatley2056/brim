@@ -143,8 +143,9 @@ public sealed partial class NotchView : UserControl
         ArrangeIdle();
 
         // Detailansicht (z. B. CPU) im Tab: Die Notch wird höher.
-        _tall = p.Mode == NotchMode.Expanded && !_settingsOpen && p.Tab is NotchTab.System or NotchTab.Plugins
-            && _hub.Views(p.Tab).Any(v => v.IsDetail);
+        // Der Tab „System“ ist immer hoch (Kacheln, Regler, Messwerte wie im Design „Windows-11-nativ“).
+        _tall = p.Mode == NotchMode.Expanded && !_settingsOpen
+            && (p.Tab == NotchTab.System || (p.Tab == NotchTab.Plugins && _hub.Views(p.Tab).Any(v => v.IsDetail)));
         // Die Galerie von „Jetzt“ braucht ebenfalls die hohe Notch.
         _tall |= p.Mode == NotchMode.Expanded && !_settingsOpen && p.Tab == NotchTab.Now && _board?.IsGalleryOpen == true;
 

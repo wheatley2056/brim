@@ -171,12 +171,11 @@ public sealed partial class ResourcesModule : IBrimModule
             return;
         }
         ResourceSample? s;
-        double[] cpu, gpu;
+        double[] cpu;
         lock (_gate)
         {
             s = _last;
             cpu = [.. _cpuHistory];
-            gpu = [.. _gpuHistory];
         }
 
         if (_unavailable)
@@ -184,106 +183,45 @@ public sealed partial class ResourcesModule : IBrimModule
             context.SetView("meters", Card(null,
                 new TextWidget("Ressourcen") { Style = TextStyle.Secondary, FontSize = 12 },
                 new TextWidget("Leistungsindikatoren sind auf diesem PC nicht verfügbar.") { Style = TextStyle.Secondary, Wrap = true }));
-            context.RemoveView("processes");
             return;
         }
 
         var culture = CultureInfo.CurrentCulture;
         PublishStatus(s, culture);
-        var memoryValue = s is { MemoryTotal: > 0 }
-            ? $"{FormatGigabytes(s.MemoryUsed, culture)} / {FormatGigabytes(s.MemoryTotal, culture)}"
-            : "–";
         PublishDetail(s, culture);
-        var cpuCard = Card("detail:cpu",
-            Header("CPU", Percent(s?.Cpu, culture)),
-            new ChartWidget(cpu) { Max = 100, Capacity = HistoryLength, Color = BrimColors.Cpu, AccessibleName = "CPU-Verlauf" });
-        var memoryCard = Card("detail:memory",
-            Header("RAM", memoryValue),
-            new StackWidget(
-                new ProgressWidget(s is { MemoryTotal: > 0 } m ? (double)m.MemoryUsed / m.MemoryTotal : 0)
-                {
-                    Thickness = 6,
-                    Color = BrimColors.Memory,
-                    AccessibleName = "Arbeitsspeicher belegt",
-                },
-                new TextWidget("GB belegt") { Style = TextStyle.Caption })
-            {
-                Orientation = StackOrientation.Vertical,
-                Spacing = 6,
-                Align = CrossAlign.Stretch,
-            });
-        var gpuCard = Card("detail:gpu",
-            Header("GPU", Percent(s?.Gpu, culture)),
-            new ChartWidget(gpu) { Max = 100, Capacity = HistoryLength, Color = BrimColors.Gpu, AccessibleName = "GPU-Verlauf" });
-        var networkCard = Card("detail:network",
-            // Datenträger (aktive Zeit) passt als Wert in die Kopfzeile; für eine eigene Karte fehlt der Platz.
-            // Ein Klick darauf öffnet die Datenträger, ein Klick auf den Rest das Netzwerk.
-            new StackWidget(
-                new TextWidget("Netzwerk") { Style = TextStyle.Secondary, FontSize = 12, Grow = 1 },
-                new StackWidget(new TextWidget(s?.Disk is { } disk ? "Disk " + Percent(disk, culture) : "Disk") { Style = TextStyle.MonoCaption, FontSize = 11 })
-                {
-                    ActionId = "detail:disk",
-                    CornerRadius = 6,
-                    Padding = (4, 1, 4, 1),
-                    AccessibleName = s?.Disk is { } d ? $"Datenträger {Percent(d, culture)} aktiv, Details" : "Datenträger, Details",
-                })
-            {
-                Spacing = 6,
-            },
-            new StackWidget(
-                new TextWidget("↓ " + (s is null ? "–" : FormatRate(s.NetworkDown, culture))) { Style = TextStyle.Mono, FontSize = 12 },
-                new TextWidget("↑ " + (s is null ? "–" : FormatRate(s.NetworkUp, culture))) { Style = TextStyle.MonoCaption, FontSize = 12 })
-            {
-                Orientation = StackOrientation.Vertical,
-                Spacing = 2,
-                Align = CrossAlign.Start,
-            });
 
-        context.SetView("meters", new StackWidget(
-            Row(cpuCard, memoryCard),
-            Row(gpuCard, networkCard))
-        {
-            Orientation = StackOrientation.Vertical,
-            Spacing = 10,
-            Align = CrossAlign.Stretch,
-            Grow = 1,
-        });
-
-        var rows = new List<Widget>
-        {
-            new StackWidget(
-                new TextWidget("Top-Prozesse") { Style = TextStyle.Secondary, FontSize = 12, Grow = 1 },
-                new ButtonWidget("taskmgr")
-                {
-                    Glyph = Glyphs.OpenInNew,
-                    Size = 22,
-                    GlyphSize = 11,
-                    GlyphColor = BrimColors.Slate,
-                    AccessibleName = "Task-Manager öffnen",
-                }),
-        };
-        rows.AddRange((s?.TopProcesses ?? []).Select(p => (Widget)new StackWidget(
-            new TextWidget(p.Name) { Grow = 1 },
-            new TextWidget(Percent(p.Cpu, culture, small: true)) { Style = TextStyle.MonoCaption, FontSize = 12 })
-        {
-            Spacing = 8,
-            AccessibleName = $"{p.Name}, {Percent(p.Cpu, culture, small: true)}",
-        }));
-        if (s is { TopProcesses.Count: 0 })
-        {
-            rows.Add(new TextWidget("Gerade ist alles ruhig.") { Style = TextStyle.Secondary });
-        }
-        context.SetView("processes", new StackWidget(rows)
-        {
-            Orientation = StackOrientation.Vertical,
-            Spacing = 5,
-            Align = CrossAlign.Stretch,
-            Background = BrimColors.Graphite,
-            CornerRadius = 8,
-            Padding = (12, 8, 8, 8),
-            Grow = 1,
-        }, column: TabColumn.Side, order: 10);
+        // Design „Windows-11-nativ“: Messwerte nebeneinander in Karten am unteren Rand (neben dem Akku), Werte
+        // wie im Task-Manager. GPU, Datenträger und Prozesse stehen in den Detailansichten.
+        var unit = context.Settings.Display.NetworkUnit;
+        var memoryPercent = s is { MemoryTotal: > 0 } m ? 100.0 * m.MemoryUsed / m.MemoryTotal : (double?)null;
+        context.SetView("cpu", Card("detail:cpu", "CPU", Percent(s?.Cpu, culture),
+            new ChartWidget(cpu) { Max = 100, Capacity = HistoryLength, Height = 16, Thickness = 1.5, Color = BrimColors.DefaultAccent, AccessibleName = "CPU-Verlauf" }),
+            column: TabColumn.Cards, order: 10);
+        context.SetView("memory", Card("detail:memory", "Arbeitsspeicher", Percent(memoryPercent, culture),
+            Caption(s is { MemoryTotal: > 0 } mm ? $"{FormatGigabytes(mm.MemoryUsed, culture)} von {Math.Round(mm.MemoryTotal / (1024.0 * 1024 * 1024)).ToString("0", culture)} GB" : "–")),
+            column: TabColumn.Cards, order: 11);
+        context.SetView("network", Card("detail:network", "Netzwerk", s is null ? "–" : FormatRate(s.NetworkDown + s.NetworkUp, unit, culture),
+            Caption(s is null ? "–" : $"↓ {FormatRate(s.NetworkDown, unit, culture)} ↑ {FormatRate(s.NetworkUp, unit, culture)}")),
+            column: TabColumn.Cards, order: 12);
     }
+
+    private static TextWidget Caption(string text) => new(text) { Style = TextStyle.Secondary, FontSize = 12 };
+
+    /// <summary>Messwert-Karte: Name, Wert groß, darunter Verlauf oder Erklärung; ein Klick öffnet die Details.</summary>
+    public static StackWidget Card(string actionId, string label, string value, Widget below) => new(
+        new TextWidget(label) { Style = TextStyle.Secondary, FontSize = 12 },
+        new TextWidget(value) { Style = TextStyle.Value },
+        below)
+    {
+        ActionId = actionId,
+        Orientation = StackOrientation.Vertical,
+        Spacing = 4,
+        Align = CrossAlign.Stretch,
+        Background = BrimColors.Graphite,
+        CornerRadius = 8,
+        Padding = (12, 10, 12, 10),
+        AccessibleName = $"{label} {value}, Details",
+    };
 
     /// <param name="actionId">Klick auf die Karte, z. B. „detail:cpu“ für die Detailansicht.</param>
     private static StackWidget Card(string? actionId, params Widget[] children) => new(children)
@@ -296,21 +234,6 @@ public sealed partial class ResourcesModule : IBrimModule
         CornerRadius = 8,
         Padding = (12, 10, 12, 10),
         Grow = 1,
-    };
-
-    private static StackWidget Row(params Widget[] cards) => new(cards)
-    {
-        Spacing = 10,
-        Align = CrossAlign.Stretch,
-        Grow = 1,
-    };
-
-    private static StackWidget Header(string label, string value) => new(
-        new TextWidget(label) { Style = TextStyle.Secondary, FontSize = 12, Grow = 1 },
-        new TextWidget(value) { Style = TextStyle.Mono, FontSize = 12 })
-    {
-        Spacing = 6,
-        AccessibleName = $"{label} {value}",
     };
 
     /// <summary>„23 %“; mit <paramref name="small"/> unter 1 % eine Nachkommastelle wie im Task-Manager.</summary>

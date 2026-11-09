@@ -60,8 +60,10 @@ public sealed partial class NotchView
         if (_tabFill is not null)
         {
             // Hell: weißes Segment auf grauer Spur, wie die Segmente in Windows 11.
-            _tabFill.Color = Brushes.Parse(Brushes.IsLight ? "#FFFFFF" : BrimColors.Track);
+            _tabFill.Color = Brushes.Parse(Brushes.IsLight ? "#FFFFFF" : "#14FFFFFF");
         }
+        // Spur: dunkel 25 % Schwarz, hell 5 % Schwarz (Design „Windows-11-nativ“).
+        TabTrack.Background = Brushes.Get("#40000000|#0D000000");
         if (_tabMarkFill is not null)
         {
             _tabMarkFill.Color = Brushes.Parse(Brushes.Resolve(BrimColors.DefaultAccent));

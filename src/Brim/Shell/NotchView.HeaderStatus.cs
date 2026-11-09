@@ -12,7 +12,7 @@ namespace Brim.Shell;
 
 /// <summary>
 /// Statussymbole oben rechts in der offenen Notch, links neben der Uhr, wie im Infobereich der Taskleiste:
-/// Netzwerk (WLAN oder Kabel), Akku und der Mond bei „Nicht stören“. Gelesen wird beim Aufklappen.
+/// Netzwerk (WLAN oder Kabel), Akku, der Mond bei „Nicht stören“ und das Datum. Gelesen wird beim Aufklappen.
 /// </summary>
 public sealed partial class NotchView
 {
@@ -28,7 +28,7 @@ public sealed partial class NotchView
             _headerStatus = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Spacing = 8,
+                Spacing = 12,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,
                 IsHitTestVisible = false,
@@ -58,15 +58,33 @@ public sealed partial class NotchView
                 var icon = new FontIcon
                 {
                     Glyph = glyph,
-                    FontSize = 13,
+                    FontSize = 16,
                     FontFamily = (FontFamily)Application.Current.Resources["NotchIconFont"],
-                    Foreground = Brushes.Get(BrimColors.Slate),
+                    Foreground = Brushes.Get(BrimColors.Fog),
                 };
                 AutomationProperties.SetName(icon, name);
                 panel.Children.Add(icon);
             }
+            var date = new TextBlock
+            {
+                Text = HeaderDate(DateTime.Now),
+                FontSize = 12,
+                Foreground = Brushes.Get(BrimColors.Slate),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(date, FontNumeralAlignment.Tabular);
+            panel.Children.Add(date);
         }
         panel.Visibility = panel.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>„Di. 9. Nov“ wie im Design; andere Sprachen in ihrer kurzen Form.</summary>
+    private static string HeaderDate(DateTime now)
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        return culture.TwoLetterISOLanguageName == "de"
+            ? $"{now.ToString("ddd", culture).TrimEnd('.')}. {now.Day}. {now.ToString("MMM", culture).TrimEnd('.')}"
+            : now.ToString("ddd d MMM", culture);
     }
 
     private static List<(string Glyph, string Name)> ReadHeaderStatus()

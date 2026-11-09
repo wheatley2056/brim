@@ -6,10 +6,11 @@ using TabView = Brim.Core.TabView;
 namespace Brim.Shell;
 
 /// <summary>
-/// Tabs aus Karten: „System“ (design/boards/4-shelf-system.html) und „Plugins“. Module und Plugins liefern
-/// Karten über <see cref="ActivityHub.SetView"/>; links die Hauptspalte (328 px), rechts schmale Karten
-/// (Akku, Prozesse, Plugin-Verwaltung). Jede Karte hat einen eigenen Platz, damit ihre Knöpfe beim
-/// richtigen Modul landen.
+/// Tabs aus Karten: „System“ und „Plugins“. Module und Plugins liefern Karten über
+/// <see cref="ActivityHub.SetView"/>; links die Hauptspalte (328 px, ohne rechte Karten die volle Breite),
+/// rechts schmale Karten (Plugin-Verwaltung), unten eine Reihe Messwerte (Design „Windows-11-nativ“:
+/// Kacheln, Regler, darunter Akku, CPU, Arbeitsspeicher, Netzwerk). Jede Karte hat einen eigenen Platz,
+/// damit ihre Knöpfe beim richtigen Modul landen.
 /// </summary>
 public sealed partial class NotchView
 {
@@ -27,8 +28,11 @@ public sealed partial class NotchView
         }
         var main = views.Where(v => v.Column == TabColumn.Main || v.IsDetail).ToList();
         var side = views.Where(v => v.Column == TabColumn.Side && !v.IsDetail).ToList();
+        var cards = views.Where(v => v.Column == TabColumn.Cards && !v.IsDetail).ToList();
         Fill(TabViewMain, main);
         Fill(TabViewSide, side);
+        Fill(TabViewCards, cards, horizontal: true);
+        TabViewCards.Margin = new Thickness(0, cards.Count > 0 && main.Count + side.Count > 0 ? 16 : 0, 0, 0);
 
         // Fehlt eine Spalte, nimmt die andere die ganze Breite.
         TabViewMainColumn.Width = main.Count == 0 ? new GridLength(0)
@@ -46,14 +50,23 @@ public sealed partial class NotchView
         return views.Count > 0;
     }
 
-    private void Fill(Grid column, IReadOnlyList<TabView> views)
+    /// <param name="horizontal">Nebeneinander in gleich breiten Spalten (Messwert-Karten) statt untereinander.</param>
+    private void Fill(Grid column, IReadOnlyList<TabView> views, bool horizontal = false)
     {
         column.RowDefinitions.Clear();
+        column.ColumnDefinitions.Clear();
         for (var i = 0; i < views.Count; i++)
         {
             var view = views[i];
             var grow = view.Content.Grow;
-            column.RowDefinitions.Add(new RowDefinition { Height = grow > 0 ? new GridLength(grow, GridUnitType.Star) : GridLength.Auto });
+            if (horizontal)
+            {
+                column.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            }
+            else
+            {
+                column.RowDefinitions.Add(new RowDefinition { Height = grow > 0 ? new GridLength(grow, GridUnitType.Star) : GridLength.Auto });
+            }
 
             if (!_viewPresenters.TryGetValue(view.Key, out var presenter))
             {
@@ -69,7 +82,8 @@ public sealed partial class NotchView
                 (presenter.Parent as Panel)?.Children.Remove(presenter);
                 column.Children.Add(presenter);
             }
-            Grid.SetRow(presenter, i);
+            Grid.SetRow(presenter, horizontal ? 0 : i);
+            Grid.SetColumn(presenter, horizontal ? i : 0);
             Render("view:" + view.Key, presenter, view.ModuleId, view.Content);
         }
 
