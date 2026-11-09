@@ -306,74 +306,67 @@ public sealed class MediaModule : IBrimModule
 
     // ───────── Ansichten im Tab „Jetzt“ ─────────
 
+    /// <summary>
+    /// Player wie im Design „Windows-11-nativ“: Cover 76 mit Titel daneben, darunter die Spur mit Griff und den
+    /// Zeiten, ganz unten Ausgabegerät, Zurück, Wiedergabe in der Akzentfarbe, Weiter und Lautstärke.
+    /// </summary>
     private Widget PlayerView(string accent, (string, string) placeholder, string subtitle, TimeSpan position, double progress) =>
         new StackWidget(
             new StackWidget(
-                new ImageWidget(_cover) { Width = 92, Height = 92, CornerRadius = 8, Placeholder = placeholder, AccessibleName = "Cover" },
+                new ImageWidget(_cover) { Width = 76, Height = 76, CornerRadius = 8, Placeholder = placeholder, AccessibleName = "Cover" },
                 new StackWidget(
-                    new StackWidget(
-                        new StackWidget(
-                            new TextWidget(_title!) { Style = TextStyle.Title },
-                            new TextWidget(subtitle) { Style = TextStyle.Secondary, FontSize = 14 })
-                        {
-                            Orientation = StackOrientation.Vertical,
-                            Spacing = 3,
-                            Align = CrossAlign.Stretch,
-                            Grow = 1,
-                        },
-                        new LevelWidget { Active = _isPlaying, Color = accent, Height = 22 })
-                    {
-                        Justify = Justify.SpaceBetween,
-                        Align = CrossAlign.Start,
-                        Spacing = 16,
-                    },
-                    new StackWidget(
-                        new ProgressWidget(progress) { SeekActionId = _duration > TimeSpan.Zero ? "seek" : null, Live = false, AccessibleName = "Fortschritt" },
-                        new StackWidget(
-                            new TextWidget(Format(position)) { Style = TextStyle.MonoCaption },
-                            new TextWidget("-" + Format(_duration - position)) { Style = TextStyle.MonoCaption })
-                        {
-                            Justify = Justify.SpaceBetween,
-                        })
-                    {
-                        Orientation = StackOrientation.Vertical,
-                        Spacing = 7,
-                        Align = CrossAlign.Stretch,
-                    })
+                    new TextWidget(_title!) { Style = TextStyle.Title },
+                    new TextWidget(subtitle) { Style = TextStyle.Secondary })
                 {
                     Orientation = StackOrientation.Vertical,
-                    Justify = Justify.SpaceBetween,
+                    Spacing = 2,
                     Align = CrossAlign.Stretch,
                     Grow = 1,
                 })
             {
-                Spacing = 18,
+                Spacing = 14,
+            },
+            new StackWidget(
+                new ProgressWidget(progress)
+                {
+                    SeekActionId = _duration > TimeSpan.Zero ? "seek" : null,
+                    Live = false,
+                    Thumb = _duration > TimeSpan.Zero,
+                    Color = accent,
+                    AccessibleName = "Fortschritt",
+                },
+                new StackWidget(
+                    new TextWidget(Format(position)) { Style = TextStyle.Secondary, FontSize = 12 },
+                    new TextWidget("−" + Format(_duration - position)) { Style = TextStyle.Secondary, FontSize = 12 })
+                {
+                    Justify = Justify.SpaceBetween,
+                })
+            {
+                Orientation = StackOrientation.Vertical,
+                Spacing = 4,
                 Align = CrossAlign.Stretch,
             },
             new StackWidget(
-                new StackWidget(
-                    new ButtonWidget("output") { Glyph = Glyphs.Speakers, GlyphColor = BrimColors.Slate, AccessibleName = "Audioausgabe wählen" },
-                    new ButtonWidget("timer") { Glyph = Glyphs.Stopwatch, GlyphColor = BrimColors.Slate, AccessibleName = "Timer und Stoppuhr" }),
-                new StackWidget(
-                    new ButtonWidget("previous") { Glyph = Glyphs.Previous, GlyphSize = 18, AccessibleName = "Vorheriger Titel" },
-                    new ButtonWidget("toggle")
-                    {
-                        Glyph = _isPlaying ? Glyphs.Pause : Glyphs.Play,
-                        Kind = ButtonKind.Primary,
-                        Size = 52,
-                        AccessibleName = _isPlaying ? "Pause" : "Wiedergabe",
-                    },
-                    new ButtonWidget("next") { Glyph = Glyphs.Next, GlyphSize = 18, AccessibleName = "Nächster Titel" })
+                new ButtonWidget("output") { Glyph = Glyphs.Speakers, Size = 36, GlyphSize = 16, AccessibleName = "Audioausgabe wählen" },
+                new SpacerWidget { Grow = 1 },
+                new ButtonWidget("previous") { Glyph = Glyphs.Previous, Size = 36, GlyphSize = 16, AccessibleName = "Vorheriger Titel" },
+                new ButtonWidget("toggle")
                 {
-                    Spacing = 14,
+                    Glyph = _isPlaying ? Glyphs.Pause : Glyphs.Play,
+                    Kind = ButtonKind.Primary,
+                    Size = 44,
+                    GlyphSize = 16,
+                    AccessibleName = _isPlaying ? "Pause" : "Wiedergabe",
                 },
-                new ButtonWidget("mixer") { Glyph = Glyphs.Volume, GlyphColor = BrimColors.Slate, AccessibleName = "Lautstärke" })
+                new ButtonWidget("next") { Glyph = Glyphs.Next, Size = 36, GlyphSize = 16, AccessibleName = "Nächster Titel" },
+                new SpacerWidget { Grow = 1 },
+                new ButtonWidget("mixer") { Glyph = Glyphs.Volume, Size = 36, GlyphSize = 16, AccessibleName = "Lautstärke" })
             {
-                Justify = Justify.SpaceBetween,
+                Spacing = 8,
             })
         {
             Orientation = StackOrientation.Vertical,
-            Spacing = 14,
+            Spacing = 12,
             Align = CrossAlign.Stretch,
         };
 
