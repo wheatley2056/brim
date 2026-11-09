@@ -670,7 +670,7 @@ internal sealed partial class NotchWindow : WindowEx
     /// Fenster, nicht im Rand der Zeichenfläche – ohne ihn lag das Glas 6 DIP über der Insel.
     /// </summary>
     private void UpdateMaterialLayer() =>
-        _materialLayer?.Update(NotchGeometry.Outline(View.CurrentShape, View.BeadCount, NotchGeometry.Gap(View.Form)), _scale);
+        _materialLayer?.Update(View.CurrentShape, View.BeadCount, NotchGeometry.Gap(View.Form), _scale);
 
     /// <summary>Bei Glas genau der gezeichnete Umriss, sonst schiene das Acryl um die Notch herum durch.</summary>
     private void ApplyGlassRegion() =>

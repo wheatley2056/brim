@@ -21,8 +21,11 @@ internal sealed class NotchSurface : IDisposable
 {
     private const string W = "W", H = "H", R = "R", E = "E", K = "K";
 
-    /// <summary>Überlappung der Ohren mit dem Körper (DIP), damit an der Naht kein heller Haarstrich entsteht.</summary>
-    private const string O = "O";
+    /// <summary>
+    /// Abstand der Stützstellen, an denen der Umriss als Pfad vorberechnet wird. Dazwischen interpoliert der
+    /// Compositor die Punkte linear – bei 60 Stützstellen pro Sekunde liegt das unter einem Zehntelpixel neben der Feder.
+    /// </summary>
+    private const double PathStep = 1.0 / 60;
 
     private readonly Compositor _compositor;
     private readonly CompositionPropertySet _props;
@@ -37,7 +40,13 @@ internal sealed class NotchSurface : IDisposable
     private readonly Dictionary<string, SpringChannel> _channels;
     private NotchShape _target;
     private readonly CompositionColorBrush _fill;
+    private readonly CompositionColorBrush _rim;
+    private readonly CompositionPathGeometry _silhouette;
+    private readonly CompositionPathGeometry _rimGeometry;
+    private List<IDisposable> _paths = [];
+    private List<IDisposable> _retired = [];
     private bool _glass;
+    private bool _light;
     private byte _tint;
     private string? _accent;
     private float _shimmerTarget = -1;
@@ -63,7 +72,6 @@ internal sealed class NotchSurface : IDisposable
         _props.InsertScalar(R, (float)initial.Radius);
         _props.InsertScalar(E, (float)initial.Ear);
         _props.InsertScalar(K, (float)initial.Round);
-        _props.InsertScalar(O, 0.5f);
 
         _root = compositor.CreateContainerVisual();
         _root.Size = new Vector2(canvasWidth, canvasHeight);
@@ -71,19 +79,22 @@ internal sealed class NotchSurface : IDisposable
         var black = compositor.CreateColorBrush(Colors.Black);
         _fill = black;
 
-        // Körper: abgerundetes Rechteck, nach oben über die Kante geschoben,
-        // damit nur die unteren Ecken rund erscheinen.
-        var body = compositor.CreateShapeVisual();
-        body.Size = _root.Size;
-        var bodyGeometry = CreateBodyGeometry();
-        var bodyShape = compositor.CreateSpriteShape(bodyGeometry);
-        bodyShape.FillBrush = black;
-        body.Shapes.Add(bodyShape);
-        _root.Children.InsertAtTop(body);
-
-        // Ohren: Viertelkreis-Aussparung, wie radial-gradient(circle at 0 100%, transparent r, #000 r) im Design –
-        // als Vektorform, die der Compositor in jeder Größe sauber glättet.
-        _root.Children.InsertAtTop(CreateEars());
+        // Körper und Ohren als EIN Vektorpfad (NotchSilhouette): Der Compositor glättet die ganze Kante am Stück,
+        // ohne Naht zwischen Körper und Ohr und ohne doppelt deckenden Streifen bei durchscheinendem Material.
+        // Darüber der feine Rand wie bei Flyouts in Windows 11 (nur bei Mica und Acryl sichtbar).
+        var outline = compositor.CreateShapeVisual();
+        outline.Size = _root.Size;
+        _silhouette = compositor.CreatePathGeometry();
+        var fillShape = compositor.CreateSpriteShape(_silhouette);
+        fillShape.FillBrush = black;
+        outline.Shapes.Add(fillShape);
+        _rimGeometry = compositor.CreatePathGeometry();
+        _rim = compositor.CreateColorBrush(Colors.Transparent);
+        var rimShape = compositor.CreateSpriteShape(_rimGeometry);
+        rimShape.FillBrush = _rim;
+        outline.Shapes.Add(rimShape);
+        _root.Children.InsertAtTop(outline);
+        SetPath(initial);
 
         // Schimmer in Akzentfarbe: ein weicher Lichtschein, der von der Mitte der Unterkante aus
         // in alle Richtungen ausläuft – keine Kanten, keine Ecken.
@@ -156,6 +167,7 @@ internal sealed class NotchSurface : IDisposable
         var style = reducedMotion && settings.Style == AnimationStyle.Spring ? AnimationStyle.Fade : settings.Style;
         var response = (growing ? settings.ExpandMs : settings.RetractMs) / 1000.0;
         var now = Now;
+        var from = SampleAt(now);
 
         switch (style)
         {
@@ -167,6 +179,8 @@ internal sealed class NotchSurface : IDisposable
                 var longest = Math.Max(
                     Math.Max(Animate(W, shape.Width, body, now), Animate(H, shape.Height, body, now)),
                     Math.Max(Math.Max(Animate(R, shape.Radius, edge, now), Animate(E, shape.Ear, edge, now)), Animate(K, shape.Round, edge, now)));
+                // Der Umriss folgt denselben Federn: Jede Stützstelle ist der Zustand aller Kanäle zu dieser Zeit.
+                AnimatePath(t => SampleAt(now + t), longest);
                 return TimeSpan.FromSeconds(longest);
             case AnimationStyle.EaseOut:
                 var easing = _compositor.CreateCubicBezierEasingFunction(new Vector2(0.16f, 1f), new Vector2(0.3f, 1f));
@@ -180,6 +194,7 @@ internal sealed class NotchSurface : IDisposable
                     _props.StartAnimation(p, animation);
                     _channels[p].Set(to, now);
                 }
+                AnimatePath(t => Lerp(from, shape, EaseOutCurve(t / response)), response);
                 return duration;
             case AnimationStyle.Fade:
                 // Überblenden statt Morph (auch bei abgeschalteten Animationseffekten): 150 ms.
@@ -188,45 +203,142 @@ internal sealed class NotchSurface : IDisposable
                 fade.InsertKeyFrame(1, 1);
                 fade.Duration = TimeSpan.FromMilliseconds(150);
                 SetImmediate(shape, now);
+                SetPath(shape);
                 _root.StartAnimation("Opacity", fade);
                 return fade.Duration;
             default:
                 SetImmediate(shape, now);
+                SetPath(shape);
                 return TimeSpan.Zero;
         }
     }
 
     /// <summary>Körper, Ohren und Perlen in der Füllfarbe: Schwarz, oder bei Glas eine Tönung über dem Acryl.</summary>
     /// <param name="tint">Deckkraft der Tönung über dem Material (0–255); Mica ist schon dunkel, Acryl nicht.</param>
-    public void SetGlass(bool glass, byte tint = GlassTint)
+    /// <param name="light">Hell (Windows-Modus hell): Tönung hell statt schwarz, Rand dunkel statt hell.</param>
+    public void SetGlass(bool glass, byte tint = GlassTint, bool light = false)
     {
-        if (glass == _glass && tint == _tint)
+        if (glass == _glass && tint == _tint && light == _light)
         {
             return;
         }
         _glass = glass;
         _tint = tint;
-        var color = glass ? Color.FromArgb(tint, 0, 0, 0) : Colors.Black;
-        var animation = _compositor.CreateColorKeyFrameAnimation();
-        animation.InsertKeyFrame(1, color);
-        animation.Duration = TimeSpan.FromMilliseconds(300);
-        _fill.StartAnimation("Color", animation);
-        // Halbtransparent würde die Überlappung als dunklere Naht sichtbar; die Kante kommt dann von der Region.
-        _props.InsertScalar(O, glass ? 0f : 0.5f);
+        _light = light;
+        var color = !glass ? Colors.Black : light ? Color.FromArgb(tint, 0xF3, 0xF3, 0xF3) : Color.FromArgb(tint, 0, 0, 0);
+        // Feiner Rand wie bei Flyouts (Fluent „Surface Stroke“): auf dunklem Material hell, auf hellem dunkel.
+        // Beim schwarzen Körper keiner – der soll wie ein Loch im Bild wirken.
+        var rim = !glass ? Color.FromArgb(0, 255, 255, 255) : light ? Color.FromArgb(0x1A, 0, 0, 0) : Color.FromArgb(0x1C, 255, 255, 255);
+        foreach (var (brush, target) in new[] { (_fill, color), (_rim, rim) })
+        {
+            var animation = _compositor.CreateColorKeyFrameAnimation();
+            animation.InsertKeyFrame(1, target);
+            animation.Duration = TimeSpan.FromMilliseconds(300);
+            brush.StartAnimation("Color", animation);
+        }
     }
 
     /// <summary>Deckkraft der Tönung bei Glas: dunkel genug für weiße Schrift, hell genug, dass der Desktop durchscheint.</summary>
     public const byte GlassTint = 0x70;
 
     /// <summary>Form in diesem Moment, auch mitten in einer Feder (für die Region bei Glas).</summary>
-    public NotchShape Current
+    public NotchShape Current => SampleAt(Now);
+
+    private NotchShape SampleAt(double time) =>
+        new(_channels[W].Sample(time).Value, _channels[H].Sample(time).Value, _channels[R].Sample(time).Value,
+            _channels[E].Sample(time).Value, _channels[K].Sample(time).Value);
+
+    // ───────── Umriss als Pfad ─────────
+
+    /// <summary>Setzt Umriss und Rand sofort, ohne Animation.</summary>
+    private void SetPath(NotchShape shape)
     {
-        get
+        var cx = _root.Size.X / 2;
+        var owned = new List<IDisposable>();
+        _silhouette.StopAnimation("Path");
+        _rimGeometry.StopAnimation("Path");
+        _silhouette.Path = MakePath(NotchPaths.Silhouette(shape, cx), owned);
+        _rimGeometry.Path = MakePath(NotchPaths.Rim(shape, cx), owned);
+        ReplacePaths(owned);
+    }
+
+    /// <summary>
+    /// Morpht den Umriss im Compositor: Stützstellen alle <see cref="PathStep"/> aus <paramref name="sample"/>,
+    /// dazwischen interpoliert er die Punkte. Alle Pfade haben denselben Aufbau (<see cref="NotchSilhouette"/>).
+    /// </summary>
+    private void AnimatePath(Func<double, NotchShape> sample, double length)
+    {
+        if (length <= 0.001)
         {
-            var now = Now;
-            return new NotchShape(_channels[W].Sample(now).Value, _channels[H].Sample(now).Value, _channels[R].Sample(now).Value,
-                _channels[E].Sample(now).Value, _channels[K].Sample(now).Value);
+            SetPath(sample(length));
+            return;
         }
+        var cx = _root.Size.X / 2;
+        var owned = new List<IDisposable>();
+        var fill = _compositor.CreatePathKeyFrameAnimation();
+        var rim = _compositor.CreatePathKeyFrameAnimation();
+        var linear = _compositor.CreateLinearEasingFunction();
+        var steps = Math.Clamp((int)Math.Ceiling(length / PathStep), 2, 240);
+        for (var i = 0; i <= steps; i++)
+        {
+            var shape = sample(length * i / steps);
+            var key = (float)i / steps;
+            fill.InsertKeyFrame(key, MakePath(NotchPaths.Silhouette(shape, cx), owned), linear);
+            rim.InsertKeyFrame(key, MakePath(NotchPaths.Rim(shape, cx), owned), linear);
+        }
+        fill.Duration = rim.Duration = TimeSpan.FromSeconds(length);
+        _silhouette.StartAnimation("Path", fill);
+        _rimGeometry.StartAnimation("Path", rim);
+        owned.Add(fill);
+        owned.Add(rim);
+        ReplacePaths(owned);
+    }
+
+    private static CompositionPath MakePath(CanvasGeometry geometry, List<IDisposable> owned)
+    {
+        owned.Add(geometry);
+        return new CompositionPath(geometry);
+    }
+
+    /// <summary>
+    /// Die alte Animation ist ersetzt. Ihre Pfade werden eine Generation später freigegeben, damit der Compositor
+    /// sie sicher nicht mehr liest.
+    /// </summary>
+    private void ReplacePaths(List<IDisposable> owned)
+    {
+        foreach (var o in _retired)
+        {
+            o.Dispose();
+        }
+        _retired = _paths;
+        _paths = owned;
+    }
+
+    private static NotchShape Lerp(NotchShape a, NotchShape b, double t) => new(
+        a.Width + (b.Width - a.Width) * t, a.Height + (b.Height - a.Height) * t, a.Radius + (b.Radius - a.Radius) * t,
+        a.Ear + (b.Ear - a.Ear) * t, a.Round + (b.Round - a.Round) * t);
+
+    /// <summary>Dieselbe Kurve wie die Ausblende-Animation: cubic-bezier(0.16, 1, 0.3, 1).</summary>
+    private static double EaseOutCurve(double x) => CubicBezier(0.16, 1, 0.3, 1, Math.Clamp(x, 0, 1));
+
+    private static double CubicBezier(double x1, double y1, double x2, double y2, double x)
+    {
+        static double Bez(double p1, double p2, double u) => 3 * (1 - u) * (1 - u) * u * p1 + 3 * (1 - u) * u * u * p2 + u * u * u;
+        // Bisektion auf der x-Kurve (monoton), dann y an dieser Stelle.
+        double lo = 0, hi = 1, u = x;
+        for (var i = 0; i < 40; i++)
+        {
+            u = (lo + hi) / 2;
+            if (Bez(x1, x2, u) < x)
+            {
+                lo = u;
+            }
+            else
+            {
+                hi = u;
+            }
+        }
+        return Bez(y1, y2, u);
     }
 
     // ───────── Geburt (Einführung) ─────────
@@ -560,51 +672,6 @@ internal sealed class NotchSurface : IDisposable
         return geometry;
     }
 
-    /// <summary>
-    /// Beide Ohren als Vektorpfade (Quadrat minus Viertelkreis), in Einheitsgröße gebaut und über die Skalierung
-    /// an <c>E</c> gebunden. Füllen mit derselben Farbe wie der Körper, auch beim Wechsel zu Glas.
-    /// </summary>
-    private ShapeVisual CreateEars()
-    {
-        var visual = _compositor.CreateShapeVisual();
-        visual.Size = _root.Size;
-        foreach (var left in new[] { true, false })
-        {
-            var shape = _compositor.CreateSpriteShape(CreateEarGeometry(left));
-            shape.FillBrush = _fill;
-            Bind(shape, "Scale", "Vector2(p.E, p.E)");
-            Bind(shape, "Offset", left ? "Vector2(p.CX - p.W / 2 - p.E + p.O, 0)" : "Vector2(p.CX + p.W / 2 - p.O, 0)");
-            visual.Shapes.Add(shape);
-        }
-        return visual;
-    }
-
-    /// <summary>Ohr in 1 × 1: links mit dem Kreismittelpunkt unten links, rechts gespiegelt.</summary>
-    private CompositionPathGeometry CreateEarGeometry(bool left)
-    {
-        // Viertelkreis als kubische Bézierkurve (Kontrollpunkte bei 0,5523 des Radius).
-        const float k = 0.5523f;
-        using var builder = new CanvasPathBuilder(CanvasDevice.GetSharedDevice());
-        if (left)
-        {
-            builder.BeginFigure(0, 0);
-            builder.AddLine(1, 0);
-            builder.AddLine(1, 1);
-            builder.AddCubicBezier(new Vector2(1, 1 - k), new Vector2(k, 0), new Vector2(0, 0));
-        }
-        else
-        {
-            builder.BeginFigure(1, 0);
-            builder.AddLine(0, 0);
-            builder.AddLine(0, 1);
-            builder.AddCubicBezier(new Vector2(0, 1 - k), new Vector2(1 - k, 0), new Vector2(1, 0));
-        }
-        builder.EndFigure(CanvasFigureLoop.Closed);
-        var geometry = CanvasGeometry.CreatePath(builder);
-        _owned.Add(geometry);
-        return _compositor.CreatePathGeometry(new CompositionPath(geometry));
-    }
-
     private void Bind(CompositionObject target, string property, string expression)
     {
         var animation = _compositor.CreateExpressionAnimation(expression);
@@ -616,6 +683,10 @@ internal sealed class NotchSurface : IDisposable
     public void Dispose()
     {
         foreach (var o in _owned)
+        {
+            o.Dispose();
+        }
+        foreach (var o in _paths.Concat(_retired))
         {
             o.Dispose();
         }
