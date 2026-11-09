@@ -235,6 +235,7 @@ public partial class App : Application
             yield return new BrightnessModule();
             yield return new PrivacyModule();
             yield return new BluetoothModule();
+            yield return new QuickSettingsModule();
             // Brauchen Paketidentität (Einstellungen → Kalender und Benachrichtigungen); ohne sie tun sie nichts.
             yield return calendar;
             yield return new NotificationModule

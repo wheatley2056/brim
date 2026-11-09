@@ -31,7 +31,8 @@ internal static partial class QuietHours
         }
     }
 
-    private static bool IsDoNotDisturb()
+    /// <summary>Nur „Nicht stören“ (ohne Präsentation und Vollbild), für die Schnelleinstellungen.</summary>
+    public static bool IsDoNotDisturb()
     {
         if (_wnfBroken)
         {

@@ -38,6 +38,12 @@ public static class Glyphs
     public static readonly string Stopwatch = G(0xE916);
     public static readonly string Bluetooth = G(0xE702);
     public static readonly string Bell = G(0xEA8F);
+    /// <summary>WLAN (Wifi).</summary>
+    public static readonly string Wifi = G(0xE701);
+    /// <summary>Mond wie „Nicht stören“ in Windows (QuietHours).</summary>
+    public static readonly string QuietHours = G(0xE708);
+    /// <summary>Akku mit Blatt (MobBatterySaver10), für Energiesparen.</summary>
+    public static readonly string Leaf = G(0xEBC0);
     /// <summary>Prozessor (Processing), Kachel „System“.</summary>
     public static readonly string Cpu = G(0xE9F5);
 
