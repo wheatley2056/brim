@@ -87,7 +87,7 @@ public static class AccentColor
         };
     }
 
-    private static (double H, double S, double V) ToHsv(double r, double g, double b)
+    internal static (double H, double S, double V) ToHsv(double r, double g, double b)
     {
         var max = Math.Max(r, Math.Max(g, b));
         var min = Math.Min(r, Math.Min(g, b));
@@ -103,7 +103,7 @@ public static class AccentColor
         return (h, max == 0 ? 0 : d / max, max);
     }
 
-    private static (double R, double G, double B) FromHsv(double h, double s, double v)
+    internal static (double R, double G, double B) FromHsv(double h, double s, double v)
     {
         var c = v * s;
         var x = c * (1 - Math.Abs(h / 60 % 2 - 1));

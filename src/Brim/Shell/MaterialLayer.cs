@@ -62,11 +62,12 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
 
     /// <param name="hwnd">Fenster der Notch; das Material liegt hinter seinem Inhalt.</param>
     /// <exception cref="NotSupportedException">Das System kann dieses Material nicht.</exception>
-    public MaterialLayer(NotchMaterial material, nint hwnd, DispatcherQueue queue)
+    /// <param name="light">Helles Material (Windows-Modus hell).</param>
+    public MaterialLayer(NotchMaterial material, bool light, nint hwnd, DispatcherQueue queue)
     {
         _hwnd = hwnd;
         _queue = queue;
-        _controller = MaterialBackdrop.CreateController(material) ?? throw new NotSupportedException($"Material {material} wird nicht unterstützt");
+        _controller = MaterialBackdrop.CreateController(material, light) ?? throw new NotSupportedException($"Material {material} wird nicht unterstützt");
         _timeout = queue.CreateTimer();
         _timeout.Interval = BrushTimeout;
         _timeout.IsRepeating = false;
@@ -81,9 +82,9 @@ internal sealed partial class MaterialLayer : Microsoft.UI.Composition.IComposit
         _timeout.Start();
 
         // Wie bei MaterialBackdrop: erst die Konfiguration, dann das Ziel.
-        _configuration = new SystemBackdropConfiguration { IsInputActive = true, Theme = SystemBackdropTheme.Dark };
+        _configuration = new SystemBackdropConfiguration { IsInputActive = true, Theme = light ? SystemBackdropTheme.Light : SystemBackdropTheme.Dark };
         _controller.SetSystemBackdropConfiguration(_configuration);
-        Log.Info($"Material: {material} als Vektorform, melde Ziel an");
+        Log.Info($"Material: {material} ({(light ? "hell" : "dunkel")}) als Vektorform, melde Ziel an");
         _controller.AddSystemBackdropTarget(this);
         Log.Info("Material: Ziel angemeldet");
     }

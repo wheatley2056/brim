@@ -144,7 +144,7 @@ public sealed class PrivacyModule : IBrimModule
         {
             Spacing = 12,
             Background = BrimColors.Graphite,
-            CornerRadius = 12,
+            CornerRadius = 8,
             Padding = (12, 4, 6, 4),
         };
 

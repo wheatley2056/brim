@@ -572,7 +572,7 @@ public sealed class PluginHostModule : IBrimModule
             Spacing = 10,
             Align = CrossAlign.Stretch,
             Background = BrimColors.Graphite,
-            CornerRadius = 14,
+            CornerRadius = 8,
             Padding = (14, 10, 10, 10),
             Grow = 1,
         }, NotchTab.Plugins, TabColumn.Main);

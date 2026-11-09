@@ -712,7 +712,8 @@ internal sealed class WidgetRenderer
             case ButtonKind.Primary:
                 button.Width = button.Height = w.Size;
                 button.CornerRadius = new CornerRadius(w.Size / 2);
-                button.Background = Brushes.Get(BrimColors.Fog);
+                // Wiedergabe-Knopf und andere Hauptaktionen in der Akzentfarbe (Windows oder Pfirsich).
+                button.Background = Brushes.Get(BrimColors.DefaultAccent);
                 button.Content = Glyph(w.Glyph, w.GlyphSize, w.GlyphColor ?? BrimColors.Obsidian);
                 break;
             case ButtonKind.Row:
@@ -721,7 +722,7 @@ internal sealed class WidgetRenderer
                 button.HorizontalAlignment = HorizontalAlignment.Stretch;
                 button.HorizontalContentAlignment = HorizontalAlignment.Stretch;
                 button.Padding = new Thickness(12, 0, 12, 0);
-                button.CornerRadius = new CornerRadius(10);
+                button.CornerRadius = new CornerRadius(4);
                 button.Background = Brushes.Get(w.Selected ? BrimColors.Graphite : "#00000000");
                 button.Content = RowContent(w);
                 break;
@@ -735,7 +736,7 @@ internal sealed class WidgetRenderer
                 button.Width = double.NaN;
                 button.Height = 32;
                 button.Padding = new Thickness(14, 0, 14, 0);
-                button.CornerRadius = new CornerRadius(16);
+                button.CornerRadius = new CornerRadius(4);
                 button.Background = Brushes.Get(BrimColors.Track);
                 button.Content = new TextBlock { Text = w.Label ?? "", FontSize = 13, FontWeight = FontWeights.Medium, Foreground = Brushes.Get(BrimColors.Fog) };
                 break;
@@ -1023,19 +1024,86 @@ internal sealed class WidgetRenderer
     }
 }
 
-/// <summary>Zwischenspeicher für Pinsel aus Hex-Farben.</summary>
+/// <summary>
+/// Zwischenspeicher für Pinsel aus Hex-Farben. Alle Farben sind für den dunklen Grund beschrieben; hier werden sie
+/// für den hellen Modus umgerechnet (<see cref="ThemePalette.ForLight"/>) und Brims Pfirsich durch die
+/// Windows-Akzentfarbe ersetzt. Ein Wechsel färbt die vorhandenen Pinsel um, sodass alles sofort folgt.
+/// </summary>
 internal static class Brushes
 {
     private static readonly Dictionary<string, SolidColorBrush> Cache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Pinsel aus NotchResources.xaml und die Farbe, für die sie im dunklen Modus stehen.</summary>
+    private static readonly (string Key, string Color)[] Resources =
+    [
+        ("ObsidianBrush", BrimColors.Obsidian), ("GraphiteBrush", BrimColors.Graphite), ("TabTrackBrush", BrimColors.TabTrack),
+        ("TrackBrush", BrimColors.Track), ("FogBrush", BrimColors.Fog), ("SlateBrush", BrimColors.Slate),
+    ];
+
+    private static bool _light;
+    private static string? _accent;
+
+    /// <summary>Heller Modus aktiv (für Ansichten, die eigene Steuerelemente erzeugen).</summary>
+    public static bool IsLight => _light;
 
     public static SolidColorBrush Get(string hex)
     {
         if (!Cache.TryGetValue(hex, out var brush))
         {
-            brush = new SolidColorBrush(Parse(hex));
+            brush = new SolidColorBrush(Parse(Resolve(hex)));
             Cache[hex] = brush;
         }
         return brush;
+    }
+
+    /// <summary>
+    /// Stellt hell/dunkel und die Akzentfarbe ein (<c>null</c>: Brims Pfirsich bleibt). Färbt alle vorhandenen
+    /// Pinsel um, auch die aus den Ressourcen der App.
+    /// </summary>
+    public static void Configure(bool light, string? accent)
+    {
+        if (light == _light && accent == _accent)
+        {
+            return;
+        }
+        _light = light;
+        _accent = accent;
+        foreach (var (hex, brush) in Cache)
+        {
+            brush.Color = Parse(Resolve(hex));
+        }
+        if (Microsoft.UI.Xaml.Application.Current?.Resources is { } resources)
+        {
+            foreach (var (key, color) in Resources)
+            {
+                if (resources.TryGetValue(key, out var value) && value is SolidColorBrush brush)
+                {
+                    brush.Color = Parse(Resolve(color));
+                }
+            }
+        }
+    }
+
+    /// <summary>Farbe, die tatsächlich gezeichnet wird.</summary>
+    public static string Resolve(string hex)
+    {
+        if (!NotchPalette.IsColor(hex))
+        {
+            return hex;
+        }
+        if (_accent is { } accent && AccentColor.Parse(hex) is var (a, r, g, b) && (r, g, b) == Rgb(BrimColors.DefaultAccent))
+        {
+            // Die Akzentfarbe von Windows ist schon für hell bzw. dunkel gewählt; Deckkraft bleibt.
+            var (_, ar, ag, ab) = AccentColor.Parse(accent);
+            return $"#{a:X2}{ar:X2}{ag:X2}{ab:X2}";
+        }
+        return _light ? ThemePalette.ForLight(hex) : hex;
+    }
+
+    private static (byte, byte, byte) Rgb(string hex)
+    {
+        var (_, r, g, b) = AccentColor.Parse(hex);
+        return (r, g, b);
     }
 
     public static Color Parse(string hex)

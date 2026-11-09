@@ -98,8 +98,7 @@ public sealed partial class NotchView
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Top,
             Visibility = Visibility.Collapsed,
-            // Standard-Steuerelemente in dunkel, passend zur schwarzen Notch.
-            RequestedTheme = ElementTheme.Dark,
+            // Standard-Steuerelemente folgen der Notch (hell oder dunkel, NotchView.SetMaterial).
         };
         _settingsLayer.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         _settingsLayer.RowDefinitions.Add(new RowDefinition());

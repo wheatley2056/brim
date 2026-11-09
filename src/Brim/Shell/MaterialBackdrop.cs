@@ -13,7 +13,7 @@ namespace Brim.Shell;
 /// Fensters beschneidet es auf den Umriss der Notch. Anders als <c>DesktopAcrylicBackdrop</c> und
 /// <c>MicaBackdrop</c> bleibt es auch an, wenn das Fenster nicht aktiv ist – das ist die Notch nie.
 /// </summary>
-internal sealed class MaterialBackdrop(NotchMaterial material) : SystemBackdrop
+internal sealed class MaterialBackdrop(NotchMaterial material, bool light = false) : SystemBackdrop
 {
     private ISystemBackdropControllerWithTargets? _controller;
     private SystemBackdropConfiguration? _configuration;
@@ -21,7 +21,7 @@ internal sealed class MaterialBackdrop(NotchMaterial material) : SystemBackdrop
     protected override void OnTargetConnected(ICompositionSupportsSystemBackdrop connectedTarget, XamlRoot xamlRoot)
     {
         base.OnTargetConnected(connectedTarget, xamlRoot);
-        _controller = CreateController(material);
+        _controller = CreateController(material, light);
         if (_controller is null)
         {
             Log.Info($"Material {material} wird von diesem System nicht unterstützt");
@@ -29,14 +29,19 @@ internal sealed class MaterialBackdrop(NotchMaterial material) : SystemBackdrop
         }
         // Erst die Konfiguration, dann das Ziel (wie in Microsofts Beispiel): Sonst zeigt Windows das helle,
         // inaktive Material – ein flaches Grau.
-        _configuration = new SystemBackdropConfiguration { IsInputActive = true, Theme = SystemBackdropTheme.Dark };
+        _configuration = new SystemBackdropConfiguration { IsInputActive = true, Theme = light ? SystemBackdropTheme.Light : SystemBackdropTheme.Dark };
         _controller.SetSystemBackdropConfiguration(_configuration);
         _controller.AddSystemBackdropTarget(connectedTarget);
     }
 
     /// <summary>Controller für das Material, oder null, wenn das System es nicht kann.</summary>
-    public static ISystemBackdropControllerWithTargets? CreateController(NotchMaterial kind)
+    /// <param name="light">Hell wie Taskleiste und Startmenü im hellen Windows-Modus.</param>
+    public static ISystemBackdropControllerWithTargets? CreateController(NotchMaterial kind, bool light = false)
     {
+        if (light)
+        {
+            return CreateLightController(kind);
+        }
         var fallback = Color.FromArgb(255, 18, 18, 20);
         if (kind == NotchMaterial.Acrylic)
         {
@@ -59,6 +64,36 @@ internal sealed class MaterialBackdrop(NotchMaterial material) : SystemBackdrop
                 Kind = alt ? MicaKind.BaseAlt : MicaKind.Base,
                 TintColor = alt ? Color.FromArgb(255, 10, 10, 10) : Color.FromArgb(255, 32, 32, 32),
                 TintOpacity = alt ? 0f : 0.8f,
+                LuminosityOpacity = 1f,
+                FallbackColor = fallback,
+            }
+            : null;
+    }
+
+    /// <summary>Die hellen Werte von Windows 11 (wie Startmenü und Flyouts im hellen Modus).</summary>
+    private static ISystemBackdropControllerWithTargets? CreateLightController(NotchMaterial kind)
+    {
+        var fallback = Color.FromArgb(255, 0xF3, 0xF3, 0xF3);
+        if (kind == NotchMaterial.Acrylic)
+        {
+            return DesktopAcrylicController.IsSupported()
+                ? new DesktopAcrylicController
+                {
+                    Kind = DesktopAcrylicKind.Thin,
+                    TintColor = Color.FromArgb(255, 0xFC, 0xFC, 0xFC),
+                    TintOpacity = 0f,
+                    LuminosityOpacity = 0.85f,
+                    FallbackColor = fallback,
+                }
+                : null;
+        }
+        var alt = kind == NotchMaterial.MicaAlt;
+        return MicaController.IsSupported()
+            ? new MicaController
+            {
+                Kind = alt ? MicaKind.BaseAlt : MicaKind.Base,
+                TintColor = alt ? Color.FromArgb(255, 0xDA, 0xDA, 0xDA) : Color.FromArgb(255, 0xF3, 0xF3, 0xF3),
+                TintOpacity = 0.5f,
                 LuminosityOpacity = 1f,
                 FallbackColor = fallback,
             }

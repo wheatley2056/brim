@@ -279,7 +279,7 @@ public sealed partial class ResourcesModule : IBrimModule
             Spacing = 5,
             Align = CrossAlign.Stretch,
             Background = BrimColors.Graphite,
-            CornerRadius = 14,
+            CornerRadius = 8,
             Padding = (12, 8, 8, 8),
             Grow = 1,
         }, column: TabColumn.Side, order: 10);
@@ -293,7 +293,7 @@ public sealed partial class ResourcesModule : IBrimModule
         Justify = Justify.SpaceBetween,
         Align = CrossAlign.Stretch,
         Background = BrimColors.Graphite,
-        CornerRadius = 14,
+        CornerRadius = 8,
         Padding = (12, 10, 12, 10),
         Grow = 1,
     };

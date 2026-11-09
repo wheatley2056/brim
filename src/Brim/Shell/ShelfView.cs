@@ -125,7 +125,7 @@ internal sealed class ShelfView : Grid
 
     private static Style Dark(Type presenter) => new(presenter)
     {
-        Setters = { new Setter(FrameworkElement.RequestedThemeProperty, ElementTheme.Dark) },
+        Setters = { new Setter(FrameworkElement.RequestedThemeProperty, Brushes.IsLight ? ElementTheme.Light : ElementTheme.Dark) },
     };
 
     // ───────── Per Code empfangen ─────────
@@ -206,7 +206,7 @@ internal sealed class ShelfView : Grid
         {
             Width = TileWidth,
             Padding = new Thickness(6, 10, 6, 8),
-            CornerRadius = new CornerRadius(14),
+            CornerRadius = new CornerRadius(8),
             Background = Brushes.Get(exists ? BrimColors.Graphite : BrimColors.TabTrack),
             BorderBrush = Brushes.Get(selected ? BrimColors.Fog : "#00000000"),
             BorderThickness = new Thickness(1.5),
@@ -593,7 +593,7 @@ internal sealed class ShelfView : Grid
             Style = (Style)Application.Current.Resources["NotchButtonStyle"],
             Height = 32,
             Padding = new Thickness(14, 0, 14, 1),
-            CornerRadius = new CornerRadius(16),
+            CornerRadius = new CornerRadius(4),
             Background = Brushes.Get(filled ? BrimColors.Track : "#00000000"),
             BorderBrush = Brushes.Get("#2E3036"),
             BorderThickness = new Thickness(filled ? 0 : 1),

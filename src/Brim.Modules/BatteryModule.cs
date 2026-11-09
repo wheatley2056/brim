@@ -255,7 +255,7 @@ public sealed class BatteryModule : IBrimModule
     {
         Spacing = 8,
         Background = BrimColors.Graphite,
-        CornerRadius = 14,
+        CornerRadius = 8,
         Padding = (12, 6, 6, 6),
         AccessibleName = $"Akku {state.Percent} %, {StatusText(state)}",
     };

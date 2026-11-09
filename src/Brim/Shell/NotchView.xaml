@@ -70,9 +70,9 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <!-- Segmentierte Tabs: Spur 30 px hoch, Auswahl gleitet als Pille (Compositor). -->
+                <!-- Segmentierte Tabs: Spur 30 px hoch, Auswahl gleitet als Segment mit Akzentstrich (Compositor), wie in Windows 11. -->
                 <Grid x:Name="HeaderRow" Height="30">
-                    <Border Background="{StaticResource TabTrackBrush}" CornerRadius="15" Padding="3" HorizontalAlignment="Left">
+                    <Border Background="{StaticResource TabTrackBrush}" CornerRadius="6" Padding="3" HorizontalAlignment="Left">
                         <Grid>
                             <Grid x:Name="TabIndicatorHost" IsHitTestVisible="False" />
                             <StackPanel x:Name="TabStrip" Orientation="Horizontal" Spacing="2"

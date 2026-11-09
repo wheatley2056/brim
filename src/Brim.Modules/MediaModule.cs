@@ -263,7 +263,7 @@ public sealed class MediaModule : IBrimModule
         if (!large)
         {
             return new StackWidget(
-                new ImageWidget(_cover) { Width = 52, Height = 52, CornerRadius = 10, Placeholder = placeholder, AccessibleName = "Cover" },
+                new ImageWidget(_cover) { Width = 52, Height = 52, CornerRadius = 6, Placeholder = placeholder, AccessibleName = "Cover" },
                 titles,
                 play)
             {
@@ -273,7 +273,7 @@ public sealed class MediaModule : IBrimModule
         var progress = _duration > TimeSpan.Zero ? CurrentPosition() / _duration : 0;
         return new StackWidget(
             new StackWidget(
-                new ImageWidget(_cover) { Width = 64, Height = 64, CornerRadius = 12, Placeholder = placeholder, AccessibleName = "Cover" },
+                new ImageWidget(_cover) { Width = 64, Height = 64, CornerRadius = 8, Placeholder = placeholder, AccessibleName = "Cover" },
                 titles)
             {
                 Spacing = 12,
@@ -299,7 +299,7 @@ public sealed class MediaModule : IBrimModule
     private Widget PlayerView(string accent, (string, string) placeholder, string subtitle, TimeSpan position, double progress) =>
         new StackWidget(
             new StackWidget(
-                new ImageWidget(_cover) { Width = 92, Height = 92, CornerRadius = 16, Placeholder = placeholder, AccessibleName = "Cover" },
+                new ImageWidget(_cover) { Width = 92, Height = 92, CornerRadius = 8, Placeholder = placeholder, AccessibleName = "Cover" },
                 new StackWidget(
                     new StackWidget(
                         new StackWidget(

@@ -126,7 +126,7 @@ public sealed partial class BluetoothModule : IBrimModule
             Spacing = 4,
             Align = CrossAlign.Stretch,
             Background = BrimColors.Graphite,
-            CornerRadius = 14,
+            CornerRadius = 8,
             Padding = (12, 8, 12, 8),
         }, column: TabColumn.Side, order: 5);
     }

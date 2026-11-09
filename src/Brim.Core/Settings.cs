@@ -58,7 +58,14 @@ public sealed class AppearanceSettings
     /// <summary>Faktor auf alle Zustände (0,8–1,3).</summary>
     public double Size { get; set; } = 1.0;
 
-    public NotchMaterial Material { get; set; } = NotchMaterial.Black;
+    /// <summary>Mica wie Startmenü und Taskleiste (Redesign „Windows-11-nativ“); ohne Mica fällt Brim auf Schwarz zurück.</summary>
+    public NotchMaterial Material { get; set; } = NotchMaterial.Mica;
+
+    /// <summary>Hell oder dunkel; „Wie Windows“ folgt dem Modus der Taskleiste. Wirkt nur mit Material.</summary>
+    public NotchTheme Theme { get; set; } = NotchTheme.System;
+
+    /// <summary>Akzentfarbe für Fortschritt, Schalter, aktiven Tab und Wiedergabe-Knopf.</summary>
+    public AccentSource Accent { get; set; } = AccentSource.Windows;
 
     /// <summary>Schrift je Bereich (Einstellungen → Aussehen → Schriften).</summary>
     public FontSettings Fonts { get; set; } = new();
@@ -69,7 +76,9 @@ public sealed class AppearanceSettings
     public AppearanceSettings Clamped() => new()
     {
         Form = Enum.IsDefined(Form) ? Form : NotchForm.Notch,
-        Material = Enum.IsDefined(Material) ? Material : NotchMaterial.Black,
+        Material = Enum.IsDefined(Material) ? Material : NotchMaterial.Mica,
+        Theme = Enum.IsDefined(Theme) ? Theme : NotchTheme.System,
+        Accent = Enum.IsDefined(Accent) ? Accent : AccentSource.Windows,
         Fonts = Fonts ?? new(),
         Colors = (Colors ?? new()).Clamped(),
         Size = double.IsFinite(Size) ? Math.Clamp(Size, NotchGeometry.MinSize, NotchGeometry.MaxSize) : 1.0,
