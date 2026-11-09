@@ -67,8 +67,12 @@ public static class FontCatalog
     private const string SegoeDisplay = "Segoe UI Variable Display, Segoe UI";
     private const string Mono = "Cascadia Mono, Consolas";
 
-    /// <summary>Was der Standard des Designs je Bereich ist (für die Anzeige in den Einstellungen).</summary>
-    public static string DefaultName(FontRole role) => role is FontRole.Clock or FontRole.Numbers ? Cascadia : Segoe;
+    /// <summary>
+    /// Was der Standard des Designs je Bereich ist (für die Anzeige in den Einstellungen). Seit dem Redesign
+    /// „Windows-11-nativ“ überall Segoe UI Variable wie in Taskleiste und Flyouts; Uhr und Messwerte stellen ihre
+    /// Ziffern auf gleiche Breite (Typography.NumeralAlignment), damit nichts springt. Cascadia Mono bleibt wählbar.
+    /// </summary>
+    public static string DefaultName(FontRole role) => Segoe;
 
     /// <param name="exists">Prüft, ob die Datei einer eigenen Schrift noch da ist.</param>
     public static string Resolve(FontSettings settings, FontRole role, Func<string, bool> exists)

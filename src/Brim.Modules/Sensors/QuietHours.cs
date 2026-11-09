@@ -7,7 +7,7 @@ namespace Brim.Modules.Sensors;
 /// „Nicht stören“/Fokus-Assistent. Für Letzteres gibt es keine öffentliche Schnittstelle; Brim liest denselben
 /// Zustand wie das Info-Center (WNF), und wenn das scheitert, gilt er als aus.
 /// </summary>
-internal static partial class QuietHours
+public static partial class QuietHours
 {
     // QUNS_BUSY, QUNS_RUNNING_D3D_FULL_SCREEN, QUNS_PRESENTATION_MODE, QUNS_QUIET_TIME
     private const int Busy = 2, Direct3D = 3, Presentation = 4, QuietTime = 6;

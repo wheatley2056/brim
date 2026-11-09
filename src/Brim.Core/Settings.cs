@@ -414,7 +414,8 @@ public sealed class NotchDisplaySettings
     /// <summary>Statuswerte im Hub (Modul/Kennung), die gerade eingeschaltet sind, in fester Reihenfolge.</summary>
     public IReadOnlyList<string> EnabledStatus()
     {
-        var keys = new List<string>();
+        // Mond bei „Nicht stören“ direkt an der Uhr, wie Windows es im Infobereich zeigt (immer, wenn aktiv).
+        var keys = new List<string> { StatusKeys.QuietHours };
         if (Date)
         {
             keys.Add(StatusKeys.Date);
@@ -445,6 +446,7 @@ public static class StatusKeys
     public const string Network = "resources/network";
     public const string Battery = "battery/status";
     public const string NotificationDot = "notifications/dot";
+    public const string QuietHours = "quick/dnd";
 }
 
 public sealed class NotificationSettings

@@ -69,8 +69,9 @@ public class FontCatalogTests
     public void Defaults_follow_the_design()
     {
         var fonts = new FontSettings();
-        Assert.StartsWith("Cascadia Mono", FontCatalog.Resolve(fonts, FontRole.Clock, Exists));
-        Assert.StartsWith("Cascadia Mono", FontCatalog.Resolve(fonts, FontRole.Numbers, Exists));
+        Assert.StartsWith("Segoe UI Variable Text", FontCatalog.Resolve(fonts, FontRole.Clock, Exists));
+        Assert.StartsWith("Segoe UI Variable Text", FontCatalog.Resolve(fonts, FontRole.Numbers, Exists));
+        Assert.StartsWith("Cascadia Mono", FontCatalog.Resolve(new FontSettings { Clock = FontCatalog.Cascadia }, FontRole.Clock, Exists));
         Assert.StartsWith("Segoe UI Variable Display", FontCatalog.Resolve(fonts, FontRole.Headings, Exists));
         Assert.StartsWith("Segoe UI Variable Text", FontCatalog.Resolve(fonts, FontRole.Menu, Exists));
     }

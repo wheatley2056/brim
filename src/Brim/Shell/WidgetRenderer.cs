@@ -95,8 +95,8 @@ internal sealed class WidgetRenderer
         tb.FontWeight = weight;
         tb.CharacterSpacing = w.Style is TextStyle.Title or TextStyle.Display ? -20 : 0;
         tb.Foreground = w.Color is { } own ? Tinted(own) : Brushes.Get(color);
-        // Werte neben der Uhr: gleich breite Ziffern, damit nichts springt, auch in Proportionalschriften.
-        Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(tb, w.Style == TextStyle.Status ? FontNumeralAlignment.Tabular : FontNumeralAlignment.Normal);
+        // Werte neben der Uhr und Messwerte: gleich breite Ziffern, damit nichts springt, auch in Proportionalschriften.
+        Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(tb, w.Style is TextStyle.Status or TextStyle.Mono or TextStyle.MonoCaption or TextStyle.Display ? FontNumeralAlignment.Tabular : FontNumeralAlignment.Normal);
         return tb;
     }
 

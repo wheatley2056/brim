@@ -39,6 +39,7 @@ public sealed class QuickSettingsModule : IBrimModule
     private readonly Func<IQuickSettingsSource> _createSource;
     private IQuickSettingsSource? _source;
     private ModuleContext? _context;
+    private ITimer? _poll;
 
     public QuickSettingsModule() : this(() => new WindowsQuickSettings())
     {
@@ -59,6 +60,8 @@ public sealed class QuickSettingsModule : IBrimModule
         _source.Changed += Publish;
         await _source.StartAsync();
         Publish();
+        // „Nicht stören“ meldet keine Änderung; der Mond an der Uhr soll trotzdem bald folgen.
+        _poll = context.Time.CreateTimer(_ => Publish(), null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
     }
 
     public void OnTabVisibilityChanged(NotchTab tab, bool visible)
@@ -130,6 +133,10 @@ public sealed class QuickSettingsModule : IBrimModule
             return;
         }
         var tiles = source.Read();
+        var quiet = tiles.Any(t => t.Id == "dnd" && t.On);
+        context.SetStatus("dnd", quiet
+            ? new IconWidget(Glyphs.QuietHours) { Size = 12, Color = BrimColors.Slate, AccessibleName = "Nicht stören ist an" }
+            : null);
         if (tiles.All(t => !t.Available))
         {
             return;
@@ -139,6 +146,7 @@ public sealed class QuickSettingsModule : IBrimModule
 
     public ValueTask DisposeAsync()
     {
+        _poll?.Dispose();
         if (_source is { } source)
         {
             source.Changed -= Publish;
