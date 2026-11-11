@@ -92,7 +92,7 @@ public sealed partial class NotchView
     {
         var items = new List<(string, string)>();
         // Reihenfolge wie im Infobereich und im Design: Fokus, Netzwerk, Akku.
-        if (Focus.Shared.IsActive)
+        if (Brim.Modules.Sensors.Focus.Shared.IsActive)
         {
             items.Add((Glyphs.Focus, "Fokus aktiv"));
         }
