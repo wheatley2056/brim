@@ -211,7 +211,7 @@ internal sealed class NowBoard : Grid
         // Über die ganze Seite bringt die Aktivität ihre eigene Fläche mit (Player, Anruf); sonst sitzt alles auf einer Karte.
         var bare = activity && placement.Size == TileSize.Full && !_editing;
         tile.Background = bare ? null : Brushes.Get(BrimColors.Graphite);
-        tile.CornerRadius = new CornerRadius(16);
+        tile.CornerRadius = new CornerRadius(8);
         tile.BorderBrush = Brushes.Get(_editing && _hoverIndex == index ? BrimColors.DefaultAccent : TileOutline);
         tile.BorderThickness = new Thickness(_editing ? 1 : 0);
         tile.Padding = bare ? new Thickness(0) : activity ? new Thickness(14) : new Thickness(Dashboard.TilePadding);
@@ -314,7 +314,7 @@ internal sealed class NowBoard : Grid
                 Orientation = Orientation.Horizontal,
                 Spacing = 2,
                 Padding = new Thickness(2),
-                CornerRadius = new CornerRadius(14),
+                CornerRadius = new CornerRadius(6),
                 Background = Brushes.Get(BrimColors.Track),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom,
@@ -406,7 +406,7 @@ internal sealed class NowBoard : Grid
             button = new Button
             {
                 Style = ButtonStyle,
-                CornerRadius = new CornerRadius(16),
+                CornerRadius = new CornerRadius(8),
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
                 VerticalContentAlignment = VerticalAlignment.Stretch,
                 Content = content,
@@ -734,7 +734,7 @@ internal sealed class NowBoard : Grid
             var well = new Border
             {
                 Height = 86,
-                CornerRadius = new CornerRadius(10),
+                CornerRadius = new CornerRadius(6),
                 Background = Brushes.Get("#FF0E0F11"),
                 Child = new Viewbox { MaxHeight = 66, MaxWidth = 180, Stretch = Stretch.Uniform, Child = preview },
             };
@@ -755,7 +755,7 @@ internal sealed class NowBoard : Grid
             {
                 Style = ButtonStyle,
                 Padding = new Thickness(8),
-                CornerRadius = new CornerRadius(14),
+                CornerRadius = new CornerRadius(8),
                 Background = Brushes.Get(BrimColors.Graphite),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
@@ -804,7 +804,7 @@ internal sealed class NowBoard : Grid
                 Tag = "card",
                 Width = width,
                 Height = height,
-                CornerRadius = new CornerRadius(16),
+                CornerRadius = new CornerRadius(8),
                 Background = Brushes.Get(BrimColors.Graphite),
                 Padding = new Thickness(Dashboard.TilePadding),
                 Child = element,
@@ -867,7 +867,7 @@ internal sealed class NowBoard : Grid
                 Style = ButtonStyle,
                 Height = 34,
                 Padding = new Thickness(22, 0, 22, 1),
-                CornerRadius = new CornerRadius(17),
+                CornerRadius = new CornerRadius(4),
                 Background = Brushes.Get(BrimColors.DefaultAccent),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Content = new TextBlock { Text = "Hinzufügen", FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Brushes.Get(BrimColors.Obsidian) },
@@ -907,7 +907,7 @@ internal sealed class NowBoard : Grid
                     Style = ButtonStyle,
                     Width = 88,
                     Padding = new Thickness(8),
-                    CornerRadius = new CornerRadius(12),
+                    CornerRadius = new CornerRadius(6),
                     Background = Brushes.Get(selected ? BrimColors.Track : BrimColors.Graphite),
                     BorderBrush = Brushes.Get(BrimColors.DefaultAccent),
                     BorderThickness = new Thickness(selected ? 1.5 : 0),

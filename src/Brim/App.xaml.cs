@@ -87,6 +87,13 @@ public partial class App : Application
         var nearbyModule = new NearbyModule(_nearby, () => _settings.Current.Share);
 
         var dispatcher = DispatcherQueue.GetForCurrentThread();
+        // Kachel „Brims in der Nähe“: Sichtbarkeit merken.
+        _nearby.SetVisible(settings.Share.NearbyVisible);
+        _nearby.VisibleChanged += visible => dispatcher.TryEnqueue(() =>
+        {
+            _settings.Current.Share.NearbyVisible = visible;
+            _settings.Save(_settings.Current);
+        });
         nearbyModule.CopyToClipboard = text =>
         {
             var done = new TaskCompletionSource();
@@ -234,7 +241,9 @@ public partial class App : Application
             yield return new BatteryModule();
             yield return new BrightnessModule();
             yield return new PrivacyModule();
-            yield return new BluetoothModule();
+            var bluetooth = new BluetoothModule();
+            yield return bluetooth;
+            yield return new QuickSettingsModule(_nearby, bluetooth);
             // Brauchen Paketidentität (Einstellungen → Kalender und Benachrichtigungen); ohne sie tun sie nichts.
             yield return calendar;
             yield return new NotificationModule

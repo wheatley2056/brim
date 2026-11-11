@@ -36,6 +36,34 @@ public sealed class NearbyService : IAsyncDisposable
     public event Action<Offer, IReadOnlyList<ShelfItem>>? Received;
     public event Action<Offer?, string>? ReceiveFailed;
 
+    /// <summary>Für andere Brims im Netz sichtbar (Kachel „Brims in der Nähe“).</summary>
+    public bool Visible { get; private set; } = true;
+
+    /// <summary>Sichtbarkeit hat sich geändert (zum Speichern in den Einstellungen).</summary>
+    public event Action<bool>? VisibleChanged;
+
+    /// <summary>Im Netz anmelden oder abmelden. Vor dem Start merkt es sich nur den Wunsch.</summary>
+    public void SetVisible(bool visible)
+    {
+        if (visible == Visible)
+        {
+            return;
+        }
+        Visible = visible;
+        if (_discovery is { } discovery && _server is { } server)
+        {
+            if (visible)
+            {
+                discovery.Register(server.Port);
+            }
+            else
+            {
+                discovery.Unregister();
+            }
+        }
+        VisibleChanged?.Invoke(visible);
+    }
+
     public async Task StartAsync(string dataDirectory, string? displayName = null)
     {
         Identity = await NearbyIdentity.LoadOrCreateAsync(dataDirectory, displayName);
@@ -53,7 +81,10 @@ public sealed class NearbyService : IAsyncDisposable
         _server.Failed += (offer, reason) => ReceiveFailed?.Invoke(offer, reason);
         _server.Start();
 
-        _discovery.Register(_server.Port);
+        if (Visible)
+        {
+            _discovery.Register(_server.Port);
+        }
         _discovery.Start();
         Log.Info($"Teilen: bereit auf Port {_server.Port}");
     }

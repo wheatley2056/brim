@@ -84,6 +84,19 @@ public sealed unsafe class NearbyDiscovery : IDisposable
         _isRegistered = true;
     }
 
+    /// <summary>Im Netz unsichtbar werden; Suchen und Empfangen von bekannten Brims laufen weiter.</summary>
+    public void Unregister()
+    {
+        if (_isRegistered)
+        {
+            PInvoke.DnsServiceDeRegister(in _request);
+            _isRegistered = false;
+            Log.Info("Teilen: im Netz nicht mehr sichtbar");
+        }
+    }
+
+    public bool IsRegistered => _isRegistered;
+
     private unsafe void OnRegistered(uint status, void* context, DNS_SERVICE_INSTANCE* instance)
     {
         if (status == 0)

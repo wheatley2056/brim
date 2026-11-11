@@ -38,6 +38,22 @@ public static class Glyphs
     public static readonly string Stopwatch = G(0xE916);
     public static readonly string Bluetooth = G(0xE702);
     public static readonly string Bell = G(0xEA8F);
+    /// <summary>WLAN (Wifi).</summary>
+    public static readonly string Wifi = G(0xE701);
+    /// <summary>Fokus (RadioBtnOn: Ring mit Punkt, wie das Fokus-Symbol von Windows 11).</summary>
+    public static readonly string Focus = G(0xECCB);
+    /// <summary>Teilen (Share), für „Brims in der Nähe“.</summary>
+    public static readonly string Share = G(0xE72D);
+    /// <summary>Pfeil nach unten (ChevronDown), z. B. neben dem Ausgabegerät.</summary>
+    public static readonly string ChevronDown = G(0xE70D);
+    /// <summary>Netzwerkkabel (Ethernet).</summary>
+    public static readonly string Ethernet = G(0xE839);
+    /// <summary>Kein Netzwerk (NetworkOffline).</summary>
+    public static readonly string NoNetwork = G(0xF384);
+    /// <summary>Mond wie „Nicht stören“ in Windows (QuietHours).</summary>
+    public static readonly string QuietHours = G(0xE708);
+    /// <summary>Akku mit Blatt (MobBatterySaver10), für Energiesparen.</summary>
+    public static readonly string Leaf = G(0xEBC0);
     /// <summary>Prozessor (Processing), Kachel „System“.</summary>
     public static readonly string Cpu = G(0xE9F5);
 

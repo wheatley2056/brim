@@ -186,6 +186,14 @@ public sealed class MediaModule : IBrimModule
         return _duration > TimeSpan.Zero && position > _duration ? _duration : position;
     }
 
+    /// <summary>
+    /// Farbe für Fortschritt, Pegel und Knöpfe: vom Cover nur, wenn so eingestellt. Sonst Pfirsich, den die Notch
+    /// durch die Windows-Akzentfarbe ersetzt (Einstellungen → Aussehen → Akzentfarbe).
+    /// </summary>
+    private string WidgetAccent() => _context?.Settings.Appearance.Accent == AccentSource.Cover
+        ? _accent ?? BrimColors.DefaultAccent
+        : BrimColors.DefaultAccent;
+
     private void Publish()
     {
         var context = _context!;
@@ -196,7 +204,7 @@ public sealed class MediaModule : IBrimModule
             return;
         }
 
-        var accent = _accent ?? BrimColors.DefaultAccent;
+        var accent = WidgetAccent();
         var position = CurrentPosition();
         var progress = _duration > TimeSpan.Zero ? position / _duration : 0;
         var subtitle = string.Join(" · ", new[] { _artist, _source }.Where(s => !string.IsNullOrWhiteSpace(s)));
@@ -210,7 +218,9 @@ public sealed class MediaModule : IBrimModule
             Priority = ActivityPriority.Ongoing,
             Rank = _isPlaying ? 10 : 1,
             IsBackground = background,
-            Accent = accent,
+            // Der Schimmer unter der Notch bleibt vom Cover gefärbt, auch wenn die Bedienelemente die
+            // Windows-Akzentfarbe tragen.
+            Accent = _accent ?? BrimColors.DefaultAccent,
             Leading = new ImageWidget(_cover) { Width = 22, Height = 22, CornerRadius = 6, Placeholder = placeholder, AccessibleName = "Cover" },
             Trailing = new LevelWidget { Active = _isPlaying, Color = accent },
             Bead = new ImageWidget(_cover) { Width = 20, Height = 20, CornerRadius = 5, Placeholder = placeholder },
@@ -240,7 +250,7 @@ public sealed class MediaModule : IBrimModule
         {
             return TileCard.Empty(Glyphs.MusicNote, "Gerade keine Musik");
         }
-        var accent = _accent ?? BrimColors.DefaultAccent;
+        var accent = WidgetAccent();
         (string, string) placeholder = (accent, "#6C5CFF");
         var large = size == TileSize.Large;
         var play = new ButtonWidget("toggle")
@@ -263,7 +273,7 @@ public sealed class MediaModule : IBrimModule
         if (!large)
         {
             return new StackWidget(
-                new ImageWidget(_cover) { Width = 52, Height = 52, CornerRadius = 10, Placeholder = placeholder, AccessibleName = "Cover" },
+                new ImageWidget(_cover) { Width = 52, Height = 52, CornerRadius = 6, Placeholder = placeholder, AccessibleName = "Cover" },
                 titles,
                 play)
             {
@@ -273,7 +283,7 @@ public sealed class MediaModule : IBrimModule
         var progress = _duration > TimeSpan.Zero ? CurrentPosition() / _duration : 0;
         return new StackWidget(
             new StackWidget(
-                new ImageWidget(_cover) { Width = 64, Height = 64, CornerRadius = 12, Placeholder = placeholder, AccessibleName = "Cover" },
+                new ImageWidget(_cover) { Width = 64, Height = 64, CornerRadius = 8, Placeholder = placeholder, AccessibleName = "Cover" },
                 titles)
             {
                 Spacing = 12,
@@ -296,74 +306,80 @@ public sealed class MediaModule : IBrimModule
 
     // ───────── Ansichten im Tab „Jetzt“ ─────────
 
+    /// <summary>
+    /// Player wie im Design „Windows-11-nativ“: Cover 76 mit Titel daneben, darunter die Spur mit Griff und den
+    /// Zeiten, ganz unten Ausgabegerät, Zurück, Wiedergabe in der Akzentfarbe, Weiter und Lautstärke.
+    /// </summary>
     private Widget PlayerView(string accent, (string, string) placeholder, string subtitle, TimeSpan position, double progress) =>
         new StackWidget(
             new StackWidget(
-                new ImageWidget(_cover) { Width = 92, Height = 92, CornerRadius = 16, Placeholder = placeholder, AccessibleName = "Cover" },
+                new ImageWidget(_cover) { Width = 76, Height = 76, CornerRadius = 8, Placeholder = placeholder, AccessibleName = "Cover" },
                 new StackWidget(
-                    new StackWidget(
-                        new StackWidget(
-                            new TextWidget(_title!) { Style = TextStyle.Title },
-                            new TextWidget(subtitle) { Style = TextStyle.Secondary, FontSize = 14 })
-                        {
-                            Orientation = StackOrientation.Vertical,
-                            Spacing = 3,
-                            Align = CrossAlign.Stretch,
-                            Grow = 1,
-                        },
-                        new LevelWidget { Active = _isPlaying, Color = accent, Height = 22 })
-                    {
-                        Justify = Justify.SpaceBetween,
-                        Align = CrossAlign.Start,
-                        Spacing = 16,
-                    },
-                    new StackWidget(
-                        new ProgressWidget(progress) { SeekActionId = _duration > TimeSpan.Zero ? "seek" : null, Live = false, AccessibleName = "Fortschritt" },
-                        new StackWidget(
-                            new TextWidget(Format(position)) { Style = TextStyle.MonoCaption },
-                            new TextWidget("-" + Format(_duration - position)) { Style = TextStyle.MonoCaption })
-                        {
-                            Justify = Justify.SpaceBetween,
-                        })
-                    {
-                        Orientation = StackOrientation.Vertical,
-                        Spacing = 7,
-                        Align = CrossAlign.Stretch,
-                    })
+                    new TextWidget(_title!) { Style = TextStyle.Title },
+                    new TextWidget(subtitle) { Style = TextStyle.Secondary })
                 {
                     Orientation = StackOrientation.Vertical,
-                    Justify = Justify.SpaceBetween,
+                    Spacing = 2,
                     Align = CrossAlign.Stretch,
                     Grow = 1,
                 })
             {
-                Spacing = 18,
-                Align = CrossAlign.Stretch,
+                Spacing = 14,
             },
             new StackWidget(
+                new ProgressWidget(progress)
+                {
+                    SeekActionId = _duration > TimeSpan.Zero ? "seek" : null,
+                    Live = false,
+                    Thumb = _duration > TimeSpan.Zero,
+                    Color = accent,
+                    AccessibleName = "Fortschritt",
+                },
                 new StackWidget(
-                    new ButtonWidget("output") { Glyph = Glyphs.Speakers, GlyphColor = BrimColors.Slate, AccessibleName = "Audioausgabe wählen" },
-                    new ButtonWidget("timer") { Glyph = Glyphs.Stopwatch, GlyphColor = BrimColors.Slate, AccessibleName = "Timer und Stoppuhr" }),
+                    new TextWidget(Format(position)) { Style = TextStyle.Secondary, FontSize = 12 },
+                    new TextWidget("−" + Format(_duration - position)) { Style = TextStyle.Secondary, FontSize = 12 })
+                {
+                    Justify = Justify.SpaceBetween,
+                })
+            {
+                Orientation = StackOrientation.Vertical,
+                Spacing = 4,
+                Align = CrossAlign.Stretch,
+            },
+            // Drei gleich breite Spalten, damit die Wiedergabe mittig bleibt: links Ausgabe und Timer, rechts Lautstärke.
+            new StackWidget(
                 new StackWidget(
-                    new ButtonWidget("previous") { Glyph = Glyphs.Previous, GlyphSize = 18, AccessibleName = "Vorheriger Titel" },
+                    new ButtonWidget("output") { Glyph = Glyphs.Speakers, Size = 36, GlyphSize = 16, AccessibleName = "Audioausgabe wählen" },
+                    new ButtonWidget("timer") { Glyph = Glyphs.Stopwatch, Size = 36, GlyphSize = 16, AccessibleName = "Timer und Stoppuhr" })
+                {
+                    Grow = 1,
+                },
+                new StackWidget(
+                    new ButtonWidget("previous") { Glyph = Glyphs.Previous, Size = 36, GlyphSize = 16, AccessibleName = "Vorheriger Titel" },
                     new ButtonWidget("toggle")
                     {
                         Glyph = _isPlaying ? Glyphs.Pause : Glyphs.Play,
                         Kind = ButtonKind.Primary,
-                        Size = 52,
+                        Size = 44,
+                        GlyphSize = 16,
                         AccessibleName = _isPlaying ? "Pause" : "Wiedergabe",
                     },
-                    new ButtonWidget("next") { Glyph = Glyphs.Next, GlyphSize = 18, AccessibleName = "Nächster Titel" })
+                    new ButtonWidget("next") { Glyph = Glyphs.Next, Size = 36, GlyphSize = 16, AccessibleName = "Nächster Titel" })
                 {
-                    Spacing = 14,
+                    Spacing = 8,
                 },
-                new ButtonWidget("mixer") { Glyph = Glyphs.Volume, GlyphColor = BrimColors.Slate, AccessibleName = "Lautstärke" })
+                new StackWidget(
+                    new ButtonWidget("mixer") { Glyph = Glyphs.Volume, Size = 36, GlyphSize = 16, AccessibleName = "Lautstärke" })
+                {
+                    Justify = Justify.End,
+                    Grow = 1,
+                })
             {
-                Justify = Justify.SpaceBetween,
+                Spacing = 8,
             })
         {
             Orientation = StackOrientation.Vertical,
-            Spacing = 14,
+            Spacing = 12,
             Align = CrossAlign.Stretch,
         };
 

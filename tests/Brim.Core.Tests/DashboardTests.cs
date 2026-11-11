@@ -256,7 +256,7 @@ public class IdleLayoutTests
         Assert.Equal(2, changes);
         Assert.Null(hub.Status(StatusKeys.Date));
 
-        Assert.Equal([StatusKeys.Load, StatusKeys.Battery, StatusKeys.NotificationDot], new NotchDisplaySettings { Load = true, Battery = true }.EnabledStatus());
+        Assert.Equal([StatusKeys.QuietHours, StatusKeys.Load, StatusKeys.Battery, StatusKeys.NotificationDot], new NotchDisplaySettings { Load = true, Battery = true }.EnabledStatus());
     }
 
     [Fact]

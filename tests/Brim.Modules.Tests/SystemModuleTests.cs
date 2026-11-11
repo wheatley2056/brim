@@ -134,18 +134,19 @@ public class ResourcesModuleTests
     }
 
     [Fact]
-    public async Task Publishes_cards_for_both_columns()
+    public async Task Publishes_metric_cards_in_one_row()
     {
         await Start();
         _module.OnTabVisibilityChanged(NotchTab.System, true);
         _time.Advance(TimeSpan.FromSeconds(1));
 
         var views = _hub.Views(NotchTab.System);
-        Assert.Equal(["resources/meters", "resources/processes"], views.Select(v => v.Key));
-        Assert.Equal(TabColumn.Side, views[1].Column);
-        var texts = Texts(views[0].Content).ToList();
-        Assert.Contains("4,0 / 16,0", texts.Select(t => t.Replace('.', ',')));
-        Assert.Contains(Texts(views[1].Content), t => t == "Brim");
+        Assert.Equal(["resources/processes", "resources/cpu", "resources/gpu", "resources/memory", "resources/disk", "resources/network"], views.Select(v => v.Key));
+        Assert.Equal(TabColumn.Main, views[0].Column);
+        Assert.Contains(Texts(views[0].Content), t => t.StartsWith("Brim", StringComparison.Ordinal));
+        Assert.All(views.Skip(1), v => Assert.Equal(TabColumn.Cards, v.Column));
+        var texts = Texts(views[3].Content).Select(t => t.Replace('.', ',')).ToList();
+        Assert.Equal(["RAM", "25 %", "4,0 von 16 GB"], texts);
     }
 
     [Fact]
@@ -154,9 +155,8 @@ public class ResourcesModuleTests
         await Start();
         _module.OnTabVisibilityChanged(NotchTab.System, true);
         _time.Advance(TimeSpan.FromSeconds(1));
-        var meters = _hub.Views(NotchTab.System)[0].Content;
-        Assert.Contains("detail:cpu", WidgetTree.All(meters).OfType<StackWidget>().Select(w => w.ActionId));
-        Assert.Contains("detail:disk", WidgetTree.All(meters).OfType<StackWidget>().Select(w => w.ActionId));
+        var actions = _hub.Views(NotchTab.System).SelectMany(v => WidgetTree.All(v.Content)).OfType<StackWidget>().Select(w => w.ActionId).ToList();
+        Assert.Equal(["detail:cpu", "detail:cpu", "detail:gpu", "detail:memory", "detail:disk", "detail:network"], actions);
 
         _module.OnAction(new ActionInvocation(ResourcesModule.ModuleId, "detail:cpu"));
         var detail = Assert.Single(_hub.Views(NotchTab.System), v => v.IsDetail);

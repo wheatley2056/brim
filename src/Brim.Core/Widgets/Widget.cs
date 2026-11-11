@@ -54,6 +54,8 @@ public enum TextStyle
     Display,
     /// <summary>Werte neben der Uhr in der ruhenden Notch: Schrift der Uhr, 12 px, Slate, Ziffern gleich breit.</summary>
     Status,
+    /// <summary>Messwert in einer Karte: 16 px / 600, Fog, Ziffern gleich breit (Akku, CPU …).</summary>
+    Value,
 }
 
 public sealed record TextWidget(string Text) : Widget
@@ -65,6 +67,9 @@ public sealed record TextWidget(string Text) : Widget
 
     /// <summary>Über mehrere Zeilen umbrechen statt abschneiden (z. B. Changelog).</summary>
     public bool Wrap { get; init; }
+
+    /// <summary>Mittig in der verfügbaren Breite (z. B. unter einer Kachel).</summary>
+    public bool Centered { get; init; }
 }
 
 /// <summary>Symbol aus Segoe Fluent Icons (Fallback: Segoe MDL2 Assets).</summary>
@@ -97,6 +102,9 @@ public sealed record ProgressWidget(double Value) : Widget
 
     /// <summary>Beim Ziehen laufend melden (Lautstärke) oder erst beim Loslassen (Spulen).</summary>
     public bool Live { get; init; } = true;
+
+    /// <summary>Griff wie beim Schieberegler von Windows 11 (runder Knopf mit Punkt in der Akzentfarbe).</summary>
+    public bool Thumb { get; init; }
 }
 
 public sealed record RingWidget(double Value) : Widget
@@ -158,6 +166,11 @@ public enum ButtonKind
     Row,
     /// <summary>Runder Symbolknopf auf eigener Fläche (Schnellzugriff); <c>Selected</c> füllt ihn in der Akzentfarbe.</summary>
     Round,
+    /// <summary>
+    /// Kachel wie in den Windows-Schnelleinstellungen: so breit wie der Platz, <c>Size</c> hoch, Radius 6.
+    /// <c>Selected</c> füllt sie in der Akzentfarbe, sonst Kartenfläche mit feinem Rand.
+    /// </summary>
+    Tile,
 }
 
 public sealed record ButtonWidget(string ActionId) : Widget

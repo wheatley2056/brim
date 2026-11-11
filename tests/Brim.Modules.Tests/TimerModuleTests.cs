@@ -144,13 +144,13 @@ public class BluetoothModuleTests
         source.Connect(new BluetoothGadget("2", "AirPods Pro", 80), initial: false);
         source.Update(new BluetoothGadget("1", "MX Master 3S", 55));
 
-        var card = Assert.Single(hub.Views(NotchTab.System));
-        Assert.Equal(TabColumn.Side, card.Column);
-        var texts = Brim.Core.Widgets.WidgetTree.All(card.Content).OfType<TextWidget>().Select(t => t.Text).ToList();
-        Assert.Equal(["Bluetooth", "AirPods Pro", "80 %", "MX Master 3S", "55 %"], texts);
+        // Die Geräte stehen unter der Kachel Bluetooth (Schnelleinstellungen), nicht in einer eigenen Karte.
+        Assert.Empty(hub.Views(NotchTab.System));
+        Assert.Equal(["AirPods Pro", "MX Master 3S"], module.Connected.Select(g => g.Name));
+        Assert.Equal("AirPods Pro · 80 % +1", BluetoothModule.Summary(module.Connected));
 
         source.Disconnect("1");
         source.Disconnect("2");
-        Assert.Empty(hub.Views(NotchTab.System));
+        Assert.Null(BluetoothModule.Summary(module.Connected));
     }
 }

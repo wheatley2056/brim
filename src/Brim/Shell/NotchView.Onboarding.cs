@@ -304,7 +304,6 @@ public sealed partial class NotchView
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Top,
             Visibility = Visibility.Collapsed,
-            RequestedTheme = ElementTheme.Dark,
         };
         _onboardingLayer.RowDefinitions.Add(new RowDefinition());
         _onboardingLayer.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });

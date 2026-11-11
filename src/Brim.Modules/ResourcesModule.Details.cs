@@ -218,7 +218,7 @@ public sealed partial class ResourcesModule
         Align = CrossAlign.Stretch,
         Spacing = 6,
         Background = BrimColors.Graphite,
-        CornerRadius = 14,
+        CornerRadius = 8,
         Padding = (12, 10, 12, 10),
         Grow = 1,
     };
@@ -257,7 +257,7 @@ public sealed partial class ResourcesModule
             Align = CrossAlign.Stretch,
             Spacing = 5,
             Background = BrimColors.Graphite,
-            CornerRadius = 14,
+            CornerRadius = 8,
             Padding = (12, 10, 12, 10),
             Grow = 1,
         };

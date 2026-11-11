@@ -306,6 +306,12 @@ internal sealed class SettingsPage : UserControl
         p.Children.Add(Choice("Material", "Acryl zeigt den Desktop weichgezeichnet, Mica und Mica Alt sind aus dem Hintergrundbild getönt (Windows 11). Braucht etwas mehr Grafikleistung.",
             [("Schwarz", NotchMaterial.Black), ("Acryl", NotchMaterial.Acrylic), ("Mica", NotchMaterial.Mica), ("Mica Alt", NotchMaterial.MicaAlt)],
             a.Material, v => a.Material = v));
+        p.Children.Add(Choice("Hell oder dunkel", "„Wie Windows“ folgt dem Modus der Taskleiste. Hell gibt es nur mit Acryl oder Mica, Schwarz bleibt dunkel.",
+            [("Wie Windows", NotchTheme.System), ("Dunkel", NotchTheme.Dark), ("Hell", NotchTheme.Light)],
+            a.Theme, v => a.Theme = v));
+        p.Children.Add(Choice("Akzentfarbe", "Für Fortschritt, Schalter, den aktiven Tab und den Wiedergabe-Knopf.",
+            [("Wie Windows", AccentSource.Windows), ("Vom Cover der Musik", AccentSource.Cover), ("Pfirsich (Brim)", AccentSource.Brim)],
+            a.Accent, v => a.Accent = v));
         p.Children.Add(Slider("Größe (%)", NotchGeometry.MinSize * 100, NotchGeometry.MaxSize * 100, 5, a.Size * 100,
             v => a.Size = Math.Round(v) / 100));
         var preview = new Button { Content = "Aufklappen" };

@@ -39,6 +39,7 @@ internal sealed partial class NotchWindow : WindowEx
     private double _dpiScale = 1;
     private bool? _glass;
     private NotchMaterial? _material;
+    private bool _light;
     private double _glassUntil;
 
     /// <summary>Material als geglättete Vektorform; null bei Schwarz oder im Rückfall über die Fensterregion.</summary>
@@ -223,14 +224,19 @@ internal sealed partial class NotchWindow : WindowEx
         }
 
         var appearance = _settings.Current.Appearance.Clamped();
+        // Wie Windows aussieht: Material (falls das System es kann), hell/dunkel wie die Taskleiste, Akzentfarbe.
+        var effective = WindowsLook.Effective(appearance.Material);
+        var light = ThemePalette.IsLight(appearance.Theme, effective, WindowsLook.SystemUsesLight);
+        Brushes.Configure(light, appearance.Accent == AccentSource.Windows ? WindowsLook.Accent(light) : null);
         View.ApplyAppearance(appearance);
-        if (_material != appearance.Material)
+        if (_material != effective || _light != light)
         {
             // Jedes Windows-Material scheint nur im Umriss durch (Region wie bei Glas).
-            _material = appearance.Material;
-            _glass = appearance.Material != NotchMaterial.Black;
-            UseMaterial(appearance.Material);
-            View.SetMaterial(appearance.Material);
+            _material = effective;
+            _light = light;
+            _glass = effective != NotchMaterial.Black;
+            UseMaterial(effective);
+            View.SetMaterial(effective, light);
             _regionTarget = default;
         }
         // Neue Form sofort zeigen, nicht erst bei der nächsten Aktivität.
@@ -637,7 +643,7 @@ internal sealed partial class NotchWindow : WindowEx
             {
                 VectorMaterialGuard.Begin();
                 Win32.UseHostBackdrop(Handle);
-                var layer = new MaterialLayer(material, Handle, DispatcherQueue);
+                var layer = new MaterialLayer(material, _light, Handle, DispatcherQueue);
                 layer.Attached += VectorMaterialGuard.Attached;
                 layer.Failed += () => DispatcherQueue.TryEnqueue(() =>
                 {
@@ -662,7 +668,7 @@ internal sealed partial class NotchWindow : WindowEx
                 _vectorMaterialFailed = true;
             }
         }
-        SystemBackdrop = new MaterialBackdrop(material);
+        SystemBackdrop = new MaterialBackdrop(material, _light);
     }
 
     /// <summary>
@@ -670,7 +676,7 @@ internal sealed partial class NotchWindow : WindowEx
     /// Fenster, nicht im Rand der Zeichenfläche – ohne ihn lag das Glas 6 DIP über der Insel.
     /// </summary>
     private void UpdateMaterialLayer() =>
-        _materialLayer?.Update(NotchGeometry.Outline(View.CurrentShape, View.BeadCount, NotchGeometry.Gap(View.Form)), _scale);
+        _materialLayer?.Update(View.CurrentShape, View.BeadCount, NotchGeometry.Gap(View.Form), _scale);
 
     /// <summary>Bei Glas genau der gezeichnete Umriss, sonst schiene das Acryl um die Notch herum durch.</summary>
     private void ApplyGlassRegion() =>

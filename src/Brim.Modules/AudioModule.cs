@@ -9,7 +9,8 @@ namespace Brim.Modules;
 /// Audio: Lautstärke-HUD (A3) und die Menüs „Audioausgabe“ und „Lautstärke“ (Gesamt und pro App).
 /// Andere Module öffnen die Menüs über <see cref="ShowOutput"/> und <see cref="ShowMixer"/>.
 /// Ein offenes Menü ist eine Hintergrund-Aktivität mit hohem Rang: Es belegt die kompakte Notch
-/// nicht, steht aufgeklappt aber im Tab „Jetzt“ vorn.
+/// nicht, steht aufgeklappt aber im Tab „Jetzt“ vorn. Im Tab „System“ steht ein Lautstärkeregler wie im
+/// Windows-Flyout, rechts das Ausgabegerät; ein Klick darauf zeigt die Geräte dort als Detailansicht.
 /// </summary>
 public sealed class AudioModule : IBrimModule
 {
@@ -29,6 +30,8 @@ public sealed class AudioModule : IBrimModule
     private ModuleContext? _context;
     private ITimer? _ticker;
     private Panel _panel;
+    private bool _outputDetail;
+    private string? _deviceName;
 
     public AudioModule(AudioService audio)
     {
@@ -43,6 +46,8 @@ public sealed class AudioModule : IBrimModule
         _context = context;
         _audio.MasterChanged += OnMasterChanged;
         _audio.DevicesChanged += PublishPanel;
+        _audio.DevicesChanged += OnDevicesChanged;
+        OnDevicesChanged();
         // Im Mixer kommen und gehen Apps; einmal pro Sekunde nachsehen, aber nur, solange er offen ist.
         _ticker = context.Time.CreateTimer(_ =>
         {
@@ -71,6 +76,7 @@ public sealed class AudioModule : IBrimModule
     private void OnMasterChanged(float volume, bool muted)
     {
         PublishPanel();
+        PublishSystem();
 
         var level = (int)Math.Round(volume * 100);
         muted |= level == 0;
@@ -89,6 +95,67 @@ public sealed class AudioModule : IBrimModule
                 Padding = (18, 0, 18, 0),
             },
         });
+    }
+
+    // ───────── Tab „System“ ─────────
+
+    /// <summary>Geräte nur bei Änderungen abfragen, nicht bei jedem Schritt der Lautstärke.</summary>
+    private void OnDevicesChanged()
+    {
+        _deviceName = _audio.Devices().FirstOrDefault(d => d.IsDefault)?.Name;
+        PublishSystem();
+    }
+
+    private void PublishSystem()
+    {
+        if (_context is not { } context)
+        {
+            return;
+        }
+        var (volume, muted) = _audio.Master;
+        context.SetView("volume", VolumeSlider(volume, muted, _deviceName), order: -4);
+        if (_outputDetail)
+        {
+            context.SetDetail("output", OutputView("output:close"));
+        }
+    }
+
+    /// <summary>Lautstärkeregler mit Ausgabegerät daneben, wie im Lautstärke-Flyout von Windows 11.</summary>
+    public static Widget VolumeSlider(float volume, bool muted, string? device)
+    {
+        var level = (int)Math.Round(volume * 100);
+        var children = new List<Widget>
+        {
+            new ButtonWidget("master:mute")
+            {
+                Glyph = GlyphFor(volume, muted),
+                Size = 22,
+                GlyphSize = 18,
+                AccessibleName = muted ? "Ton einschalten" : "Stummschalten",
+            },
+            new ProgressWidget(muted ? 0 : volume)
+            {
+                SeekActionId = "master",
+                Thumb = true,
+                Grow = 1,
+                AccessibleName = muted ? "Lautstärke, stumm" : $"Lautstärke {level}",
+            },
+        };
+        if (device is not null)
+        {
+            children.Add(new StackWidget(
+                new TextWidget(device) { FontSize = 12, FixedWidth = device.Length > 18 ? 110 : null },
+                new IconWidget(Glyphs.ChevronDown) { Size = 10 })
+            {
+                Spacing = 6,
+                ActionId = "output:open",
+                Background = BrimColors.Graphite,
+                CornerRadius = 4,
+                Padding = (8, 4, 8, 4),
+                AccessibleName = $"Ausgabegerät: {device}. Ändern",
+            });
+        }
+        return new StackWidget(children) { Spacing = 14 };
     }
 
     // ───────── Menüs ─────────
@@ -124,16 +191,17 @@ public sealed class AudioModule : IBrimModule
         }
     }
 
-    private static Widget PanelHeader(string title) =>
+    private static Widget PanelHeader(string title, string backAction = "back") =>
         new StackWidget(
-            new ButtonWidget("back") { Glyph = Glyphs.Back, Size = 28, GlyphSize = 12, AccessibleName = "Zurück" },
+            new ButtonWidget(backAction) { Glyph = Glyphs.Back, Size = 28, GlyphSize = 12, AccessibleName = "Zurück" },
             new TextWidget(title) { Style = TextStyle.Title, FontSize = 15, Grow = 1 })
         {
             Spacing = 6,
         };
 
     /// <summary>Ausgabegeräte; ein Klick macht das Gerät zum Standard.</summary>
-    private Widget OutputView()
+    /// <param name="backAction">Aktion des Zurück-Knopfs (Menü in „Jetzt“ oder Detailansicht in „System“).</param>
+    private Widget OutputView(string backAction = "back")
     {
         var rows = _audio.Devices().Select(d => (Widget)new ButtonWidget("device:" + d.Id)
         {
@@ -148,7 +216,7 @@ public sealed class AudioModule : IBrimModule
             rows.Add(new TextWidget("Kein Ausgabegerät gefunden.") { Style = TextStyle.Secondary });
         }
         return new StackWidget(
-            PanelHeader("Audioausgabe"),
+            PanelHeader("Audioausgabe", backAction),
             new ListWidget(rows) { Spacing = 2, Scrollable = true, Grow = 1 })
         {
             Orientation = StackOrientation.Vertical,
@@ -214,6 +282,13 @@ public sealed class AudioModule : IBrimModule
             case "back":
                 ShowPanel(Panel.None);
                 return;
+            case "output:open":
+                _outputDetail = true;
+                PublishSystem();
+                return;
+            case "output:close":
+                CloseOutputDetail();
+                return;
             case "master:mute":
                 _audio.ToggleMasterMute();
                 break;
@@ -239,6 +314,13 @@ public sealed class AudioModule : IBrimModule
         }
         // Änderungen sofort zeigen (Gesamtlautstärke kommt zusätzlich über das Ereignis).
         PublishPanel();
+        PublishSystem();
+    }
+
+    private void CloseOutputDetail()
+    {
+        _outputDetail = false;
+        _context?.RemoveView("output");
     }
 
     private async Task SwitchDeviceAsync(string deviceId)
@@ -257,6 +339,10 @@ public sealed class AudioModule : IBrimModule
         {
             ShowPanel(Panel.None);
         }
+        if (!expanded && _outputDetail)
+        {
+            CloseOutputDetail();
+        }
     }
 
     public ValueTask DisposeAsync()
@@ -264,6 +350,7 @@ public sealed class AudioModule : IBrimModule
         _ticker?.Dispose();
         _audio.MasterChanged -= OnMasterChanged;
         _audio.DevicesChanged -= PublishPanel;
+        _audio.DevicesChanged -= OnDevicesChanged;
         return ValueTask.CompletedTask;
     }
 }

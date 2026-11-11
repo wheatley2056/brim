@@ -18,7 +18,13 @@ public sealed partial class NotchView
     private static readonly Spring TabSpring = new(0.34, 0.78);
     private const float TabHeight = 24;
 
+    /// <summary>Strich unter dem aktiven Tab in der Akzentfarbe, wie in Windows 11 (Breite und Höhe in DIP).</summary>
+    private const float MarkWidth = 16, MarkHeight = 3;
+
     private CompositionRoundedRectangleGeometry? _tabGeometry;
+    private CompositionRoundedRectangleGeometry? _tabMark;
+    private CompositionColorBrush? _tabFill;
+    private CompositionColorBrush? _tabMarkFill;
     private readonly SpringChannel _tabX = new(0);
     private readonly SpringChannel _tabWidth = new(0);
     private NotchTab? _indicatorTab;
@@ -28,15 +34,40 @@ public sealed partial class NotchView
         var visual = compositor.CreateShapeVisual();
         visual.Size = new Vector2(600, TabHeight);
         _tabGeometry = compositor.CreateRoundedRectangleGeometry();
-        _tabGeometry.CornerRadius = new Vector2(TabHeight / 2);
+        // Segmente wie in Windows 11: 4 DIP Radius statt Pille.
+        _tabGeometry.CornerRadius = new Vector2(4);
         _tabGeometry.Size = new Vector2(0, TabHeight);
+        _tabFill = compositor.CreateColorBrush(Brushes.Parse(Brushes.Resolve(BrimColors.Track)));
         var shape = compositor.CreateSpriteShape(_tabGeometry);
-        shape.FillBrush = compositor.CreateColorBrush(Brushes.Parse(BrimColors.Track));
+        shape.FillBrush = _tabFill;
         visual.Shapes.Add(shape);
+        _tabMark = compositor.CreateRoundedRectangleGeometry();
+        _tabMark.CornerRadius = new Vector2(MarkHeight / 2);
+        _tabMark.Size = new Vector2(MarkWidth, MarkHeight);
+        _tabMarkFill = compositor.CreateColorBrush(Brushes.Parse(Brushes.Resolve(BrimColors.DefaultAccent)));
+        var mark = compositor.CreateSpriteShape(_tabMark);
+        mark.FillBrush = _tabMarkFill;
+        visual.Shapes.Add(mark);
         ElementCompositionPreview.SetElementChildVisual(TabIndicatorHost, visual);
 
         // Erst nach dem Layout kennt man die Breiten; dann ohne Animation an die richtige Stelle.
         TabStrip.SizeChanged += (_, _) => PlaceTabIndicator(animate: false);
+    }
+
+    /// <summary>Hell/dunkel oder Akzentfarbe geändert: Auswahl und Strich neu einfärben.</summary>
+    private void ApplyTabColors()
+    {
+        if (_tabFill is not null)
+        {
+            // Hell: weißes Segment auf grauer Spur, wie die Segmente in Windows 11.
+            _tabFill.Color = Brushes.Parse(Brushes.IsLight ? "#FFFFFF" : "#14FFFFFF");
+        }
+        // Spur: dunkel 25 % Schwarz, hell 5 % Schwarz (Design „Windows-11-nativ“).
+        TabTrack.Background = Brushes.Get("#40000000|#0D000000");
+        if (_tabMarkFill is not null)
+        {
+            _tabMarkFill.Color = Brushes.Parse(Brushes.Resolve(BrimColors.DefaultAccent));
+        }
     }
 
     private Button TabButton(NotchTab tab) => tab switch
@@ -65,6 +96,8 @@ public sealed partial class NotchView
         }
     }
 
+    private static Vector2 MarkOffset(double x, double width) => new((float)(x + (width - MarkWidth) / 2), TabHeight - MarkHeight);
+
     private void PlaceTabIndicator(bool animate)
     {
         if (_tabGeometry is null || _indicatorTab is not { } tab)
@@ -88,6 +121,11 @@ public sealed partial class NotchView
             _tabGeometry.StopAnimation("Size");
             _tabGeometry.Offset = new Vector2((float)x, 0);
             _tabGeometry.Size = new Vector2((float)width, TabHeight);
+            if (_tabMark is not null)
+            {
+                _tabMark.StopAnimation("Offset");
+                _tabMark.Offset = MarkOffset(x, width);
+            }
             return;
         }
 
@@ -99,5 +137,8 @@ public sealed partial class NotchView
             t => new Vector2((float)(t >= _tabX.Duration ? x : TabSpring.Evaluate(fromX, x, vx, t).Value), 0)));
         _tabGeometry.StartAnimation("Size", NotchSurface.CreateCurve2(compositor, length,
             t => new Vector2((float)(t >= _tabWidth.Duration ? width : TabSpring.Evaluate(fromW, width, vw, t).Value), TabHeight)));
+        _tabMark?.StartAnimation("Offset", NotchSurface.CreateCurve2(compositor, length, t => MarkOffset(
+            t >= _tabX.Duration ? x : TabSpring.Evaluate(fromX, x, vx, t).Value,
+            t >= _tabWidth.Duration ? width : TabSpring.Evaluate(fromW, width, vw, t).Value)));
     }
 }

@@ -143,8 +143,9 @@ public sealed partial class NotchView : UserControl
         ArrangeIdle();
 
         // Detailansicht (z. B. CPU) im Tab: Die Notch wird höher.
-        _tall = p.Mode == NotchMode.Expanded && !_settingsOpen && p.Tab is NotchTab.System or NotchTab.Plugins
-            && _hub.Views(p.Tab).Any(v => v.IsDetail);
+        // Der Tab „System“ ist immer hoch (Kacheln, Regler, Messwerte wie im Design „Windows-11-nativ“).
+        _tall = p.Mode == NotchMode.Expanded && !_settingsOpen
+            && (p.Tab == NotchTab.System || (p.Tab == NotchTab.Plugins && _hub.Views(p.Tab).Any(v => v.IsDetail)));
         // Die Galerie von „Jetzt“ braucht ebenfalls die hohe Notch.
         _tall |= p.Mode == NotchMode.Expanded && !_settingsOpen && p.Tab == NotchTab.Now && _board?.IsGalleryOpen == true;
 
@@ -232,7 +233,8 @@ public sealed partial class NotchView : UserControl
         CanvasRoot.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0);
         CanvasRoot.RenderTransform = appearance.Size == 1 ? null : new Microsoft.UI.Xaml.Media.ScaleTransform { ScaleX = appearance.Size, ScaleY = appearance.Size };
 
-        // Farben: die Uhr sofort, Widgets beim nächsten Zeichnen.
+        // Farben: die Uhr sofort, Widgets beim nächsten Zeichnen; Akzentfarbe der Tabs.
+        ApplyTabColors();
         WidgetRenderer.Palette = appearance.Colors;
         SharedClock.Foreground = Brushes.Get(appearance.Colors.Clock);
 
@@ -256,8 +258,15 @@ public sealed partial class NotchView : UserControl
         remove => _surface.VisibleChanging -= value;
     }
 
-    public void SetMaterial(NotchMaterial material) => _surface.SetGlass(material != NotchMaterial.Black,
-        material is NotchMaterial.Mica or NotchMaterial.MicaAlt ? (byte)0x28 : NotchSurface.GlassTint);
+    /// <summary>Material und hell/dunkel: Füllung und Rand der Form, Standard-Steuerelemente, Unschärfe.</summary>
+    public void SetMaterial(NotchMaterial material, bool light = false)
+    {
+        _surface.SetGlass(material != NotchMaterial.Black,
+            material is NotchMaterial.Mica or NotchMaterial.MicaAlt ? (byte)0x28 : NotchSurface.GlassTint, light);
+        RequestedTheme = light ? ElementTheme.Light : ElementTheme.Dark;
+        ApplyTabColors();
+        _blurBrush.Properties.InsertColor("Base.Color", light ? Windows.UI.Color.FromArgb(255, 0xF3, 0xF3, 0xF3) : Microsoft.UI.Colors.Black);
+    }
 
     /// <summary>Eine Formänderung beginnt und dauert so lange (auch das Anschwellen beim Hover).</summary>
     public event Action<TimeSpan>? Morphing;
@@ -325,7 +334,7 @@ public sealed partial class NotchView : UserControl
             Mode = CanvasComposite.SourceOver,
             Sources =
             {
-                new ColorSourceEffect { Color = Microsoft.UI.Colors.Black },
+                new ColorSourceEffect { Name = "Base", Color = Microsoft.UI.Colors.Black },
                 new GaussianBlurEffect
                 {
                     Name = "Blur",
@@ -336,7 +345,7 @@ public sealed partial class NotchView : UserControl
                 },
             },
         };
-        var brush = compositor.CreateEffectFactory(effect, ["Blur.BlurAmount"]).CreateBrush();
+        var brush = compositor.CreateEffectFactory(effect, ["Blur.BlurAmount", "Base.Color"]).CreateBrush();
         brush.SetSourceParameter("Backdrop", compositor.CreateBackdropBrush());
 
         var sprite = compositor.CreateSpriteVisual();

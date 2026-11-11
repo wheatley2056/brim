@@ -22,8 +22,8 @@
     <FontFamily x:Key="NotchTextFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="NotchTitleFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="NotchDisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
-    <FontFamily x:Key="NotchMonoFont">Cascadia Mono, Consolas</FontFamily>
-    <FontFamily x:Key="NotchClockFont">Cascadia Mono, Consolas</FontFamily>
+    <FontFamily x:Key="NotchMonoFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <FontFamily x:Key="NotchClockFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="NotchIconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
     <!-- Runder Knopf ohne Fokusrahmen-Spielereien; Hover/Pressed nur über die Deckkraft der Fläche. -->
@@ -85,8 +85,8 @@
     <!-- Tabs „Jetzt · Ablage · System · Plugins“ als Pillen. -->
     <Style x:Key="NotchTabStyle" TargetType="Button" BasedOn="{StaticResource NotchButtonStyle}">
         <Setter Property="Height" Value="24" />
-        <Setter Property="Padding" Value="14,0,14,1" />
-        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="12,0,12,1" />
+        <Setter Property="CornerRadius" Value="4" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="FontFamily" Value="{StaticResource NotchTextFont}" />
         <Setter Property="FontSize" Value="12" />

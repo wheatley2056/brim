@@ -42,6 +42,8 @@ internal sealed class NotchWindowManager : IDisposable
 
         _hub.Changed += QueueRefresh;
         _settings.Changed += _ => dispatcher.TryEnqueue(Build);
+        // Hell/Dunkel und Akzentfarbe von Windows: die Notch folgt sofort, wie Taskleiste und Startmenü.
+        WindowsLook.Changed += () => dispatcher.TryEnqueue(Build);
 
         _watcher = DisplayArea.CreateWatcher();
         _watcher.Added += (_, _) => QueueRebuild();
