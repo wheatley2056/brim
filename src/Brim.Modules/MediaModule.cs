@@ -346,21 +346,34 @@ public sealed class MediaModule : IBrimModule
                 Spacing = 4,
                 Align = CrossAlign.Stretch,
             },
+            // Drei gleich breite Spalten, damit die Wiedergabe mittig bleibt: links Ausgabe und Timer, rechts Lautstärke.
             new StackWidget(
-                new ButtonWidget("output") { Glyph = Glyphs.Speakers, Size = 36, GlyphSize = 16, AccessibleName = "Audioausgabe wählen" },
-                new SpacerWidget { Grow = 1 },
-                new ButtonWidget("previous") { Glyph = Glyphs.Previous, Size = 36, GlyphSize = 16, AccessibleName = "Vorheriger Titel" },
-                new ButtonWidget("toggle")
+                new StackWidget(
+                    new ButtonWidget("output") { Glyph = Glyphs.Speakers, Size = 36, GlyphSize = 16, AccessibleName = "Audioausgabe wählen" },
+                    new ButtonWidget("timer") { Glyph = Glyphs.Stopwatch, Size = 36, GlyphSize = 16, AccessibleName = "Timer und Stoppuhr" })
                 {
-                    Glyph = _isPlaying ? Glyphs.Pause : Glyphs.Play,
-                    Kind = ButtonKind.Primary,
-                    Size = 44,
-                    GlyphSize = 16,
-                    AccessibleName = _isPlaying ? "Pause" : "Wiedergabe",
+                    Grow = 1,
                 },
-                new ButtonWidget("next") { Glyph = Glyphs.Next, Size = 36, GlyphSize = 16, AccessibleName = "Nächster Titel" },
-                new SpacerWidget { Grow = 1 },
-                new ButtonWidget("mixer") { Glyph = Glyphs.Volume, Size = 36, GlyphSize = 16, AccessibleName = "Lautstärke" })
+                new StackWidget(
+                    new ButtonWidget("previous") { Glyph = Glyphs.Previous, Size = 36, GlyphSize = 16, AccessibleName = "Vorheriger Titel" },
+                    new ButtonWidget("toggle")
+                    {
+                        Glyph = _isPlaying ? Glyphs.Pause : Glyphs.Play,
+                        Kind = ButtonKind.Primary,
+                        Size = 44,
+                        GlyphSize = 16,
+                        AccessibleName = _isPlaying ? "Pause" : "Wiedergabe",
+                    },
+                    new ButtonWidget("next") { Glyph = Glyphs.Next, Size = 36, GlyphSize = 16, AccessibleName = "Nächster Titel" })
+                {
+                    Spacing = 8,
+                },
+                new StackWidget(
+                    new ButtonWidget("mixer") { Glyph = Glyphs.Volume, Size = 36, GlyphSize = 16, AccessibleName = "Lautstärke" })
+                {
+                    Justify = Justify.End,
+                    Grow = 1,
+                })
             {
                 Spacing = 8,
             })

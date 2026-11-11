@@ -94,38 +94,25 @@ public sealed partial class BluetoothModule : IBrimModule
         PublishCard();
     }
 
-    private void PublishCard()
+    /// <summary>
+    /// Verbundene Geräte stehen im Tab „System“ unter der Kachel Bluetooth (<see cref="QuickSettingsModule"/>),
+    /// wie in den Schnelleinstellungen von Windows.
+    /// </summary>
+    private void PublishCard() => GadgetsChanged?.Invoke();
+
+    /// <summary>Verbundene Geräte oder ihr Akku haben sich geändert (beliebiger Thread).</summary>
+    public event Action? GadgetsChanged;
+
+    /// <summary>„AirPods Pro · 80 %“, bei mehreren „+1“; ohne Gerät <c>null</c>.</summary>
+    public static string? Summary(IReadOnlyList<BluetoothGadget> gadgets)
     {
-        if (_context is not { } context)
-        {
-            return;
-        }
-        var gadgets = Connected;
         if (gadgets.Count == 0)
         {
-            context.RemoveView("card");
-            return;
+            return null;
         }
-        // Messwert-Karte neben Akku, CPU … (Design „Windows-11-nativ“): Akku des ersten Geräts groß, darunter sein Name.
-        var first = gadgets[0];
-        var name = gadgets.Count > 1 ? $"{first.Name} +{gadgets.Count - 1}" : first.Name;
-        context.SetView("card", new StackWidget(
-            new TextWidget("Bluetooth") { Style = TextStyle.Secondary, FontSize = 12 },
-            new TextWidget(first.BatteryPercent is { } percent ? $"{percent} %" : "Verbunden")
-            {
-                Style = TextStyle.Value,
-                Color = first.BatteryPercent is <= 20 ? BrimColors.Warning : null,
-            },
-            new TextWidget(name) { Style = TextStyle.Secondary, FontSize = 12 })
-        {
-            Orientation = StackOrientation.Vertical,
-            Spacing = 4,
-            Align = CrossAlign.Stretch,
-            Background = BrimColors.Graphite,
-            CornerRadius = 8,
-            Padding = (12, 10, 12, 10),
-            AccessibleName = string.Join(", ", gadgets.Select(g => g.BatteryPercent is { } b ? $"{g.Name}, Akku {b} %" : g.Name)),
-        }, column: TabColumn.Cards, order: 20);
+        var first = gadgets.FirstOrDefault(g => g.BatteryPercent is not null) ?? gadgets[0];
+        var text = first.BatteryPercent is { } percent ? $"{first.Name} · {percent} %" : first.Name;
+        return gadgets.Count > 1 ? $"{text} +{gadgets.Count - 1}" : text;
     }
 
     private void OnConnected(BluetoothGadget gadget, bool initial)

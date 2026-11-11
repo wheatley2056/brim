@@ -1,5 +1,6 @@
 using Brim.Core;
 using Brim.Core.Widgets;
+using Brim.Modules.Nearby;
 using Brim.Modules.Sensors;
 using Windows.Devices.Radios;
 using Windows.Networking.Connectivity;
@@ -34,23 +35,32 @@ public interface IQuickSettingsSource : IDisposable
 /// teilen sich die volle Breite; unter WLAN steht der Name des verbundenen Netzes.
 /// WLAN und Bluetooth schaltet Brim selbst (<see cref="Radio"/>). Für Nicht stören und Energiesparen gibt es
 /// keine öffentliche Schnittstelle zum Schalten; ein Klick öffnet dort die Seite der Windows-Einstellungen.
+/// Fokus startet eine Sitzung von 30 Minuten (ab Windows 11 22H2), „Brims in der Nähe“ schaltet die
+/// Sichtbarkeit im Netz für Teilen in der Nähe.
 /// </summary>
 public sealed class QuickSettingsModule : IBrimModule
 {
     public const string ModuleId = "quick";
 
     private readonly Func<IQuickSettingsSource> _createSource;
+    private readonly NearbyService? _nearby;
+    private readonly BluetoothModule? _bluetooth;
     private IQuickSettingsSource? _source;
     private ModuleContext? _context;
     private ITimer? _poll;
 
-    public QuickSettingsModule() : this(() => new WindowsQuickSettings())
+    /// <param name="nearby">Teilen im Netz für die Kachel „Brims in der Nähe“; ohne fehlt die Kachel.</param>
+    /// <param name="bluetooth">Verbundene Geräte für den Text unter der Kachel Bluetooth.</param>
+    public QuickSettingsModule(NearbyService? nearby = null, BluetoothModule? bluetooth = null)
+        : this(() => new WindowsQuickSettings(), nearby, bluetooth)
     {
     }
 
-    public QuickSettingsModule(Func<IQuickSettingsSource> createSource)
+    public QuickSettingsModule(Func<IQuickSettingsSource> createSource, NearbyService? nearby = null, BluetoothModule? bluetooth = null)
     {
         _createSource = createSource;
+        _nearby = nearby;
+        _bluetooth = bluetooth;
     }
 
     public string Id => ModuleId;
@@ -61,6 +71,14 @@ public sealed class QuickSettingsModule : IBrimModule
         _context = context;
         _source = _createSource();
         _source.Changed += Publish;
+        if (_nearby is { } nearby)
+        {
+            nearby.VisibleChanged += OnNearbyChanged;
+        }
+        if (_bluetooth is { } bluetooth)
+        {
+            bluetooth.GadgetsChanged += Publish;
+        }
         await _source.StartAsync();
         Publish();
         // „Nicht stören“ meldet keine Änderung; der Mond an der Uhr soll trotzdem bald folgen.
@@ -83,6 +101,16 @@ public sealed class QuickSettingsModule : IBrimModule
             return;
         }
         var id = invocation.ActionId;
+        if (id == "nearby")
+        {
+            _nearby?.SetVisible(!_nearby.Visible);
+            Publish();
+            return;
+        }
+        if (id == "settings:nearby")
+        {
+            return;
+        }
         _ = Run(id.StartsWith("settings:", StringComparison.Ordinal)
             ? source.OpenSettingsAsync(id["settings:".Length..])
             : source.ToggleAsync(id));
@@ -137,6 +165,14 @@ public sealed class QuickSettingsModule : IBrimModule
             return;
         }
         var tiles = source.Read();
+        if (_bluetooth is { } bt && BluetoothModule.Summary(bt.Connected) is { } devices)
+        {
+            tiles = [.. tiles.Select(t => t.Id == "bluetooth" ? t with { Detail = devices } : t)];
+        }
+        if (_nearby is { } nearby)
+        {
+            tiles = [.. tiles, new QuickTile("nearby", Glyphs.Share, "Brims in der Nähe", nearby.Visible)];
+        }
         var quiet = tiles.Any(t => t.Id == "dnd" && t.On);
         context.SetStatus("dnd", quiet
             ? new IconWidget(Glyphs.QuietHours) { Size = 12, Color = BrimColors.Slate, AccessibleName = "Nicht stören ist an" }
@@ -148,9 +184,19 @@ public sealed class QuickSettingsModule : IBrimModule
         context.SetView("tiles", Card(tiles), order: -10);
     }
 
+    private void OnNearbyChanged(bool visible) => Publish();
+
     public ValueTask DisposeAsync()
     {
         _poll?.Dispose();
+        if (_nearby is { } nearby)
+        {
+            nearby.VisibleChanged -= OnNearbyChanged;
+        }
+        if (_bluetooth is { } bluetooth)
+        {
+            bluetooth.GadgetsChanged -= Publish;
+        }
         if (_source is { } source)
         {
             source.Changed -= Publish;
@@ -164,6 +210,7 @@ public sealed class QuickSettingsModule : IBrimModule
 internal sealed class WindowsQuickSettings : IQuickSettingsSource
 {
     private readonly List<Radio> _radios = [];
+    private readonly Focus _focus = Focus.Shared;
 
     public event Action? Changed;
 
@@ -188,11 +235,14 @@ internal sealed class WindowsQuickSettings : IQuickSettingsSource
             Log.Warn("Schnelleinstellungen: Funkmodule nicht lesbar", ex);
         }
         PowerManager.EnergySaverStatusChanged += OnPowerChanged;
+        _focus.Changed += OnFocusChanged;
         // Anderes WLAN: der Name unter der Kachel folgt.
         NetworkInformation.NetworkStatusChanged += OnNetworkChanged;
     }
 
     private void OnNetworkChanged(object sender) => Changed?.Invoke();
+
+    private void OnFocusChanged() => Changed?.Invoke();
 
     private void OnRadioChanged(Radio sender, object args) => Changed?.Invoke();
 
@@ -207,6 +257,7 @@ internal sealed class WindowsQuickSettings : IQuickSettingsSource
         [
             new QuickTile("wifi", Glyphs.Wifi, "WLAN", wifi?.State == RadioState.On, wifi is not null, wifi?.State == RadioState.On ? Ssid() : null),
             new QuickTile("bluetooth", Glyphs.Bluetooth, "Bluetooth", bluetooth?.State == RadioState.On, bluetooth is not null),
+            new QuickTile("focus", Glyphs.Focus, "Fokus", _focus.IsActive, _focus.IsSupported, FocusLabel(_focus.Remaining)),
             new QuickTile("dnd", Glyphs.QuietHours, "Nicht stören", QuietHours.IsDoNotDisturb()),
             new QuickTile("saver", Glyphs.Leaf, "Energiesparen", saver == EnergySaverStatus.On, saver != EnergySaverStatus.Disabled),
         ];
@@ -228,8 +279,17 @@ internal sealed class WindowsQuickSettings : IQuickSettingsSource
         }
     }
 
+    /// <summary>„Fokus 18 Min“ wie unter der Kachel im Design; ohne bekannte Restzeit nur „Fokus“.</summary>
+    public static string? FocusLabel(TimeSpan? remaining) =>
+        remaining is { } r ? $"Fokus {Math.Max(1, (int)Math.Ceiling(r.TotalMinutes))} Min" : null;
+
     public async Task ToggleAsync(string id)
     {
+        if (id == "focus" && _focus.IsSupported)
+        {
+            _focus.Toggle();
+            return;
+        }
         var kind = id switch
         {
             "wifi" => RadioKind.WiFi,
@@ -255,6 +315,7 @@ internal sealed class WindowsQuickSettings : IQuickSettingsSource
             "wifi" => "ms-settings:network-wifi",
             "bluetooth" => "ms-settings:bluetooth",
             "dnd" => "ms-settings:notifications",
+            "focus" => "ms-settings:quiethours",
             "saver" => "ms-settings:batterysaver",
             _ => "ms-settings:",
         };
@@ -264,6 +325,7 @@ internal sealed class WindowsQuickSettings : IQuickSettingsSource
     public void Dispose()
     {
         PowerManager.EnergySaverStatusChanged -= OnPowerChanged;
+        _focus.Changed -= OnFocusChanged;
         NetworkInformation.NetworkStatusChanged -= OnNetworkChanged;
         foreach (var radio in _radios)
         {

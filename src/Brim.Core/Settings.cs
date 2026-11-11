@@ -283,6 +283,9 @@ public sealed class ShareSettings
 
     public ProxyMode Proxy { get; set; } = ProxyMode.System;
 
+    /// <summary>Für andere Brims im Netz sichtbar (Kachel „Brims in der Nähe“ im Tab „System“).</summary>
+    public bool NearbyVisible { get; set; } = true;
+
     /// <summary>Bei <see cref="ProxyMode.Manual"/>: <c>http://host:port</c> oder <c>socks5://host:port</c>, optional mit Benutzer:Passwort.</summary>
     public string? ProxyUrl { get; set; }
 }

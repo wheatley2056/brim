@@ -40,6 +40,10 @@ public static class Glyphs
     public static readonly string Bell = G(0xEA8F);
     /// <summary>WLAN (Wifi).</summary>
     public static readonly string Wifi = G(0xE701);
+    /// <summary>Fokus (RadioBtnOn: Ring mit Punkt, wie das Fokus-Symbol von Windows 11).</summary>
+    public static readonly string Focus = G(0xECCB);
+    /// <summary>Teilen (Share), für „Brims in der Nähe“.</summary>
+    public static readonly string Share = G(0xE72D);
     /// <summary>Pfeil nach unten (ChevronDown), z. B. neben dem Ausgabegerät.</summary>
     public static readonly string ChevronDown = G(0xE70D);
     /// <summary>Netzwerkkabel (Ethernet).</summary>

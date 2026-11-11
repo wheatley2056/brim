@@ -141,10 +141,12 @@ public class ResourcesModuleTests
         _time.Advance(TimeSpan.FromSeconds(1));
 
         var views = _hub.Views(NotchTab.System);
-        Assert.Equal(["resources/cpu", "resources/memory", "resources/network"], views.Select(v => v.Key));
-        Assert.All(views, v => Assert.Equal(TabColumn.Cards, v.Column));
-        var texts = Texts(views[1].Content).Select(t => t.Replace('.', ',')).ToList();
-        Assert.Equal(["Arbeitsspeicher", "25 %", "4,0 von 16 GB"], texts);
+        Assert.Equal(["resources/processes", "resources/cpu", "resources/gpu", "resources/memory", "resources/disk", "resources/network"], views.Select(v => v.Key));
+        Assert.Equal(TabColumn.Main, views[0].Column);
+        Assert.Contains(Texts(views[0].Content), t => t.StartsWith("Brim", StringComparison.Ordinal));
+        Assert.All(views.Skip(1), v => Assert.Equal(TabColumn.Cards, v.Column));
+        var texts = Texts(views[3].Content).Select(t => t.Replace('.', ',')).ToList();
+        Assert.Equal(["RAM", "25 %", "4,0 von 16 GB"], texts);
     }
 
     [Fact]
@@ -154,7 +156,7 @@ public class ResourcesModuleTests
         _module.OnTabVisibilityChanged(NotchTab.System, true);
         _time.Advance(TimeSpan.FromSeconds(1));
         var actions = _hub.Views(NotchTab.System).SelectMany(v => WidgetTree.All(v.Content)).OfType<StackWidget>().Select(w => w.ActionId).ToList();
-        Assert.Equal(["detail:cpu", "detail:memory", "detail:network"], actions);
+        Assert.Equal(["detail:cpu", "detail:cpu", "detail:gpu", "detail:memory", "detail:disk", "detail:network"], actions);
 
         _module.OnAction(new ActionInvocation(ResourcesModule.ModuleId, "detail:cpu"));
         var detail = Assert.Single(_hub.Views(NotchTab.System), v => v.IsDetail);

@@ -60,7 +60,8 @@ public sealed partial class NotchView
                     Glyph = glyph,
                     FontSize = 16,
                     FontFamily = (FontFamily)Application.Current.Resources["NotchIconFont"],
-                    Foreground = Brushes.Get(BrimColors.Fog),
+                    // Fokus in der Akzentfarbe wie im Design.
+                    Foreground = Brushes.Get(glyph == Glyphs.Focus ? BrimColors.DefaultAccent : BrimColors.Fog),
                 };
                 AutomationProperties.SetName(icon, name);
                 panel.Children.Add(icon);
@@ -90,6 +91,11 @@ public sealed partial class NotchView
     private static List<(string Glyph, string Name)> ReadHeaderStatus()
     {
         var items = new List<(string, string)>();
+        // Reihenfolge wie im Infobereich und im Design: Fokus, Netzwerk, Akku.
+        if (Focus.Shared.IsActive)
+        {
+            items.Add((Glyphs.Focus, "Fokus aktiv"));
+        }
         try
         {
             if (NetworkInformation.GetInternetConnectionProfile() is { } profile)

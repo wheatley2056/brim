@@ -171,11 +171,12 @@ public sealed partial class ResourcesModule : IBrimModule
             return;
         }
         ResourceSample? s;
-        double[] cpu;
+        double[] cpu, gpu;
         lock (_gate)
         {
             s = _last;
             cpu = [.. _cpuHistory];
+            gpu = [.. _gpuHistory];
         }
 
         if (_unavailable)
@@ -191,18 +192,52 @@ public sealed partial class ResourcesModule : IBrimModule
         PublishDetail(s, culture);
 
         // Design „Windows-11-nativ“: Messwerte nebeneinander in Karten am unteren Rand (neben dem Akku), Werte
-        // wie im Task-Manager. GPU, Datenträger und Prozesse stehen in den Detailansichten.
+        // wie im Task-Manager; dazu GPU, Datenträger und eine Zeile mit den Top-Prozessen.
         var unit = context.Settings.Display.NetworkUnit;
         var memoryPercent = s is { MemoryTotal: > 0 } m ? 100.0 * m.MemoryUsed / m.MemoryTotal : (double?)null;
         context.SetView("cpu", Card("detail:cpu", "CPU", Percent(s?.Cpu, culture),
             new ChartWidget(cpu) { Max = 100, Capacity = HistoryLength, Height = 16, Thickness = 1.5, Color = BrimColors.DefaultAccent, AccessibleName = "CPU-Verlauf" }),
             column: TabColumn.Cards, order: 10);
-        context.SetView("memory", Card("detail:memory", "Arbeitsspeicher", Percent(memoryPercent, culture),
-            Caption(s is { MemoryTotal: > 0 } mm ? $"{FormatGigabytes(mm.MemoryUsed, culture)} von {Math.Round(mm.MemoryTotal / (1024.0 * 1024 * 1024)).ToString("0", culture)} GB" : "–")),
+        context.SetView("gpu", Card("detail:gpu", "GPU", Percent(s?.Gpu, culture),
+            new ChartWidget(gpu) { Max = 100, Capacity = HistoryLength, Height = 16, Thickness = 1.5, Color = BrimColors.DefaultAccent, AccessibleName = "GPU-Verlauf" }),
             column: TabColumn.Cards, order: 11);
+        context.SetView("memory", Card("detail:memory", "RAM", Percent(memoryPercent, culture),
+            Caption(s is { MemoryTotal: > 0 } mm ? $"{FormatGigabytes(mm.MemoryUsed, culture)} von {Math.Round(mm.MemoryTotal / (1024.0 * 1024 * 1024)).ToString("0", culture)} GB" : "–")),
+            column: TabColumn.Cards, order: 12);
+        context.SetView("disk", Card("detail:disk", "Datenträger", Percent(s?.Disk, culture), Caption("aktiv")),
+            column: TabColumn.Cards, order: 13);
         context.SetView("network", Card("detail:network", "Netzwerk", s is null ? "–" : FormatRate(s.NetworkDown + s.NetworkUp, unit, culture),
             Caption(s is null ? "–" : $"↓ {FormatRate(s.NetworkDown, unit, culture)} ↑ {FormatRate(s.NetworkUp, unit, culture)}")),
-            column: TabColumn.Cards, order: 12);
+            column: TabColumn.Cards, order: 14);
+        context.SetView("processes", Processes(s?.TopProcesses ?? [], culture), order: 0);
+    }
+
+    /// <summary>Top-Prozesse in einer Zeile unter den Reglern; der Knopf rechts öffnet den Task-Manager.</summary>
+    public static Widget Processes(IReadOnlyList<ProcessUsage> processes, CultureInfo culture)
+    {
+        var children = new List<Widget> { new TextWidget("Top-Prozesse") { Style = TextStyle.Secondary, FontSize = 12 } };
+        children.AddRange(processes.Take(3).Select(p => (Widget)new TextWidget($"{p.Name} {Percent(p.Cpu, culture, small: true)}") { FontSize = 12, Grow = 1 }));
+        if (processes.Count == 0)
+        {
+            children.Add(new TextWidget("Gerade ist alles ruhig.") { FontSize = 12, Grow = 1 });
+        }
+        children.Add(new ButtonWidget("taskmgr")
+        {
+            Glyph = Glyphs.OpenInNew,
+            Size = 22,
+            GlyphSize = 11,
+            GlyphColor = BrimColors.Slate,
+            AccessibleName = "Task-Manager öffnen",
+        });
+        return new StackWidget(children)
+        {
+            Spacing = 12,
+            ActionId = "detail:cpu",
+            Background = BrimColors.Graphite,
+            CornerRadius = 8,
+            Padding = (12, 4, 6, 4),
+            AccessibleName = "Top-Prozesse: " + string.Join(", ", processes.Take(3).Select(p => $"{p.Name} {Percent(p.Cpu, culture, small: true)}")),
+        };
     }
 
     private static TextWidget Caption(string text) => new(text) { Style = TextStyle.Secondary, FontSize = 12 };
